@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { BookOpen, FolderGit2, LayoutGrid } from 'lucide-react';
+import { AlertTriangle, BookOpen, ChartColumnBig, FolderGit2, LayoutGrid, Stethoscope, TrendingUp, Waves } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -21,6 +21,31 @@ const mainNavItems: NavItem[] = [
         title: 'Dashboard',
         href: dashboard(),
         icon: LayoutGrid,
+    },
+    {
+        title: 'Costeo quirúrgico',
+        href: '/costeo',
+        icon: Stethoscope,
+    },
+    {
+        title: 'Costo por componente',
+        href: '/costeo/componentes',
+        icon: ChartColumnBig,
+    },
+    {
+        title: 'Outliers de costo',
+        href: '/costeo/outliers',
+        icon: AlertTriangle,
+    },
+    {
+        title: 'Rentabilidad',
+        href: '/costeo/rentabilidad',
+        icon: TrendingUp,
+    },
+    {
+        title: 'Variabilidad',
+        href: '/costeo/variabilidad',
+        icon: Waves,
     },
 ];
 
