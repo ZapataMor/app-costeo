@@ -7,6 +7,8 @@ use App\Http\Controllers\Api\V1\PacienteController;
 use App\Http\Controllers\Api\V1\ProcedimientoQuirurgicoController;
 use App\Http\Controllers\Api\V1\RecursoHumanoController;
 use App\Http\Controllers\DashboardCosteoController;
+use App\Http\Controllers\HospitalActivoController;
+use App\Http\Controllers\Parametros;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'welcome')->name('home');
@@ -14,8 +16,26 @@ Route::inertia('/', 'welcome')->name('home');
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('dashboard', 'dashboard')->name('dashboard');
 
+    // Switcher de hospital del super_admin
+    Route::post('hospital-activo', [HospitalActivoController::class, 'store'])->name('hospital-activo.store');
+
+    // ── Parámetros del hospital (Capa 1) ────────────────────────────────
+    Route::prefix('parametros')->name('parametros.')->middleware('hospital.contexto')->group(function () {
+        Route::get('hospital', [Parametros\HospitalConfiguracionController::class, 'edit'])->name('hospital.edit');
+        Route::put('hospital', [Parametros\HospitalConfiguracionController::class, 'update'])->name('hospital.update');
+
+        Route::resource('recursos-humanos', Parametros\RecursoHumanoController::class)
+            ->except('show')->parameters(['recursos-humanos' => 'recursoHumano']);
+        Route::resource('insumos', Parametros\InsumoController::class)->except('show');
+        Route::resource('equipos-medicos', Parametros\EquipoMedicoController::class)
+            ->except('show')->parameters(['equipos-medicos' => 'equipoMedico']);
+        Route::resource('salas-operatorias', Parametros\SalaOperatoriaController::class)
+            ->except('show')->parameters(['salas-operatorias' => 'salaOperatoria']);
+        Route::resource('procedimientos', Parametros\ProcedimientoQuirurgicoController::class)->except('show');
+    });
+
     // ── Dashboards de costeo (Capa 3c) ──────────────────────────────────
-    Route::prefix('costeo')->name('costeo.')->group(function () {
+    Route::prefix('costeo')->name('costeo.')->middleware('hospital.contexto')->group(function () {
         Route::get('/', [DashboardCosteoController::class, 'index'])->name('index');
         Route::get('componentes', [DashboardCosteoController::class, 'componentes'])->name('componentes');
         Route::get('outliers', [DashboardCosteoController::class, 'outliers'])->name('outliers');
@@ -25,7 +45,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 // ── API v1 (sesión web; consumida por los dashboards y tests) ───────────
-Route::middleware(['auth'])->prefix('api/v1')->name('api.v1.')->group(function () {
+Route::middleware(['auth', 'hospital.contexto'])->prefix('api/v1')->name('api.v1.')->group(function () {
     // KPIs (Capa 3b — Donabedian)
     Route::get('kpis/costos', [KpiController::class, 'costos'])->name('kpis.costos');
     Route::get('kpis/variabilidad', [KpiController::class, 'variabilidad'])->name('kpis.variabilidad');

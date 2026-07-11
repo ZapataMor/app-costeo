@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\NivelConfiabilidad;
 use App\Models\Concerns\BelongsToHospital;
 use Database\Factories\SalaOperatoriaFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -18,6 +19,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $costo_hora
  * @property list<string>|null $equipamiento
  * @property bool $activa
+ * @property string|null $fuente
+ * @property NivelConfiabilidad $nivel_confiabilidad
  */
 class SalaOperatoria extends Model
 {
@@ -33,6 +36,8 @@ class SalaOperatoria extends Model
         'costo_hora',
         'equipamiento',
         'activa',
+        'fuente',
+        'nivel_confiabilidad',
     ];
 
     protected function casts(): array
@@ -41,6 +46,7 @@ class SalaOperatoria extends Model
             'costo_hora' => 'decimal:2',
             'equipamiento' => 'array',
             'activa' => 'boolean',
+            'nivel_confiabilidad' => NivelConfiabilidad::class,
         ];
     }
 

@@ -29,7 +29,14 @@ class HospitalContext
         /** @var User|null $user */
         $user = Auth::user();
 
-        return $user?->hospital_id;
+        // Un super_admin solo tiene hospital activo cuando lo fija
+        // explícitamente (switcher → middleware → set()); su hospital_id
+        // personal nunca activa el scope.
+        if ($user === null || $user->isSuperAdmin()) {
+            return null;
+        }
+
+        return $user->hospital_id;
     }
 
     public static function clear(): void

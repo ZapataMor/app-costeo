@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\RolUsuario;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -34,6 +35,17 @@ class UserFactory extends Factory
             'two_factor_recovery_codes' => null,
             'two_factor_confirmed_at' => null,
         ];
+    }
+
+    /**
+     * Super administrador: ve todos los hospitales, sin hospital propio.
+     */
+    public function superAdmin(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => RolUsuario::SuperAdmin->value,
+            'hospital_id' => null,
+        ]);
     }
 
     /**

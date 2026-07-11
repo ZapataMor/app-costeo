@@ -3,21 +3,25 @@
 namespace App\Http\Requests;
 
 use App\Enums\NivelComplejidad;
+use App\Http\Requests\Concerns\ReglasTrazabilidad;
 use App\Support\HospitalContext;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class StoreProcedimientoQuirurgicoRequest extends FormRequest
 {
+    use ReglasTrazabilidad;
+
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->can('operar-hospital') ?? false;
     }
 
     /** @return array<string, mixed> */
     public function rules(): array
     {
         return [
+            ...$this->reglasTrazabilidad(),
             // CUPS: código de 6 dígitos (Resolución 2238 de 2020)
             'codigo_cups' => [
                 'required',
@@ -37,6 +41,7 @@ class StoreProcedimientoQuirurgicoRequest extends FormRequest
     public function messages(): array
     {
         return [
+            ...$this->mensajesTrazabilidad(),
             'codigo_cups.regex' => 'El código CUPS debe tener 6 dígitos.',
         ];
     }

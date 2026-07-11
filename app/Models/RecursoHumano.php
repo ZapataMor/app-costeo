@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\NivelConfiabilidad;
 use App\Models\Concerns\BelongsToHospital;
 use Database\Factories\RecursoHumanoFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -21,6 +22,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $prestaciones_mensuales
  * @property string $costos_indirectos_mensuales
  * @property bool $activo
+ * @property string|null $fuente
+ * @property NivelConfiabilidad $nivel_confiabilidad
  */
 class RecursoHumano extends Model
 {
@@ -38,6 +41,8 @@ class RecursoHumano extends Model
         'prestaciones_mensuales',
         'costos_indirectos_mensuales',
         'activo',
+        'fuente',
+        'nivel_confiabilidad',
     ];
 
     protected function casts(): array
@@ -47,6 +52,7 @@ class RecursoHumano extends Model
             'prestaciones_mensuales' => 'decimal:2',
             'costos_indirectos_mensuales' => 'decimal:2',
             'activo' => 'boolean',
+            'nivel_confiabilidad' => NivelConfiabilidad::class,
         ];
     }
 

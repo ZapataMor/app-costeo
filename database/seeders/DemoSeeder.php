@@ -35,6 +35,12 @@ class DemoSeeder extends Seeder
     {
         $motor = app(TdabcCostingService::class);
 
+        // ── Super administrador (ve todos los hospitales) ────────────────
+        User::factory()->superAdmin()->create([
+            'name' => 'Super Admin [SEMILLA]',
+            'email' => 'superadmin@demo.test',
+        ]);
+
         // ── Hospital 1: dataset principal ────────────────────────────────
         $sanJose = Hospital::create([
             'nombre' => 'Hospital San Rafael de Maicao [SEMILLA]',

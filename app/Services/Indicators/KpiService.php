@@ -349,7 +349,7 @@ class KpiService
     /**
      * Costos totales agrupados por procedimiento principal.
      *
-     * @return Collection<int, array{procedimiento: array<string, mixed>, costos: list<float>}>
+     * @return Collection<int, array{procedimiento: array{id: mixed, codigo_cups: mixed, nombre: mixed}, costos: list<float>}>
      */
     protected function costosPorProcedimiento(): Collection
     {
@@ -371,7 +371,7 @@ class KpiService
                     'codigo_cups' => $grupo->first()->codigo_cups,
                     'nombre' => $grupo->first()->procedimiento_nombre,
                 ],
-                'costos' => $grupo->map(fn ($f): float => (float) $f->costo_total)->all(),
+                'costos' => array_values($grupo->map(fn ($f): float => (float) $f->costo_total)->all()),
             ])
             ->values();
     }

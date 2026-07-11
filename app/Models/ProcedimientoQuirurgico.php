@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\NivelConfiabilidad;
 use App\Models\Concerns\BelongsToHospital;
 use Database\Factories\ProcedimientoQuirurgicoFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -19,6 +20,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  * @property string $complejidad
  * @property int $duracion_estimada_minutos
  * @property string|null $tarifa_soat
+ * @property string|null $fuente
+ * @property NivelConfiabilidad $nivel_confiabilidad
  */
 class ProcedimientoQuirurgico extends Model
 {
@@ -35,6 +38,8 @@ class ProcedimientoQuirurgico extends Model
         'complejidad',
         'duracion_estimada_minutos',
         'tarifa_soat',
+        'fuente',
+        'nivel_confiabilidad',
     ];
 
     protected function casts(): array
@@ -42,6 +47,7 @@ class ProcedimientoQuirurgico extends Model
         return [
             'duracion_estimada_minutos' => 'integer',
             'tarifa_soat' => 'decimal:2',
+            'nivel_confiabilidad' => NivelConfiabilidad::class,
         ];
     }
 

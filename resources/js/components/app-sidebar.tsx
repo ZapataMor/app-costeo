@@ -1,6 +1,7 @@
 import { Link } from '@inertiajs/react';
 import { AlertTriangle, BookOpen, ChartColumnBig, FolderGit2, LayoutGrid, Stethoscope, TrendingUp, Waves } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
+import { HospitalSwitcher } from '@/components/hospital-switcher';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -75,6 +76,7 @@ export function AppSidebar() {
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarMenu>
+                <HospitalSwitcher />
             </SidebarHeader>
 
             <SidebarContent>

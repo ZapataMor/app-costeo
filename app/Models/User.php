@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Enums\RolUsuario;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -18,6 +19,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
 /**
  * @property int $id
  * @property int|null $hospital_id
+ * @property RolUsuario $role
  * @property string $name
  * @property string $email
  * @property Carbon|null $email_verified_at
@@ -47,6 +49,7 @@ class User extends Authenticatable implements PasskeyUser
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
+            'role' => RolUsuario::class,
         ];
     }
 
@@ -54,5 +57,15 @@ class User extends Authenticatable implements PasskeyUser
     public function hospital(): BelongsTo
     {
         return $this->belongsTo(Hospital::class);
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === RolUsuario::SuperAdmin;
+    }
+
+    public function isAdminHospital(): bool
+    {
+        return $this->role === RolUsuario::AdminHospital;
     }
 }

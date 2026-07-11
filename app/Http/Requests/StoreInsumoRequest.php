@@ -3,21 +3,25 @@
 namespace App\Http\Requests;
 
 use App\Enums\CategoriaInsumo;
+use App\Http\Requests\Concerns\ReglasTrazabilidad;
 use App\Support\HospitalContext;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class StoreInsumoRequest extends FormRequest
 {
+    use ReglasTrazabilidad;
+
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->can('operar-hospital') ?? false;
     }
 
     /** @return array<string, mixed> */
     public function rules(): array
     {
         return [
+            ...$this->reglasTrazabilidad(),
             'codigo' => [
                 'required',
                 'string',
@@ -42,6 +46,7 @@ class StoreInsumoRequest extends FormRequest
     public function messages(): array
     {
         return [
+            ...$this->mensajesTrazabilidad(),
             'codigo_atc.required_if' => 'Los medicamentos deben registrar código ATC.',
             'codigo_atc.regex' => 'El código ATC no tiene el formato esperado (p. ej. J01CA04).',
         ];

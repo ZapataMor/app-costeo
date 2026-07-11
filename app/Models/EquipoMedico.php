@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
+use App\Enums\NivelConfiabilidad;
 use App\Models\Concerns\BelongsToHospital;
 use Database\Factories\EquipoMedicoFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\Pivot;
 
 /**
  * Equipo médico (laparoscopio, electrobisturí, etc.) con costo por hora
@@ -20,7 +22,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  * @property int|null $vida_util_anios
  * @property string $costo_hora
  * @property bool $activo
- * @property-read \Illuminate\Database\Eloquent\Relations\Pivot|null $pivot
+ * @property string|null $fuente
+ * @property NivelConfiabilidad $nivel_confiabilidad
+ * @property-read Pivot|null $pivot
  */
 class EquipoMedico extends Model
 {
@@ -37,6 +41,8 @@ class EquipoMedico extends Model
         'vida_util_anios',
         'costo_hora',
         'activo',
+        'fuente',
+        'nivel_confiabilidad',
     ];
 
     protected function casts(): array
@@ -46,6 +52,7 @@ class EquipoMedico extends Model
             'vida_util_anios' => 'integer',
             'costo_hora' => 'decimal:2',
             'activo' => 'boolean',
+            'nivel_confiabilidad' => NivelConfiabilidad::class,
         ];
     }
 

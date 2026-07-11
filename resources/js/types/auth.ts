@@ -1,3 +1,5 @@
+export type RolUsuario = 'super_admin' | 'admin_hospital';
+
 export type User = {
     id: number;
     name: string;
@@ -5,6 +7,8 @@ export type User = {
     avatar?: string;
     email_verified_at: string | null;
     two_factor_enabled?: boolean;
+    hospital_id: number | null;
+    role: RolUsuario;
     created_at: string;
     updated_at: string;
     [key: string]: unknown;
@@ -12,6 +16,16 @@ export type User = {
 
 export type Auth = {
     user: User;
+};
+
+export type HospitalResumen = {
+    id: number;
+    nombre: string;
+};
+
+export type HospitalCompartido = {
+    activo: HospitalResumen | null;
+    disponibles: HospitalResumen[];
 };
 
 /* @chisel-passkeys */
