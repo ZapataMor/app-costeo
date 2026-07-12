@@ -6,6 +6,8 @@ use App\Http\Controllers\Api\V1\KpiController;
 use App\Http\Controllers\Api\V1\PacienteController;
 use App\Http\Controllers\Api\V1\ProcedimientoQuirurgicoController;
 use App\Http\Controllers\Api\V1\RecursoHumanoController;
+use App\Http\Controllers\Cirugias;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DashboardCosteoController;
 use App\Http\Controllers\HospitalActivoController;
 use App\Http\Controllers\Parametros;
@@ -14,13 +16,14 @@ use Illuminate\Support\Facades\Route;
 Route::inertia('/', 'welcome')->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::inertia('dashboard', 'dashboard')->name('dashboard');
+    Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // Switcher de hospital del super_admin
     Route::post('hospital-activo', [HospitalActivoController::class, 'store'])->name('hospital-activo.store');
 
     // ── Parámetros del hospital (Capa 1) ────────────────────────────────
     Route::prefix('parametros')->name('parametros.')->middleware('hospital.contexto')->group(function () {
+        Route::get('/', [Parametros\ParametrosController::class, 'index'])->name('index');
         Route::get('hospital', [Parametros\HospitalConfiguracionController::class, 'edit'])->name('hospital.edit');
         Route::put('hospital', [Parametros\HospitalConfiguracionController::class, 'update'])->name('hospital.update');
 
@@ -32,6 +35,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::resource('salas-operatorias', Parametros\SalaOperatoriaController::class)
             ->except('show')->parameters(['salas-operatorias' => 'salaOperatoria']);
         Route::resource('procedimientos', Parametros\ProcedimientoQuirurgicoController::class)->except('show');
+    });
+
+    // ── Cirugías y costeo TDABC (Capa 2) ────────────────────────────────
+    Route::prefix('cirugias')->name('cirugias.')->middleware('hospital.contexto')->group(function () {
+        Route::get('/', [Cirugias\CirugiaController::class, 'index'])->name('index');
+        Route::get('create', [Cirugias\CirugiaController::class, 'create'])->name('create');
+        Route::post('/', [Cirugias\CirugiaController::class, 'store'])->name('store');
+        Route::post('pacientes', [Cirugias\PacienteController::class, 'store'])->name('pacientes.store');
+        Route::get('{cirugia}', [Cirugias\CirugiaController::class, 'show'])->name('show');
+        Route::post('{cirugia}/calcular-costo', [Cirugias\CirugiaController::class, 'calcular'])->name('calcular');
     });
 
     // ── Dashboards de costeo (Capa 3c) ──────────────────────────────────

@@ -13,7 +13,7 @@ class StoreCirugiaRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->can('operar-hospital') ?? false;
     }
 
     /** @return array<string, mixed> */

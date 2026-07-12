@@ -1,0 +1,98 @@
+import type { LinkPaginacion } from '@/types/parametros';
+
+export type CirugiaFila = {
+    id: number;
+    fecha: string | null;
+    paciente: { nombres: string; apellidos: string } | null;
+    procedimiento_principal: { codigo_cups: string; nombre: string } | null;
+    tipo: string;
+    estado: string;
+    duracion_minutos: number | null;
+    costo_total: string | null;
+};
+
+export type PaginadoCirugias = {
+    data: CirugiaFila[];
+    links: LinkPaginacion[];
+    total: number;
+    from: number | null;
+    to: number | null;
+};
+
+export type CatalogoPaciente = { id: number; nombres: string; apellidos: string };
+export type CatalogoSala = { id: number; nombre: string; costo_hora: string };
+export type CatalogoProcedimiento = { id: number; codigo_cups: string; nombre: string; duracion_estimada_minutos: number };
+export type CatalogoRecurso = { id: number; nombre: string; rol: string; especialidad: string | null };
+export type CatalogoInsumo = { id: number; codigo: string; nombre: string; unidad: string; costo_unitario: string };
+export type CatalogoEquipoMedico = { id: number; nombre: string; costo_hora: string };
+
+export type CirugiaDetalle = {
+    id: number;
+    fecha: string | null;
+    hora_inicio: string | null;
+    hora_fin: string | null;
+    duracion_minutos: number | null;
+    tipo: string;
+    estado: string;
+    diagnostico_cie10: string | null;
+    observaciones: string | null;
+    paciente: { nombres: string; apellidos: string } | null;
+    sala: { nombre: string; costo_hora: string } | null;
+    procedimientos: { id: number; codigo_cups: string; nombre: string; es_principal: boolean }[];
+    equipo: { nombre: string | null; rol: string; minutos_participacion: number }[];
+    consumos: {
+        insumo: string | null;
+        unidad: string | null;
+        cantidad: string;
+        costo_unitario_registrado: string;
+        costo_total: string;
+    }[];
+    equipos_medicos: { nombre: string; minutos_uso: number | null }[];
+};
+
+export type DetalleCosto = {
+    minutos_disponibles_mes: number;
+    recurso_humano: {
+        recurso_humano_id: number;
+        nombre: string;
+        rol: string;
+        minutos: number;
+        costo_por_minuto: number;
+        costo: number;
+    }[];
+    sala: {
+        sala_operatoria_id: number;
+        nombre: string;
+        minutos: number;
+        costo_hora: number;
+        costo: number;
+    } | null;
+    equipos: {
+        equipo_medico_id: number;
+        nombre: string;
+        minutos: number;
+        costo_hora: number;
+        costo: number;
+    }[];
+    insumos: {
+        insumo_id: number;
+        nombre: string | null;
+        cantidad: number;
+        costo_unitario: number;
+        costo: number;
+    }[];
+};
+
+export type CostoCirugia = {
+    id: number;
+    cirugia_id: number;
+    costo_recurso_humano: string;
+    costo_sala: string;
+    costo_equipos: string;
+    costo_insumos: string;
+    costo_directo: string;
+    costo_indirecto: string;
+    costo_total: string;
+    detalle: DetalleCosto | null;
+    calculado_en: string | null;
+};

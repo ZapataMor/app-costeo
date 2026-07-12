@@ -54,6 +54,7 @@ export default function Componentes({
                                     formatter={(valor) => cop(Number(valor))}
                                     labelFormatter={(cups) => {
                                         const fila = datos.find((d) => d.etiqueta === cups);
+
                                         return fila ? `${fila.procedimiento.nombre} (${cups})` : cups;
                                     }}
                                 />

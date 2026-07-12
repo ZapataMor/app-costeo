@@ -9,10 +9,10 @@ import { Label } from '@/components/ui/label';
 import type { HospitalConfig } from '@/types/parametros';
 
 export default function HospitalConfiguracion({
-    hospital,
+    configuracion: hospital,
     minutosDisponiblesMes,
 }: {
-    hospital: HospitalConfig;
+    configuracion: HospitalConfig;
     minutosDisponiblesMes: number;
 }) {
     return (

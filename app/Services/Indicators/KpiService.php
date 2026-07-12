@@ -164,7 +164,17 @@ class KpiService
      */
     public function utilizacionSalas(?string $mes = null): array
     {
-        $hospital = Hospital::findOrFail(HospitalContext::id());
+        // Con hospital activo, el denominador es su capacidad; en modo
+        // consolidado (super_admin sin hospital) cada sala usa la capacidad
+        // de SU hospital.
+        $hospitalId = HospitalContext::id();
+
+        $minutosPorHospital = Hospital::query()
+            ->when($hospitalId !== null, fn ($query) => $query->whereKey($hospitalId))
+            ->get()
+            ->mapWithKeys(fn (Hospital $hospital): array => [
+                $hospital->id => $hospital->minutosDisponiblesMes(),
+            ]);
 
         if ($mes === null) {
             $ultimaFecha = Cirugia::where('estado', 'realizada')->max('fecha');
@@ -175,8 +185,6 @@ class KpiService
 
         $inicio = Carbon::createFromFormat('Y-m', $mes)->startOfMonth();
         $fin = $inicio->copy()->endOfMonth();
-
-        $minutosDisponibles = $hospital->minutosDisponiblesMes();
 
         $cirugias = Cirugia::query()
             ->where('estado', 'realizada')
@@ -189,8 +197,12 @@ class KpiService
             ->groupBy('sala_operatoria_id')
             ->map(fn ($grupo) => (int) $grupo->sum(fn (Cirugia $c): int => $c->duracionMinutos() ?? 0));
 
-        $salas = SalaOperatoria::orderBy('nombre')->get()->map(function (SalaOperatoria $sala) use ($minutosPorSala, $minutosDisponibles): array {
+        $totalDisponibles = 0;
+
+        $salas = SalaOperatoria::orderBy('nombre')->get()->map(function (SalaOperatoria $sala) use ($minutosPorSala, $minutosPorHospital, &$totalDisponibles): array {
             $usados = $minutosPorSala->get($sala->id, 0);
+            $minutosDisponibles = (int) $minutosPorHospital->get($sala->hospital_id, 0);
+            $totalDisponibles += $minutosDisponibles;
 
             return [
                 'sala' => ['id' => $sala->id, 'nombre' => $sala->nombre],
@@ -203,7 +215,6 @@ class KpiService
         })->values()->all();
 
         $totalUsados = (int) $minutosPorSala->sum();
-        $totalDisponibles = $minutosDisponibles * count($salas);
 
         return [
             'mes' => $mes,

@@ -84,6 +84,36 @@ class DemoSeeder extends Seeder
         $this->seedHospitalSecundario($remedios, $motor);
 
         HospitalContext::clear();
+
+        $this->marcarTrazabilidad();
+    }
+
+    /**
+     * Trazabilidad académica de los parámetros sembrados (fuente +
+     * nivel_confiabilidad), con niveles variados para la demo.
+     */
+    protected function marcarTrazabilidad(): void
+    {
+        RecursoHumano::withoutGlobalScopes()->update([
+            'fuente' => 'Nómina y contratos 2026 [SEMILLA]',
+            'nivel_confiabilidad' => 'medido',
+        ]);
+        Insumo::withoutGlobalScopes()->update([
+            'fuente' => 'Facturas de compra 2026 [SEMILLA]',
+            'nivel_confiabilidad' => 'medido',
+        ]);
+        EquipoMedico::withoutGlobalScopes()->update([
+            'fuente' => 'Inventario de activos fijos [SEMILLA]',
+            'nivel_confiabilidad' => 'estimado',
+        ]);
+        SalaOperatoria::withoutGlobalScopes()->update([
+            'fuente' => 'Estimación jefe de central quirúrgica 2026-06 [SEMILLA]',
+            'nivel_confiabilidad' => 'estimado',
+        ]);
+        ProcedimientoQuirurgico::withoutGlobalScopes()->update([
+            'fuente' => 'Protocolos institucionales [SEMILLA]',
+            'nivel_confiabilidad' => 'supuesto',
+        ]);
     }
 
     protected function seedHospitalPrincipal(Hospital $hospital, TdabcCostingService $motor): void

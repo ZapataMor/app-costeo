@@ -1,8 +1,16 @@
 import { Link } from '@inertiajs/react';
-import { AlertTriangle, BookOpen, ChartColumnBig, FolderGit2, LayoutGrid, Stethoscope, TrendingUp, Waves } from 'lucide-react';
+import {
+    AlertTriangle,
+    ChartColumnBig,
+    LayoutGrid,
+    SlidersHorizontal,
+    Stethoscope,
+    Syringe,
+    TrendingUp,
+    Waves,
+} from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { HospitalSwitcher } from '@/components/hospital-switcher';
-import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import {
@@ -22,6 +30,11 @@ const mainNavItems: NavItem[] = [
         title: 'Dashboard',
         href: dashboard(),
         icon: LayoutGrid,
+    },
+    {
+        title: 'Cirugías',
+        href: '/cirugias',
+        icon: Syringe,
     },
     {
         title: 'Costeo quirúrgico',
@@ -50,16 +63,11 @@ const mainNavItems: NavItem[] = [
     },
 ];
 
-const footerNavItems: NavItem[] = [
+const parametrosNavItems: NavItem[] = [
     {
-        title: 'Repository',
-        href: 'https://github.com/laravel/react-starter-kit',
-        icon: FolderGit2,
-    },
-    {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#react',
-        icon: BookOpen,
+        title: 'Parámetros',
+        href: '/parametros',
+        icon: SlidersHorizontal,
     },
 ];
 
@@ -80,11 +88,11 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain items={mainNavItems} />
+                <NavMain items={mainNavItems} label="Costeo" />
+                <NavMain items={parametrosNavItems} label="Parámetros (Capa 1)" />
             </SidebarContent>
 
             <SidebarFooter>
-                <NavFooter items={footerNavItems} className="mt-auto" />
                 <NavUser />
             </SidebarFooter>
         </Sidebar>

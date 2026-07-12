@@ -4,8 +4,9 @@
         {
             "name": "app-costeo",
             "runtimeExecutable": "php",
-            "runtimeArgs": ["artisan", "serve", "--port=8000"],
-            "port": 8000
+            "runtimeArgs": ["artisan", "serve", "--port=8801"],
+            "port": 8801,
+            "autoPort": false
         }
     ]
 }

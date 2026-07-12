@@ -16,12 +16,23 @@ use Inertia\Response;
  */
 class HospitalConfiguracionController extends Controller
 {
-    public function edit(): Response
+    public function edit(): Response|RedirectResponse
     {
+        if (HospitalContext::id() === null) {
+            Inertia::flash('toast', [
+                'type' => 'error',
+                'message' => 'Seleccione un hospital para editar su configuración TDABC.',
+            ]);
+
+            return redirect()->route('parametros.index');
+        }
+
         $hospital = $this->hospitalActivo();
 
+        // La clave no puede llamarse "hospital": pisaría la prop compartida
+        // del switcher de hospital (HandleInertiaRequests) y rompe la vista.
         return Inertia::render('parametros/hospital', [
-            'hospital' => $hospital->only([
+            'configuracion' => $hospital->only([
                 'id', 'nombre', 'nit', 'municipio', 'departamento',
                 'horas_dia', 'dias_mes', 'factor_indirecto',
             ]),

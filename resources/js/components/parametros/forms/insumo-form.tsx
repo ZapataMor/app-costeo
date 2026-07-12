@@ -1,7 +1,7 @@
 import { Form, Link } from '@inertiajs/react';
 import { useState } from 'react';
-import { CamposTrazabilidad } from '@/components/parametros/campos-trazabilidad';
 import InputError from '@/components/input-error';
+import { CamposTrazabilidad } from '@/components/parametros/campos-trazabilidad';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
