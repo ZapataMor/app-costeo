@@ -8,7 +8,18 @@ import {
     Plus,
     Users,
 } from 'lucide-react';
-import type { ComponentType } from 'react';
+import type { ComponentType, ReactNode } from 'react';
+import EquipoMedicoController from '@/actions/App/Http/Controllers/Parametros/EquipoMedicoController';
+import InsumoController from '@/actions/App/Http/Controllers/Parametros/InsumoController';
+import ProcedimientoQuirurgicoController from '@/actions/App/Http/Controllers/Parametros/ProcedimientoQuirurgicoController';
+import RecursoHumanoController from '@/actions/App/Http/Controllers/Parametros/RecursoHumanoController';
+import SalaOperatoriaController from '@/actions/App/Http/Controllers/Parametros/SalaOperatoriaController';
+import { EquipoMedicoForm } from '@/components/parametros/forms/equipo-medico-form';
+import { InsumoForm } from '@/components/parametros/forms/insumo-form';
+import { ProcedimientoForm } from '@/components/parametros/forms/procedimiento-form';
+import { RecursoHumanoForm } from '@/components/parametros/forms/recurso-humano-form';
+import { SalaOperatoriaForm } from '@/components/parametros/forms/sala-operatoria-form';
+import { ModalFormulario } from '@/components/parametros/modal-formulario';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,11 +30,14 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { cop } from '@/lib/formato';
 
 interface ItemResumen {
     id: number;
     nombre: string;
     detalle: string | null;
+    valor: number | null;
+    unidad: string | null;
 }
 
 interface ModuloResumen {
@@ -39,6 +53,7 @@ interface ParametrosIndexProps {
         salasOperatorias: ModuloResumen;
         procedimientos: ModuloResumen;
     };
+    catalogos: Catalogos;
     hospitalActivo: {
         id: number;
         nombre: string;
@@ -48,64 +63,113 @@ interface ParametrosIndexProps {
     } | null;
 }
 
+interface Catalogos {
+    roles: string[];
+    categorias: string[];
+    complejidades: string[];
+    nivelesConfiabilidad: string[];
+}
+
 const definiciones: {
     clave: keyof ParametrosIndexProps['modulos'];
     titulo: string;
+    tituloNuevo: string;
     descripcion: string;
     href: string;
     icono: ComponentType<{ className?: string }>;
+    formulario: (cerrar: () => void, catalogos: Catalogos) => ReactNode;
 }[] = [
     {
         clave: 'recursosHumanos',
         titulo: 'Recursos humanos',
+        tituloNuevo: 'Nuevo recurso humano',
         descripcion: 'Personal quirúrgico y su estructura salarial.',
         href: '/parametros/recursos-humanos',
         icono: Users,
+        formulario: (cerrar, c) => (
+            <RecursoHumanoForm
+                action={RecursoHumanoController.store.form()}
+                roles={c.roles}
+                nivelesConfiabilidad={c.nivelesConfiabilidad}
+                onSuccess={cerrar}
+            />
+        ),
     },
     {
         clave: 'insumos',
         titulo: 'Insumos',
+        tituloNuevo: 'Nuevo insumo',
         descripcion: 'Insumos y dispositivos con su costo unitario.',
         href: '/parametros/insumos',
         icono: Package,
+        formulario: (cerrar, c) => (
+            <InsumoForm
+                action={InsumoController.store.form()}
+                categorias={c.categorias}
+                nivelesConfiabilidad={c.nivelesConfiabilidad}
+                onSuccess={cerrar}
+            />
+        ),
     },
     {
         clave: 'equiposMedicos',
         titulo: 'Equipos médicos',
+        tituloNuevo: 'Nuevo equipo médico',
         descripcion: 'Equipos con depreciación y costo por minuto.',
         href: '/parametros/equipos-medicos',
         icono: MonitorSpeaker,
+        formulario: (cerrar, c) => (
+            <EquipoMedicoForm
+                action={EquipoMedicoController.store.form()}
+                nivelesConfiabilidad={c.nivelesConfiabilidad}
+                onSuccess={cerrar}
+            />
+        ),
     },
     {
         clave: 'salasOperatorias',
         titulo: 'Salas operatorias',
+        tituloNuevo: 'Nueva sala operatoria',
         descripcion: 'Salas con sus costos fijos de operación.',
         href: '/parametros/salas-operatorias',
         icono: BedDouble,
+        formulario: (cerrar, c) => (
+            <SalaOperatoriaForm
+                action={SalaOperatoriaController.store.form()}
+                nivelesConfiabilidad={c.nivelesConfiabilidad}
+                onSuccess={cerrar}
+            />
+        ),
     },
     {
         clave: 'procedimientos',
         titulo: 'Procedimientos',
+        tituloNuevo: 'Nuevo procedimiento quirúrgico',
         descripcion: 'Catálogo CUPS de procedimientos quirúrgicos.',
         href: '/parametros/procedimientos',
         icono: ListChecks,
+        formulario: (cerrar, c) => (
+            <ProcedimientoForm
+                action={ProcedimientoQuirurgicoController.store.form()}
+                complejidades={c.complejidades}
+                nivelesConfiabilidad={c.nivelesConfiabilidad}
+                onSuccess={cerrar}
+            />
+        ),
     },
 ];
 
-export default function ParametrosIndex({ modulos, hospitalActivo: hospital }: ParametrosIndexProps) {
+export default function ParametrosIndex({ modulos, catalogos, hospitalActivo: hospital }: ParametrosIndexProps) {
     return (
         <>
             <Head title="Parámetros" />
             <div className="flex flex-col gap-4 p-4">
-                <div>
-                    <h1 className="text-xl font-semibold">Parámetros (Capa 1)</h1>
-                    <p className="text-sm text-muted-foreground">
-                        Catálogos base del costeo TDABC. Entre a cada módulo para ver el listado completo y su CRUD.
-                    </p>
-                </div>
+                <p className="text-sm text-muted-foreground">
+                    Catálogos base del costeo TDABC. Entre a cada módulo para ver el listado completo y su CRUD.
+                </p>
 
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                    {definiciones.map(({ clave, titulo, descripcion, href, icono: Icono }) => {
+                    {definiciones.map(({ clave, titulo, tituloNuevo, descripcion, href, icono: Icono, formulario }) => {
                         const modulo = modulos[clave];
 
                         return (
@@ -124,18 +188,33 @@ export default function ParametrosIndex({ modulos, hospitalActivo: hospital }: P
                                             Sin registros todavía.
                                         </p>
                                     ) : (
-                                        <table className="w-full text-sm">
-                                            <tbody>
-                                                {modulo.items.map((item) => (
-                                                    <tr key={item.id} className="border-b last:border-0">
-                                                        <td className="max-w-0 truncate py-2 pr-2">{item.nombre}</td>
-                                                        <td className="py-2 text-right text-xs whitespace-nowrap text-muted-foreground capitalize">
-                                                            {item.detalle ?? ''}
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
+                                        <ul className="text-sm">
+                                            {modulo.items.map((item) => (
+                                                <li
+                                                    key={item.id}
+                                                    className="flex items-center justify-between gap-3 border-b py-2 last:border-0"
+                                                >
+                                                    <div className="min-w-0">
+                                                        <p className="truncate" title={item.nombre}>
+                                                            {item.nombre}
+                                                        </p>
+                                                        {item.detalle && (
+                                                            <p className="truncate text-xs text-muted-foreground" title={item.detalle}>
+                                                                {item.detalle}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                    {item.valor !== null && (
+                                                        <div className="shrink-0 text-right">
+                                                            <p className="font-medium tabular-nums">{cop(item.valor)}</p>
+                                                            {item.unidad && (
+                                                                <p className="text-xs text-muted-foreground">{item.unidad}</p>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </li>
+                                            ))}
+                                        </ul>
                                     )}
                                     {modulo.total > modulo.items.length && (
                                         <p className="pt-2 text-xs text-muted-foreground">
@@ -149,12 +228,9 @@ export default function ParametrosIndex({ modulos, hospitalActivo: hospital }: P
                                             Ver listado y CRUD
                                         </Link>
                                     </Button>
-                                    <Button asChild size="sm">
-                                        <Link href={`${href}/create`} prefetch>
-                                            <Plus className="size-4" />
-                                            Nuevo
-                                        </Link>
-                                    </Button>
+                                    <ModalFormulario titulo={tituloNuevo} textoBoton="Nuevo" tamanoBoton="sm">
+                                        {(cerrar) => formulario(cerrar, catalogos)}
+                                    </ModalFormulario>
                                 </CardFooter>
                             </Card>
                         );

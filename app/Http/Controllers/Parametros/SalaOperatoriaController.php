@@ -17,6 +17,7 @@ class SalaOperatoriaController extends Controller
     {
         return Inertia::render('parametros/salas-operatorias/index', [
             'salas' => SalaOperatoria::orderBy('nombre')->paginate(15)->withQueryString(),
+            ...$this->catalogos(),
         ]);
     }
 
@@ -31,7 +32,7 @@ class SalaOperatoriaController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Sala operatoria registrada.']);
 
-        return redirect()->route('parametros.salas-operatorias.index');
+        return back();
     }
 
     public function edit(SalaOperatoria $salaOperatoria): Response

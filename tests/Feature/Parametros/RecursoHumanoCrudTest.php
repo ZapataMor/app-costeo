@@ -24,7 +24,7 @@ class RecursoHumanoCrudTest extends ParametrosTestCase
 
     public function test_crear_recurso_con_trazabilidad(): void
     {
-        $this->actingAs($this->adminA)->post('/parametros/recursos-humanos', [
+        $this->actingAs($this->adminA)->from('/parametros/recursos-humanos')->post('/parametros/recursos-humanos', [
             'nombre' => 'Dra. Carmen Epiayú',
             'rol' => 'cirujano',
             'especialidad' => 'Ginecobstetricia',
@@ -43,7 +43,7 @@ class RecursoHumanoCrudTest extends ParametrosTestCase
 
     public function test_rechaza_rol_quirurgico_invalido(): void
     {
-        $this->actingAs($this->adminA)->post('/parametros/recursos-humanos', [
+        $this->actingAs($this->adminA)->from('/parametros/recursos-humanos')->post('/parametros/recursos-humanos', [
             'nombre' => 'Dr. X',
             'rol' => 'gerente',
             'salario_mensual' => 1_000_000,

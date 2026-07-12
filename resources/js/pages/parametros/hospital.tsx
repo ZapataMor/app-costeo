@@ -1,4 +1,5 @@
-import { Form, Head } from '@inertiajs/react';
+import { Form, Head, Link } from '@inertiajs/react';
+import { ArrowLeft } from 'lucide-react';
 import HospitalConfiguracionController from '@/actions/App/Http/Controllers/Parametros/HospitalConfiguracionController';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -19,10 +20,17 @@ export default function HospitalConfiguracion({
         <>
             <Head title="Configuración del hospital" />
             <div className="flex flex-col gap-4 p-4">
-                <Heading
-                    title="Configuración del hospital"
-                    description={`${hospital.nombre} · NIT ${hospital.nit}`}
-                />
+                <div className="flex items-start gap-2">
+                    <Button asChild variant="ghost" size="icon" aria-label="Volver">
+                        <Link href="/parametros" prefetch>
+                            <ArrowLeft className="size-4" />
+                        </Link>
+                    </Button>
+                    <Heading
+                        title="Configuración del hospital"
+                        description={`${hospital.nombre} · NIT ${hospital.nit}`}
+                    />
+                </div>
 
                 <Card className="max-w-2xl">
                     <CardHeader>

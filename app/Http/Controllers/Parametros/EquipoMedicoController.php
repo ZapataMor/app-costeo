@@ -17,6 +17,7 @@ class EquipoMedicoController extends Controller
     {
         return Inertia::render('parametros/equipos-medicos/index', [
             'equipos' => EquipoMedico::orderBy('nombre')->paginate(15)->withQueryString(),
+            ...$this->catalogos(),
         ]);
     }
 
@@ -31,7 +32,7 @@ class EquipoMedicoController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Equipo médico registrado.']);
 
-        return redirect()->route('parametros.equipos-medicos.index');
+        return back();
     }
 
     public function edit(EquipoMedico $equipoMedico): Response

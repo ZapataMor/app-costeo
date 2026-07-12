@@ -28,7 +28,7 @@ class InsumoCrudTest extends ParametrosTestCase
 
     public function test_crear_insumo_asigna_hospital_y_guarda_trazabilidad(): void
     {
-        $respuesta = $this->actingAs($this->adminA)->post('/parametros/insumos', [
+        $respuesta = $this->actingAs($this->adminA)->from('/parametros/insumos')->post('/parametros/insumos', [
             'codigo' => 'MAT-100',
             'nombre' => 'Compresa estéril',
             'categoria' => 'material',
@@ -48,7 +48,7 @@ class InsumoCrudTest extends ParametrosTestCase
 
     public function test_rechaza_nivel_de_confiabilidad_invalido(): void
     {
-        $this->actingAs($this->adminA)->post('/parametros/insumos', [
+        $this->actingAs($this->adminA)->from('/parametros/insumos')->post('/parametros/insumos', [
             'codigo' => 'MAT-101',
             'nombre' => 'Compresa',
             'categoria' => 'material',
@@ -62,7 +62,7 @@ class InsumoCrudTest extends ParametrosTestCase
     {
         Insumo::factory()->create(['hospital_id' => $this->hospitalA->id, 'codigo' => 'MAT-1']);
 
-        $this->actingAs($this->adminA)->post('/parametros/insumos', [
+        $this->actingAs($this->adminA)->from('/parametros/insumos')->post('/parametros/insumos', [
             'codigo' => 'MAT-1',
             'nombre' => 'Otro insumo',
             'categoria' => 'material',
@@ -147,7 +147,7 @@ class InsumoCrudTest extends ParametrosTestCase
     {
         $superAdmin = User::factory()->superAdmin()->create();
 
-        $this->actingAs($superAdmin)->post('/parametros/insumos', [
+        $this->actingAs($superAdmin)->from('/parametros/insumos')->post('/parametros/insumos', [
             'codigo' => 'MAT-200',
             'nombre' => 'Insumo global',
             'categoria' => 'material',
@@ -162,7 +162,7 @@ class InsumoCrudTest extends ParametrosTestCase
 
         $this->actingAs($superAdmin)
             ->withSession(['hospital_activo_id' => $this->hospitalB->id])
-            ->post('/parametros/insumos', [
+            ->from('/parametros/insumos')->post('/parametros/insumos', [
                 'codigo' => 'MAT-300',
                 'nombre' => 'Insumo del hospital B',
                 'categoria' => 'material',

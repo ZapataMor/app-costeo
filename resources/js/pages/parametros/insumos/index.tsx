@@ -4,6 +4,8 @@ import { Pencil } from 'lucide-react';
 import InsumoController from '@/actions/App/Http/Controllers/Parametros/InsumoController';
 import { ConfirmarEliminacion } from '@/components/parametros/confirmar-eliminacion';
 import { EncabezadoListado } from '@/components/parametros/encabezado-listado';
+import { ModalFormulario } from '@/components/parametros/modal-formulario';
+import { InsumoForm } from '@/components/parametros/forms/insumo-form';
 import { NivelConfiabilidadBadge } from '@/components/parametros/nivel-confiabilidad-badge';
 import { Paginacion } from '@/components/parametros/paginacion';
 import { Badge } from '@/components/ui/badge';
@@ -11,16 +13,22 @@ import { Button } from '@/components/ui/button';
 import { cop } from '@/lib/formato';
 import type { InsumoParam, Paginado } from '@/types/parametros';
 
-export default function InsumosIndex({ insumos }: { insumos: Paginado<InsumoParam> }) {
+export default function InsumosIndex({ insumos, categorias, nivelesConfiabilidad }: { insumos: Paginado<InsumoParam>; categorias: string[]; nivelesConfiabilidad: string[] }) {
     return (
         <>
             <Head title="Insumos" />
             <div className="flex flex-col gap-4 p-4">
                 <EncabezadoListado
+                    hrefAtras="/parametros"
                     titulo="Insumos"
                     descripcion="Medicamentos, materiales y dispositivos con su costo unitario (parámetro de Capa 1)."
-                    hrefNuevo={InsumoController.create.url()}
-                    textoNuevo="Nuevo insumo"
+                    accion={
+                        <ModalFormulario titulo="Nuevo insumo" textoBoton="Nuevo insumo">
+                            {(cerrar) => (
+                                <InsumoForm action={InsumoController.store.form()} categorias={categorias} nivelesConfiabilidad={nivelesConfiabilidad} onSuccess={cerrar} />
+                            )}
+                        </ModalFormulario>
+                    }
                 />
 
                 <div className="overflow-x-auto rounded-lg border">

@@ -15,11 +15,15 @@ export function SalaOperatoriaForm({
     sala,
     nivelesConfiabilidad,
     hrefCancelar,
+    onSuccess,
+    onCancelar,
 }: {
     action: FormAction;
     sala?: SalaOperatoriaParam;
     nivelesConfiabilidad: string[];
-    hrefCancelar: string;
+    hrefCancelar?: string;
+    onSuccess?: () => void;
+    onCancelar?: () => void;
 }) {
     const [activa, setActiva] = useState(sala?.activa ?? true);
     // El equipamiento se captura como texto separado por comas y se envía como arreglo.
@@ -31,7 +35,7 @@ export function SalaOperatoriaForm({
         .filter((item) => item.length > 0);
 
     return (
-        <Form {...action} options={{ preserveScroll: true }} className="max-w-3xl space-y-6">
+        <Form {...action} options={{ preserveScroll: true }} onSuccess={onSuccess} className="max-w-3xl space-y-6">
             {({ processing, errors }) => (
                 <>
                     <div className="grid gap-4 sm:grid-cols-2">
@@ -80,9 +84,17 @@ export function SalaOperatoriaForm({
 
                     <div className="flex items-center gap-3">
                         <Button disabled={processing}>Guardar</Button>
-                        <Button asChild variant="outline">
-                            <Link href={hrefCancelar}>Cancelar</Link>
-                        </Button>
+                        {onCancelar ? (
+                            <Button type="button" variant="outline" onClick={onCancelar}>
+                                Cancelar
+                            </Button>
+                        ) : (
+                            hrefCancelar && (
+                                <Button asChild variant="outline">
+                                    <Link href={hrefCancelar}>Cancelar</Link>
+                                </Button>
+                            )
+                        )}
                     </div>
                 </>
             )}

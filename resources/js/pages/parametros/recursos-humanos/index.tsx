@@ -3,6 +3,8 @@ import { Pencil } from 'lucide-react';
 import RecursoHumanoController from '@/actions/App/Http/Controllers/Parametros/RecursoHumanoController';
 import { ConfirmarEliminacion } from '@/components/parametros/confirmar-eliminacion';
 import { EncabezadoListado } from '@/components/parametros/encabezado-listado';
+import { ModalFormulario } from '@/components/parametros/modal-formulario';
+import { RecursoHumanoForm } from '@/components/parametros/forms/recurso-humano-form';
 import { NivelConfiabilidadBadge } from '@/components/parametros/nivel-confiabilidad-badge';
 import { Paginacion } from '@/components/parametros/paginacion';
 import { Badge } from '@/components/ui/badge';
@@ -10,16 +12,22 @@ import { Button } from '@/components/ui/button';
 import { cop } from '@/lib/formato';
 import type { Paginado, RecursoHumanoParam } from '@/types/parametros';
 
-export default function RecursosHumanosIndex({ recursos }: { recursos: Paginado<RecursoHumanoParam> }) {
+export default function RecursosHumanosIndex({ recursos, roles, nivelesConfiabilidad }: { recursos: Paginado<RecursoHumanoParam>; roles: string[]; nivelesConfiabilidad: string[] }) {
     return (
         <>
             <Head title="Recursos humanos" />
             <div className="flex flex-col gap-4 p-4">
                 <EncabezadoListado
+                    hrefAtras="/parametros"
                     titulo="Recursos humanos"
                     descripcion="Personal quirúrgico con su estructura salarial, base del costo por minuto TDABC."
-                    hrefNuevo={RecursoHumanoController.create.url()}
-                    textoNuevo="Nuevo recurso"
+                    accion={
+                        <ModalFormulario titulo="Nuevo recurso humano" textoBoton="Nuevo recurso">
+                            {(cerrar) => (
+                                <RecursoHumanoForm action={RecursoHumanoController.store.form()} roles={roles} nivelesConfiabilidad={nivelesConfiabilidad} onSuccess={cerrar} />
+                            )}
+                        </ModalFormulario>
+                    }
                 />
 
                 <div className="overflow-x-auto rounded-lg border">

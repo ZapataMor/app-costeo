@@ -18,6 +18,7 @@ class InsumoController extends Controller
     {
         return Inertia::render('parametros/insumos/index', [
             'insumos' => Insumo::orderBy('nombre')->paginate(15)->withQueryString(),
+            ...$this->catalogos(),
         ]);
     }
 
@@ -32,7 +33,7 @@ class InsumoController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Insumo registrado.']);
 
-        return redirect()->route('parametros.insumos.index');
+        return back();
     }
 
     public function edit(Insumo $insumo): Response

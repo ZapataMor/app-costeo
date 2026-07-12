@@ -18,6 +18,7 @@ class ProcedimientoQuirurgicoController extends Controller
     {
         return Inertia::render('parametros/procedimientos/index', [
             'procedimientos' => ProcedimientoQuirurgico::orderBy('nombre')->paginate(15)->withQueryString(),
+            ...$this->catalogos(),
         ]);
     }
 
@@ -32,7 +33,7 @@ class ProcedimientoQuirurgicoController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Procedimiento registrado.']);
 
-        return redirect()->route('parametros.procedimientos.index');
+        return back();
     }
 
     public function edit(ProcedimientoQuirurgico $procedimiento): Response

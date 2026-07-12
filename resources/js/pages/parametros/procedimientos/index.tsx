@@ -3,22 +3,30 @@ import { Pencil } from 'lucide-react';
 import ProcedimientoQuirurgicoController from '@/actions/App/Http/Controllers/Parametros/ProcedimientoQuirurgicoController';
 import { ConfirmarEliminacion } from '@/components/parametros/confirmar-eliminacion';
 import { EncabezadoListado } from '@/components/parametros/encabezado-listado';
+import { ModalFormulario } from '@/components/parametros/modal-formulario';
+import { ProcedimientoForm } from '@/components/parametros/forms/procedimiento-form';
 import { NivelConfiabilidadBadge } from '@/components/parametros/nivel-confiabilidad-badge';
 import { Paginacion } from '@/components/parametros/paginacion';
 import { Button } from '@/components/ui/button';
 import { cop } from '@/lib/formato';
 import type { Paginado, ProcedimientoParam } from '@/types/parametros';
 
-export default function ProcedimientosIndex({ procedimientos }: { procedimientos: Paginado<ProcedimientoParam> }) {
+export default function ProcedimientosIndex({ procedimientos, complejidades, nivelesConfiabilidad }: { procedimientos: Paginado<ProcedimientoParam>; complejidades: string[]; nivelesConfiabilidad: string[] }) {
     return (
         <>
             <Head title="Procedimientos quirúrgicos" />
             <div className="flex flex-col gap-4 p-4">
                 <EncabezadoListado
+                    hrefAtras="/parametros"
                     titulo="Procedimientos quirúrgicos"
                     descripcion="Protocolos con código CUPS, duración estimada y tarifa de referencia (parámetro de Capa 1)."
-                    hrefNuevo={ProcedimientoQuirurgicoController.create.url()}
-                    textoNuevo="Nuevo procedimiento"
+                    accion={
+                        <ModalFormulario titulo="Nuevo procedimiento quirúrgico" textoBoton="Nuevo procedimiento">
+                            {(cerrar) => (
+                                <ProcedimientoForm action={ProcedimientoQuirurgicoController.store.form()} complejidades={complejidades} nivelesConfiabilidad={nivelesConfiabilidad} onSuccess={cerrar} />
+                            )}
+                        </ModalFormulario>
+                    }
                 />
 
                 <div className="overflow-x-auto rounded-lg border">

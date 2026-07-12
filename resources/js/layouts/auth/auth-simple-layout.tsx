@@ -9,9 +9,17 @@ export default function AuthSimpleLayout({
     description,
 }: AuthLayoutProps) {
     return (
-        <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-background p-6 md:p-10">
-            <div className="w-full max-w-sm">
-                <div className="flex flex-col gap-8">
+        <div className="relative flex min-h-svh flex-col items-center justify-center gap-6 overflow-hidden p-6 md:p-10">
+            <div
+                aria-hidden
+                className="pointer-events-none absolute -top-32 -right-24 h-96 w-96 rounded-full bg-[#5B687C]/25 blur-3xl"
+            />
+            <div
+                aria-hidden
+                className="pointer-events-none absolute -bottom-32 -left-24 h-96 w-96 rounded-full bg-[#161B2F]/20 blur-3xl dark:bg-[#5B687C]/15"
+            />
+            <div className="relative w-full max-w-sm">
+                <div className="flex flex-col gap-8 rounded-2xl border border-border/70 bg-card p-8 shadow-2xl shadow-[#161B2F]/10 backdrop-blur-2xl">
                     <div className="flex flex-col items-center gap-4">
                         <Link
                             href={home()}

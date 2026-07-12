@@ -3,6 +3,8 @@ import { Pencil } from 'lucide-react';
 import EquipoMedicoController from '@/actions/App/Http/Controllers/Parametros/EquipoMedicoController';
 import { ConfirmarEliminacion } from '@/components/parametros/confirmar-eliminacion';
 import { EncabezadoListado } from '@/components/parametros/encabezado-listado';
+import { ModalFormulario } from '@/components/parametros/modal-formulario';
+import { EquipoMedicoForm } from '@/components/parametros/forms/equipo-medico-form';
 import { NivelConfiabilidadBadge } from '@/components/parametros/nivel-confiabilidad-badge';
 import { Paginacion } from '@/components/parametros/paginacion';
 import { Badge } from '@/components/ui/badge';
@@ -10,16 +12,22 @@ import { Button } from '@/components/ui/button';
 import { cop } from '@/lib/formato';
 import type { EquipoMedicoParam, Paginado } from '@/types/parametros';
 
-export default function EquiposMedicosIndex({ equipos }: { equipos: Paginado<EquipoMedicoParam> }) {
+export default function EquiposMedicosIndex({ equipos, nivelesConfiabilidad }: { equipos: Paginado<EquipoMedicoParam>; nivelesConfiabilidad: string[] }) {
     return (
         <>
             <Head title="Equipos médicos" />
             <div className="flex flex-col gap-4 p-4">
                 <EncabezadoListado
+                    hrefAtras="/parametros"
                     titulo="Equipos médicos"
                     descripcion="Equipos con costo por hora de uso y datos de depreciación (parámetro de Capa 1)."
-                    hrefNuevo={EquipoMedicoController.create.url()}
-                    textoNuevo="Nuevo equipo"
+                    accion={
+                        <ModalFormulario titulo="Nuevo equipo médico" textoBoton="Nuevo equipo">
+                            {(cerrar) => (
+                                <EquipoMedicoForm action={EquipoMedicoController.store.form()} nivelesConfiabilidad={nivelesConfiabilidad} onSuccess={cerrar} />
+                            )}
+                        </ModalFormulario>
+                    }
                 />
 
                 <div className="overflow-x-auto rounded-lg border">

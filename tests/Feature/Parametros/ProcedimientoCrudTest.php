@@ -24,7 +24,7 @@ class ProcedimientoCrudTest extends ParametrosTestCase
 
     public function test_crear_procedimiento_con_trazabilidad(): void
     {
-        $this->actingAs($this->adminA)->post('/parametros/procedimientos', [
+        $this->actingAs($this->adminA)->from('/parametros/procedimientos')->post('/parametros/procedimientos', [
             'codigo_cups' => '740001',
             'nombre' => 'Cesárea segmentaria',
             'especialidad' => 'Ginecobstetricia',
@@ -47,7 +47,7 @@ class ProcedimientoCrudTest extends ParametrosTestCase
             'codigo_cups' => '740001',
         ]);
 
-        $this->actingAs($this->adminA)->post('/parametros/procedimientos', [
+        $this->actingAs($this->adminA)->from('/parametros/procedimientos')->post('/parametros/procedimientos', [
             'codigo_cups' => '740001',
             'nombre' => 'Duplicado',
             'especialidad' => 'Cirugía general',

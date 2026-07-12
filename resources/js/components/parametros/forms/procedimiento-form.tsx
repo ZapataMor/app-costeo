@@ -21,15 +21,19 @@ export function ProcedimientoForm({
     complejidades,
     nivelesConfiabilidad,
     hrefCancelar,
+    onSuccess,
+    onCancelar,
 }: {
     action: FormAction;
     procedimiento?: ProcedimientoParam;
     complejidades: string[];
     nivelesConfiabilidad: string[];
-    hrefCancelar: string;
+    hrefCancelar?: string;
+    onSuccess?: () => void;
+    onCancelar?: () => void;
 }) {
     return (
-        <Form {...action} options={{ preserveScroll: true }} className="max-w-3xl space-y-6">
+        <Form {...action} options={{ preserveScroll: true }} onSuccess={onSuccess} className="max-w-3xl space-y-6">
             {({ processing, errors }) => (
                 <>
                     <div className="grid gap-4 sm:grid-cols-2">
@@ -85,9 +89,17 @@ export function ProcedimientoForm({
 
                     <div className="flex items-center gap-3">
                         <Button disabled={processing}>Guardar</Button>
-                        <Button asChild variant="outline">
-                            <Link href={hrefCancelar}>Cancelar</Link>
-                        </Button>
+                        {onCancelar ? (
+                            <Button type="button" variant="outline" onClick={onCancelar}>
+                                Cancelar
+                            </Button>
+                        ) : (
+                            hrefCancelar && (
+                                <Button asChild variant="outline">
+                                    <Link href={hrefCancelar}>Cancelar</Link>
+                                </Button>
+                            )
+                        )}
                     </div>
                 </>
             )}

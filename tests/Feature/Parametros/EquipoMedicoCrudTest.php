@@ -24,7 +24,7 @@ class EquipoMedicoCrudTest extends ParametrosTestCase
 
     public function test_crear_equipo_con_trazabilidad(): void
     {
-        $this->actingAs($this->adminA)->post('/parametros/equipos-medicos', [
+        $this->actingAs($this->adminA)->from('/parametros/equipos-medicos')->post('/parametros/equipos-medicos', [
             'nombre' => 'Torre de laparoscopia',
             'codigo' => 'EQ-100',
             'valor_adquisicion' => 280_000_000,
@@ -41,7 +41,7 @@ class EquipoMedicoCrudTest extends ParametrosTestCase
 
     public function test_rechaza_costo_hora_no_positivo(): void
     {
-        $this->actingAs($this->adminA)->post('/parametros/equipos-medicos', [
+        $this->actingAs($this->adminA)->from('/parametros/equipos-medicos')->post('/parametros/equipos-medicos', [
             'nombre' => 'Monitor',
             'costo_hora' => 0,
         ])->assertSessionHasErrors('costo_hora');

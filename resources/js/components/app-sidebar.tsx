@@ -25,12 +25,15 @@ import {
 import { dashboard } from '@/routes';
 import type { NavItem } from '@/types';
 
-const mainNavItems: NavItem[] = [
+const generalNavItems: NavItem[] = [
     {
         title: 'Dashboard',
         href: dashboard(),
         icon: LayoutGrid,
     },
+];
+
+const mainNavItems: NavItem[] = [
     {
         title: 'Cirugías',
         href: '/cirugias',
@@ -88,8 +91,9 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
+                <NavMain items={generalNavItems} label="General" />
+                <NavMain items={parametrosNavItems} className="my-4" />
                 <NavMain items={mainNavItems} label="Costeo" />
-                <NavMain items={parametrosNavItems} label="Parámetros (Capa 1)" />
             </SidebarContent>
 
             <SidebarFooter>

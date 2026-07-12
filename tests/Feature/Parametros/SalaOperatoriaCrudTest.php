@@ -24,7 +24,7 @@ class SalaOperatoriaCrudTest extends ParametrosTestCase
 
     public function test_crear_sala_con_equipamiento_y_trazabilidad(): void
     {
-        $this->actingAs($this->adminA)->post('/parametros/salas-operatorias', [
+        $this->actingAs($this->adminA)->from('/parametros/salas-operatorias')->post('/parametros/salas-operatorias', [
             'nombre' => 'Sala 3',
             'ubicacion' => 'Piso 2',
             'costo_hora' => 40_000,
@@ -43,7 +43,7 @@ class SalaOperatoriaCrudTest extends ParametrosTestCase
     {
         SalaOperatoria::factory()->create(['hospital_id' => $this->hospitalA->id, 'nombre' => 'Sala 1']);
 
-        $this->actingAs($this->adminA)->post('/parametros/salas-operatorias', [
+        $this->actingAs($this->adminA)->from('/parametros/salas-operatorias')->post('/parametros/salas-operatorias', [
             'nombre' => 'Sala 1',
             'costo_hora' => 40_000,
         ])->assertSessionHasErrors('nombre');
@@ -53,7 +53,7 @@ class SalaOperatoriaCrudTest extends ParametrosTestCase
     {
         SalaOperatoria::factory()->create(['hospital_id' => $this->hospitalB->id, 'nombre' => 'Sala 1']);
 
-        $this->actingAs($this->adminA)->post('/parametros/salas-operatorias', [
+        $this->actingAs($this->adminA)->from('/parametros/salas-operatorias')->post('/parametros/salas-operatorias', [
             'nombre' => 'Sala 1',
             'costo_hora' => 40_000,
         ])->assertRedirect('/parametros/salas-operatorias');

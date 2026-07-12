@@ -2,6 +2,10 @@
 
 namespace App\Http\Controllers\Parametros;
 
+use App\Enums\CategoriaInsumo;
+use App\Enums\NivelComplejidad;
+use App\Enums\NivelConfiabilidad;
+use App\Enums\RolQuirurgico;
 use App\Http\Controllers\Controller;
 use App\Models\EquipoMedico;
 use App\Models\Hospital;
@@ -29,28 +33,44 @@ class ParametrosController extends Controller
                 'recursosHumanos' => $this->resumen(RecursoHumano::query()->orderBy('nombre'), fn (RecursoHumano $r): array => [
                     'id' => $r->id,
                     'nombre' => $r->nombre,
-                    'detalle' => $r->rol,
+                    'detalle' => ucfirst($r->especialidad !== null ? "{$r->rol} · {$r->especialidad}" : $r->rol),
+                    'valor' => (float) $r->salario_mensual,
+                    'unidad' => 'salario/mes',
                 ]),
                 'insumos' => $this->resumen(Insumo::query()->orderBy('nombre'), fn (Insumo $i): array => [
                     'id' => $i->id,
                     'nombre' => $i->nombre,
-                    'detalle' => $i->categoria,
+                    'detalle' => ucfirst($i->categoria),
+                    'valor' => (float) $i->costo_unitario,
+                    'unidad' => 'unidad',
                 ]),
                 'equiposMedicos' => $this->resumen(EquipoMedico::query()->orderBy('nombre'), fn (EquipoMedico $e): array => [
                     'id' => $e->id,
                     'nombre' => $e->nombre,
-                    'detalle' => null,
+                    'detalle' => $e->vida_util_anios !== null ? "vida útil {$e->vida_util_anios} años" : null,
+                    'valor' => (float) $e->costo_hora,
+                    'unidad' => 'hora',
                 ]),
                 'salasOperatorias' => $this->resumen(SalaOperatoria::query()->orderBy('nombre'), fn (SalaOperatoria $s): array => [
                     'id' => $s->id,
                     'nombre' => $s->nombre,
-                    'detalle' => null,
+                    'detalle' => $s->ubicacion,
+                    'valor' => (float) $s->costo_hora,
+                    'unidad' => 'hora',
                 ]),
                 'procedimientos' => $this->resumen(ProcedimientoQuirurgico::query()->orderBy('nombre'), fn (ProcedimientoQuirurgico $p): array => [
                     'id' => $p->id,
                     'nombre' => $p->nombre,
-                    'detalle' => $p->codigo_cups,
+                    'detalle' => "CUPS {$p->codigo_cups} · {$p->duracion_estimada_minutos} min",
+                    'valor' => $p->tarifa_soat !== null ? (float) $p->tarifa_soat : null,
+                    'unidad' => 'SOAT',
                 ]),
+            ],
+            'catalogos' => [
+                'roles' => RolQuirurgico::values(),
+                'categorias' => CategoriaInsumo::values(),
+                'complejidades' => NivelComplejidad::values(),
+                'nivelesConfiabilidad' => NivelConfiabilidad::values(),
             ],
             'hospitalActivo' => $hospital?->only([
                 'id', 'nombre', 'horas_dia', 'dias_mes', 'factor_indirecto',
@@ -63,8 +83,8 @@ class ParametrosController extends Controller
      * activo por el HospitalScope global).
      *
      * @param  \Illuminate\Database\Eloquent\Builder<covariant Model>  $query
-     * @param  callable(Model): array{id: int, nombre: string, detalle: string|null}  $fila
-     * @return array{total: int, items: list<array{id: int, nombre: string, detalle: string|null}>}
+     * @param  callable(Model): array{id: int, nombre: string, detalle: string|null, valor: float|null, unidad: string|null}  $fila
+     * @return array{total: int, items: list<array{id: int, nombre: string, detalle: string|null, valor: float|null, unidad: string|null}>}
      */
     protected function resumen($query, callable $fila): array
     {

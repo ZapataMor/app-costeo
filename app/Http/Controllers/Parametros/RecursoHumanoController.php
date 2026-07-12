@@ -18,6 +18,7 @@ class RecursoHumanoController extends Controller
     {
         return Inertia::render('parametros/recursos-humanos/index', [
             'recursos' => RecursoHumano::orderBy('nombre')->paginate(15)->withQueryString(),
+            ...$this->catalogos(),
         ]);
     }
 
@@ -32,7 +33,7 @@ class RecursoHumanoController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Recurso humano registrado.']);
 
-        return redirect()->route('parametros.recursos-humanos.index');
+        return back();
     }
 
     public function edit(RecursoHumano $recursoHumano): Response
