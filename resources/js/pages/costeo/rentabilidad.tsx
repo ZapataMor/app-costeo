@@ -29,9 +29,12 @@ export default function Rentabilidad({
     por_procedimiento: MargenProcedimiento[];
     glosasRecaudo: GlosasRecaudo;
 }) {
+    const abreviar = (nombre: string, max = 22) =>
+        nombre.length > max ? `${nombre.slice(0, max - 1)}…` : nombre;
+
     const datos = por_procedimiento.map((fila) => ({
         ...fila,
-        etiqueta: fila.procedimiento.codigo_cups,
+        etiqueta: `${fila.procedimiento.codigo_cups} · ${abreviar(fila.procedimiento.nombre)}`,
     }));
 
     return (
@@ -79,7 +82,14 @@ export default function Rentabilidad({
                                     strokeDasharray="3 3"
                                     className="opacity-30"
                                 />
-                                <XAxis dataKey="etiqueta" fontSize={12} />
+                                <XAxis
+                                    dataKey="etiqueta"
+                                    fontSize={11}
+                                    interval={0}
+                                    angle={-18}
+                                    textAnchor="end"
+                                    height={60}
+                                />
                                 <YAxis
                                     tickFormatter={(v: number) => cop(v)}
                                     fontSize={11}

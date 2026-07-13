@@ -1,13 +1,9 @@
 import { Link } from '@inertiajs/react';
 import {
-    AlertTriangle,
-    ChartColumnBig,
     LayoutGrid,
     SlidersHorizontal,
     Stethoscope,
     Syringe,
-    TrendingUp,
-    Waves,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { HospitalSwitcher } from '@/components/hospital-switcher';
@@ -43,26 +39,6 @@ const mainNavItems: NavItem[] = [
         title: 'Costeo quirúrgico',
         href: '/costeo',
         icon: Stethoscope,
-    },
-    {
-        title: 'Costo por componente',
-        href: '/costeo/componentes',
-        icon: ChartColumnBig,
-    },
-    {
-        title: 'Outliers de costo',
-        href: '/costeo/outliers',
-        icon: AlertTriangle,
-    },
-    {
-        title: 'Rentabilidad',
-        href: '/costeo/rentabilidad',
-        icon: TrendingUp,
-    },
-    {
-        title: 'Variabilidad',
-        href: '/costeo/variabilidad',
-        icon: Waves,
     },
 ];
 
