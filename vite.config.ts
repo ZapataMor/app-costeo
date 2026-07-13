@@ -15,9 +15,6 @@ export default defineConfig({
                 bunny('Raleway', {
                     weights: [400, 500, 600, 700],
                 }),
-                bunny('Inter', {
-                    weights: [300, 400, 500, 600],
-                }),
                 bunny('Playfair Display', {
                     weights: [500, 600, 700],
                 }),

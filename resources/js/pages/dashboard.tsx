@@ -205,7 +205,7 @@ function Indicador({
                 {etiqueta}
             </span>
             <span
-                className={`block font-serif leading-[1.35] text-[#161B2F] tabular-nums dark:text-[#EDE7E5] ${compact ? 'text-[15px]' : 'text-[21px]'}`}
+                className={`block font-sans leading-[1.35] text-[#161B2F] tabular-nums dark:text-[#EDE7E5] ${compact ? 'text-[15px]' : 'text-[21px]'}`}
             >
                 {valor}
             </span>

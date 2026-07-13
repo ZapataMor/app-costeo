@@ -381,7 +381,10 @@ a,
  * Aplicacion autenticada SICOQ
  * ============================================================ */
 .sicoq-app {
-    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --font-sans:
+        'Raleway', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
+        'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-serif: 'Playfair Display', Georgia, 'Times New Roman', serif;
     --background: #dad5d3;
     --foreground: #161b2f;
     --card: #fbfaf9;
@@ -401,8 +404,16 @@ a,
     --ring: #5b687c;
     min-height: 100svh;
     background: #17181f;
-    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    font-family: var(--font-sans);
     letter-spacing: 0;
+}
+
+body.sicoq-authenticated {
+    --font-sans:
+        'Raleway', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
+        'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-serif: 'Playfair Display', Georgia, 'Times New Roman', serif;
+    font-family: var(--font-sans);
 }
 
 .sicoq-app h1,
@@ -689,7 +700,7 @@ body.sicoq-authenticated.sicoq-select-open[data-scroll-locked] {
 .sicoq-app .recharts-legend-item-text {
     fill: var(--muted-foreground);
     color: var(--muted-foreground) !important;
-    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    font-family: var(--font-sans);
     font-size: 11px;
 }
 
@@ -703,7 +714,7 @@ body.sicoq-authenticated.sicoq-select-open[data-scroll-locked] {
     background: var(--popover) !important;
     box-shadow: 0 18px 40px -24px rgb(23 24 31 / 0.55);
     color: var(--popover-foreground);
-    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    font-family: var(--font-sans);
     font-size: 12px;
 }
 

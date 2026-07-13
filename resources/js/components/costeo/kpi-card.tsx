@@ -17,7 +17,7 @@ export function KpiCard({
                 </CardTitle>
             </CardHeader>
             <CardContent className="px-5 pb-5">
-                <div className="font-serif text-[25px] leading-tight tabular-nums">
+                <div className="font-sans text-[25px] leading-tight tabular-nums">
                     {valor}
                 </div>
                 {detalle && (

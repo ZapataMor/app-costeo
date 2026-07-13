@@ -200,7 +200,7 @@ export default function ParametrosIndex({
                                             </span>
                                             <Badge
                                                 variant="secondary"
-                                                className="min-w-10 justify-center px-2.5 py-1 font-serif text-[20px]! leading-none! tracking-[0]! tabular-nums"
+                                                className="min-w-10 justify-center px-2.5 py-1 font-sans text-[20px]! leading-none! tracking-[0]! tabular-nums"
                                             >
                                                 {modulo.total}
                                             </Badge>
