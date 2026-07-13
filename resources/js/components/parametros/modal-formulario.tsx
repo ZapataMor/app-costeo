@@ -1,5 +1,6 @@
 import { Plus, X } from 'lucide-react';
-import { type ReactNode, useState } from 'react';
+import type { ReactNode } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -73,17 +74,23 @@ export function ModalFormulario({
                     role="dialog"
                     aria-modal="true"
                     aria-label={titulo}
-                    className={`fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 sm:p-8 ${abierto ? '' : 'hidden'}`}
+                    className={`fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-[#17181F]/55 p-4 backdrop-blur-sm sm:p-8 ${abierto ? '' : 'hidden'}`}
                     onClick={() => setAbierto(false)}
                 >
                     <div
-                        className="w-full max-w-3xl rounded-xl border bg-background shadow-lg"
+                        className="w-full max-w-3xl rounded-2xl border bg-card shadow-[0_24px_64px_-16px_rgba(23,24,31,.45)]"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="flex items-start justify-between gap-4 border-b p-4">
                             <div>
-                                <h2 className="text-lg font-semibold">{titulo}</h2>
-                                {descripcion && <p className="text-sm text-muted-foreground">{descripcion}</p>}
+                                <h2 className="text-lg font-semibold">
+                                    {titulo}
+                                </h2>
+                                {descripcion && (
+                                    <p className="text-sm text-muted-foreground">
+                                        {descripcion}
+                                    </p>
+                                )}
                             </div>
                             <Button
                                 variant="ghost"
@@ -106,12 +113,16 @@ export function ModalFormulario({
                     <DialogHeader>
                         <DialogTitle>¿Cerrar sin guardar?</DialogTitle>
                         <DialogDescription>
-                            Se eliminará la información escrita que no haya sido guardada. Si prefiere conservarla,
-                            cierre haciendo clic fuera del formulario y podrá retomarlo después.
+                            Se eliminará la información escrita que no haya sido
+                            guardada. Si prefiere conservarla, cierre haciendo
+                            clic fuera del formulario y podrá retomarlo después.
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setConfirmando(false)}>
+                        <Button
+                            variant="outline"
+                            onClick={() => setConfirmando(false)}
+                        >
                             Seguir editando
                         </Button>
                         <Button variant="destructive" onClick={descartar}>

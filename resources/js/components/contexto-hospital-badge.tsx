@@ -15,7 +15,10 @@ export function ContextoHospitalBadge() {
 
     if (hospital.activo) {
         return (
-            <Badge variant="secondary" className="max-w-72 gap-1.5">
+            <Badge
+                variant="outline"
+                className="hidden h-9 max-w-[340px] gap-2 rounded-full border-[#5B687C]/30 px-[15px] text-[12.5px] font-normal text-[#161B2F] sm:flex dark:text-[#D4CDCB]"
+            >
                 <Building2 className="size-3.5 shrink-0" />
                 <span className="truncate">{hospital.activo.nombre}</span>
             </Badge>
@@ -24,7 +27,10 @@ export function ContextoHospitalBadge() {
 
     if (auth.user.role === 'super_admin') {
         return (
-            <Badge variant="outline" className="gap-1.5">
+            <Badge
+                variant="outline"
+                className="hidden h-9 gap-2 rounded-full border-[#5B687C]/30 px-[15px] text-[12.5px] font-normal text-[#161B2F] sm:flex dark:text-[#D4CDCB]"
+            >
                 <Globe className="size-3.5" />
                 Consolidado — todos los hospitales
             </Badge>

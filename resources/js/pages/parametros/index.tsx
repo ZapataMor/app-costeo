@@ -5,7 +5,6 @@ import {
     ListChecks,
     MonitorSpeaker,
     Package,
-    Plus,
     Users,
 } from 'lucide-react';
 import type { ComponentType, ReactNode } from 'react';
@@ -159,123 +158,213 @@ const definiciones: {
     },
 ];
 
-export default function ParametrosIndex({ modulos, catalogos, hospitalActivo: hospital }: ParametrosIndexProps) {
+export default function ParametrosIndex({
+    modulos,
+    catalogos,
+    hospitalActivo: hospital,
+}: ParametrosIndexProps) {
     return (
         <>
             <Head title="Parámetros" />
             <div className="flex flex-col gap-4 p-4">
-                <p className="text-sm text-muted-foreground">
-                    Catálogos base del costeo TDABC. Entre a cada módulo para ver el listado completo y su CRUD.
-                </p>
+                <div>
+                    <h1 className="text-[32px] leading-[1.1] font-semibold text-[#161B2F] dark:text-[#EDE7E5]">
+                        Parámetros
+                    </h1>
+                    <p className="mt-1.5 mb-1 max-w-[620px] text-[13.5px] text-[#737778] dark:text-[#9EA0A5]">
+                        Catálogos base del costeo TDABC. Entre a cada módulo
+                        para ver el listado completo y su CRUD.
+                    </p>
+                </div>
 
-                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                    {definiciones.map(({ clave, titulo, tituloNuevo, descripcion, href, icono: Icono, formulario }) => {
-                        const modulo = modulos[clave];
+                <div className="grid gap-[18px] sm:grid-cols-2 xl:grid-cols-3">
+                    {definiciones.map(
+                        ({
+                            clave,
+                            titulo,
+                            tituloNuevo,
+                            descripcion,
+                            href,
+                            icono: Icono,
+                            formulario,
+                        }) => {
+                            const modulo = modulos[clave];
 
-                        return (
-                            <Card key={clave} className="flex flex-col">
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-2">
-                                        <Icono className="size-5 shrink-0 text-muted-foreground" />
-                                        <span className="flex-1 truncate">{titulo}</span>
-                                        <Badge variant="secondary">{modulo.total}</Badge>
-                                    </CardTitle>
-                                    <CardDescription>{descripcion}</CardDescription>
-                                </CardHeader>
-                                <CardContent className="flex-1">
-                                    {modulo.items.length === 0 ? (
-                                        <p className="py-4 text-center text-sm text-muted-foreground">
-                                            Sin registros todavía.
-                                        </p>
-                                    ) : (
-                                        <ul className="text-sm">
-                                            {modulo.items.map((item) => (
-                                                <li
-                                                    key={item.id}
-                                                    className="flex items-center justify-between gap-3 border-b py-2 last:border-0"
-                                                >
-                                                    <div className="min-w-0">
-                                                        <p className="truncate" title={item.nombre}>
-                                                            {item.nombre}
-                                                        </p>
-                                                        {item.detalle && (
-                                                            <p className="truncate text-xs text-muted-foreground" title={item.detalle}>
-                                                                {item.detalle}
+                            return (
+                                <Card key={clave} className="flex flex-col">
+                                    <CardHeader>
+                                        <CardTitle className="flex items-center gap-2">
+                                            <Icono className="size-5 shrink-0 text-muted-foreground" />
+                                            <span className="flex-1 truncate">
+                                                {titulo}
+                                            </span>
+                                            <Badge variant="secondary">
+                                                {modulo.total}
+                                            </Badge>
+                                        </CardTitle>
+                                        <CardDescription>
+                                            {descripcion}
+                                        </CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="flex-1">
+                                        {modulo.items.length === 0 ? (
+                                            <p className="py-4 text-center text-sm text-muted-foreground">
+                                                Sin registros todavía.
+                                            </p>
+                                        ) : (
+                                            <ul className="text-sm">
+                                                {modulo.items.map((item) => (
+                                                    <li
+                                                        key={item.id}
+                                                        className="flex items-center justify-between gap-3 border-b py-2 last:border-0"
+                                                    >
+                                                        <div className="min-w-0">
+                                                            <p
+                                                                className="truncate"
+                                                                title={
+                                                                    item.nombre
+                                                                }
+                                                            >
+                                                                {item.nombre}
                                                             </p>
-                                                        )}
-                                                    </div>
-                                                    {item.valor !== null && (
-                                                        <div className="shrink-0 text-right">
-                                                            <p className="font-medium tabular-nums">{cop(item.valor)}</p>
-                                                            {item.unidad && (
-                                                                <p className="text-xs text-muted-foreground">{item.unidad}</p>
+                                                            {item.detalle && (
+                                                                <p
+                                                                    className="truncate text-xs text-muted-foreground"
+                                                                    title={
+                                                                        item.detalle
+                                                                    }
+                                                                >
+                                                                    {
+                                                                        item.detalle
+                                                                    }
+                                                                </p>
                                                             )}
                                                         </div>
-                                                    )}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    )}
-                                    {modulo.total > modulo.items.length && (
-                                        <p className="pt-2 text-xs text-muted-foreground">
-                                            y {modulo.total - modulo.items.length} más…
-                                        </p>
-                                    )}
-                                </CardContent>
-                                <CardFooter className="gap-2">
-                                    <Button asChild variant="outline" size="sm" className="flex-1">
-                                        <Link href={href} prefetch>
-                                            Ver listado y CRUD
-                                        </Link>
-                                    </Button>
-                                    <ModalFormulario titulo={tituloNuevo} textoBoton="Nuevo" tamanoBoton="sm">
-                                        {(cerrar) => formulario(cerrar, catalogos)}
-                                    </ModalFormulario>
-                                </CardFooter>
-                            </Card>
-                        );
-                    })}
+                                                        {item.valor !==
+                                                            null && (
+                                                            <div className="shrink-0 text-right">
+                                                                <p className="font-medium tabular-nums">
+                                                                    {cop(
+                                                                        item.valor,
+                                                                    )}
+                                                                </p>
+                                                                {item.unidad && (
+                                                                    <p className="text-xs text-muted-foreground">
+                                                                        {
+                                                                            item.unidad
+                                                                        }
+                                                                    </p>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
+                                        {modulo.total > modulo.items.length && (
+                                            <p className="pt-2 text-xs text-muted-foreground">
+                                                y{' '}
+                                                {modulo.total -
+                                                    modulo.items.length}{' '}
+                                                más…
+                                            </p>
+                                        )}
+                                    </CardContent>
+                                    <CardFooter className="gap-2">
+                                        <Button
+                                            asChild
+                                            variant="outline"
+                                            size="sm"
+                                            className="flex-1"
+                                        >
+                                            <Link href={href} prefetch>
+                                                Ver listado y CRUD
+                                            </Link>
+                                        </Button>
+                                        <ModalFormulario
+                                            titulo={tituloNuevo}
+                                            textoBoton="Nuevo"
+                                            tamanoBoton="sm"
+                                        >
+                                            {(cerrar) =>
+                                                formulario(cerrar, catalogos)
+                                            }
+                                        </ModalFormulario>
+                                    </CardFooter>
+                                </Card>
+                            );
+                        },
+                    )}
 
                     <Card className="flex flex-col">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <Building2 className="size-5 shrink-0 text-muted-foreground" />
-                                <span className="flex-1 truncate">Hospital</span>
+                                <span className="flex-1 truncate">
+                                    Hospital
+                                </span>
                             </CardTitle>
                             <CardDescription>
-                                Capacidad TDABC del hospital activo: horas por día, días por mes y factor de costos indirectos.
+                                Capacidad TDABC del hospital activo: horas por
+                                día, días por mes y factor de costos indirectos.
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="flex-1 text-sm">
                             {hospital ? (
                                 <dl className="space-y-2">
                                     <div className="flex justify-between border-b pb-2">
-                                        <dt className="text-muted-foreground">Hospital</dt>
-                                        <dd className="max-w-48 truncate font-medium">{hospital.nombre}</dd>
+                                        <dt className="text-muted-foreground">
+                                            Hospital
+                                        </dt>
+                                        <dd className="max-w-48 truncate font-medium">
+                                            {hospital.nombre}
+                                        </dd>
                                     </div>
                                     <div className="flex justify-between border-b pb-2">
-                                        <dt className="text-muted-foreground">Horas por día</dt>
-                                        <dd className="font-medium tabular-nums">{hospital.horas_dia}</dd>
+                                        <dt className="text-muted-foreground">
+                                            Horas por día
+                                        </dt>
+                                        <dd className="font-medium tabular-nums">
+                                            {hospital.horas_dia}
+                                        </dd>
                                     </div>
                                     <div className="flex justify-between border-b pb-2">
-                                        <dt className="text-muted-foreground">Días por mes</dt>
-                                        <dd className="font-medium tabular-nums">{hospital.dias_mes}</dd>
+                                        <dt className="text-muted-foreground">
+                                            Días por mes
+                                        </dt>
+                                        <dd className="font-medium tabular-nums">
+                                            {hospital.dias_mes}
+                                        </dd>
                                     </div>
                                     <div className="flex justify-between">
-                                        <dt className="text-muted-foreground">Factor indirecto</dt>
-                                        <dd className="font-medium tabular-nums">{hospital.factor_indirecto}</dd>
+                                        <dt className="text-muted-foreground">
+                                            Factor indirecto
+                                        </dt>
+                                        <dd className="font-medium tabular-nums">
+                                            {hospital.factor_indirecto}
+                                        </dd>
                                     </div>
                                 </dl>
                             ) : (
                                 <p className="py-4 text-center text-muted-foreground">
-                                    Está en la vista consolidada. Seleccione un hospital en el dashboard o en el selector para editar su configuración.
+                                    Está en la vista consolidada. Seleccione un
+                                    hospital en el dashboard o en el selector
+                                    para editar su configuración.
                                 </p>
                             )}
                         </CardContent>
                         <CardFooter>
-                            <Button asChild variant="outline" size="sm" className="flex-1" disabled={!hospital}>
+                            <Button
+                                asChild
+                                variant="outline"
+                                size="sm"
+                                className="flex-1"
+                                disabled={!hospital}
+                            >
                                 <Link href="/parametros/hospital" prefetch>
-                                    {hospital ? 'Editar configuración' : 'Requiere hospital activo'}
+                                    {hospital
+                                        ? 'Editar configuración'
+                                        : 'Requiere hospital activo'}
                                 </Link>
                             </Button>
                         </CardFooter>

@@ -35,6 +35,7 @@ const HORIZONTAL_POOL = [
 ].map(image);
 
 type Orientation = 'v' | 'h';
+type FlipAxis = 'rotateX' | 'rotateY';
 
 // Rejilla 4x4 tomada del diseño SICOQ: los retratos ocupan dos filas.
 const GRID_LAYOUT: { col: number; row: string; orient: Orientation }[] = [
@@ -57,6 +58,7 @@ type Tile = {
     orient: Orientation;
     src: string;
     backSrc: string | null;
+    flipAxis: FlipAxis;
     transform: string;
     transition: string;
 };
@@ -89,6 +91,7 @@ function buildTiles(): Tile[] {
         orient: cell.orient,
         src: cell.orient === 'v' ? vertical[vi++] : horizontal[hi++],
         backSrc: null,
+        flipAxis: 'rotateY',
         transform: 'none',
         transition: 'none',
     }));
@@ -146,14 +149,6 @@ function CollageWall() {
     useEffect(() => {
         const timeouts: ReturnType<typeof setTimeout>[] = [];
 
-        const updateTile = (index: number, patch: Partial<Tile>) => {
-            setTiles((prev) =>
-                prev.map((tile, i) =>
-                    i === index ? { ...tile, ...patch } : tile,
-                ),
-            );
-        };
-
         const flipRandom = () => {
             if (loadedRef.current.size === 0) {
                 return;
@@ -163,7 +158,7 @@ function CollageWall() {
                 ELIGIBLE_INDICES[
                     Math.floor(Math.random() * ELIGIBLE_INDICES.length)
                 ];
-            const options: ['rotateX' | 'rotateY', number][] = [
+            const options: [FlipAxis, number][] = [
                 ['rotateX', 1],
                 ['rotateX', -1],
                 ['rotateY', 1],
@@ -208,9 +203,10 @@ function CollageWall() {
                         ? {
                               ...item,
                               backSrc: next,
-                              transform: `${axis}(${sign * 90}deg)`,
+                              flipAxis: axis,
+                              transform: `${axis}(${sign * 180}deg)`,
                               transition:
-                                  'transform .32s cubic-bezier(.4,0,.7,.4)',
+                                  'transform .66s cubic-bezier(.45,0,.2,1)',
                           }
                         : item,
                 );
@@ -218,7 +214,6 @@ function CollageWall() {
 
             timeouts.push(
                 setTimeout(() => {
-                    // Promover la cara trasera y mantenerla como respaldo.
                     setTiles((prev) => {
                         const tile = prev[index];
 
@@ -233,30 +228,14 @@ function CollageWall() {
                                 ? {
                                       ...t,
                                       src: next,
-                                      transform: `${axis}(${-sign * 90}deg)`,
+                                      backSrc: null,
+                                      transform: 'none',
                                       transition: 'none',
                                   }
                                 : t,
                         );
                     });
-
-                    // Asentar la nueva cara sin retirar todavia el respaldo.
-                    timeouts.push(
-                        setTimeout(() => {
-                            updateTile(index, {
-                                transform: `${axis}(0deg)`,
-                                transition:
-                                    'transform .34s cubic-bezier(.3,.6,.3,1)',
-                            });
-                        }, 30),
-                    );
-
-                    timeouts.push(
-                        setTimeout(() => {
-                            updateTile(index, { backSrc: null });
-                        }, 400),
-                    );
-                }, 330),
+                }, 680),
             );
         };
 
@@ -280,16 +259,29 @@ function CollageWall() {
                         perspective: '700px',
                     }}
                 >
-                    <div className="relative h-full w-full">
-                        <div
-                            className="absolute inset-0"
-                            style={tileFaceStyle(
-                                tile.backSrc ?? tile.src,
-                                tile.orient,
-                                index,
-                                loaded,
-                            )}
-                        />
+                    <div
+                        className="relative h-full w-full"
+                        style={{
+                            transform: tile.transform,
+                            transition: tile.transition,
+                            transformStyle: 'preserve-3d',
+                        }}
+                    >
+                        {tile.backSrc && (
+                            <div
+                                className="absolute inset-0"
+                                style={{
+                                    ...tileFaceStyle(
+                                        tile.backSrc,
+                                        tile.orient,
+                                        index,
+                                        loaded,
+                                    ),
+                                    transform: `${tile.flipAxis}(180deg)`,
+                                    backfaceVisibility: 'hidden',
+                                }}
+                            />
+                        )}
                         <div
                             className="absolute inset-0"
                             style={{
@@ -299,8 +291,6 @@ function CollageWall() {
                                     index,
                                     loaded,
                                 ),
-                                transform: tile.transform,
-                                transition: tile.transition,
                                 backfaceVisibility: 'hidden',
                             }}
                         />

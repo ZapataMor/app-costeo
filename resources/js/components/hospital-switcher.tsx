@@ -31,10 +31,16 @@ export function HospitalSwitcher() {
     };
 
     return (
-        <div className="px-2 group-data-[collapsible=icon]:hidden">
-            <Select value={hospital.activo ? String(hospital.activo.id) : TODOS} onValueChange={cambiarHospital}>
-                <SelectTrigger aria-label="Hospital activo" className="w-full">
-                    <Building2 className="size-4 shrink-0 text-muted-foreground" />
+        <div className="px-1 group-data-[collapsible=icon]:hidden">
+            <Select
+                value={hospital.activo ? String(hospital.activo.id) : TODOS}
+                onValueChange={cambiarHospital}
+            >
+                <SelectTrigger
+                    aria-label="Hospital activo"
+                    className="w-full border-white/10 bg-white/[.035] text-[#D4CDCB] shadow-none hover:bg-white/[.06]"
+                >
+                    <Building2 className="size-4 shrink-0 text-[#8D8F8E]" />
                     <SelectValue placeholder="Seleccione hospital" />
                 </SelectTrigger>
                 <SelectContent>
