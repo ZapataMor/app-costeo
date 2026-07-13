@@ -1,14 +1,12 @@
 import { Form, Head } from '@inertiajs/react';
+import { LockKeyhole, Mail } from 'lucide-react';
 import InputError from '@/components/input-error';
-import PasskeyVerify from '@/components/passkey-verify';
-import PasswordInput from '@/components/password-input';
 import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
-import { register } from '@/routes';
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
 
@@ -17,86 +15,104 @@ type Props = {
     canResetPassword: boolean;
 };
 
+const fieldLabelClass =
+    'text-sm font-semibold tracking-[1.8px] text-[#5B687C] uppercase';
+
+const underlineInputClass =
+    'h-auto rounded-none border-0 border-b border-[#5B687C]/45 bg-transparent! px-0.5 py-[13px] text-xl text-[#161B2F] shadow-none placeholder:font-light placeholder:text-[#161B2F]/30 focus-visible:border-[#5B687C] focus-visible:ring-0 md:text-xl';
+
 export default function Login({ status, canResetPassword }: Props) {
     return (
         <>
-            <Head title="Log in" />
+            <Head title="Iniciar sesión" />
 
-            <PasskeyVerify />
-
-            <Form
-                {...store.form()}
-                resetOnSuccess={['password']}
-                className="flex flex-col gap-6"
-            >
+            <Form {...store.form()} resetOnSuccess={['password']}>
                 {({ processing, errors }) => (
                     <>
-                        <div className="grid gap-6">
-                            <div className="grid gap-2">
-                                <Label htmlFor="email">Email address</Label>
-                                <Input
-                                    id="email"
-                                    type="email"
-                                    name="email"
-                                    required
-                                    autoFocus
-                                    tabIndex={1}
-                                    autoComplete="email"
-                                    placeholder="email@example.com"
-                                />
+                        <div>
+                            <div className="mb-[25px]">
+                                <Label
+                                    htmlFor="email"
+                                    className={`${fieldLabelClass} mb-1 block`}
+                                >
+                                    Correo electrónico
+                                </Label>
+                                <div className="relative">
+                                    <Input
+                                        id="email"
+                                        type="email"
+                                        name="email"
+                                        required
+                                        autoFocus
+                                        tabIndex={1}
+                                        autoComplete="email"
+                                        placeholder="nombre@clinica.co"
+                                        className={`${underlineInputClass} pr-10`}
+                                    />
+                                    <Mail className="pointer-events-none absolute top-1/2 right-0.5 size-[23px] -translate-y-1/2 text-[#8D8F8E]" />
+                                </div>
                                 <InputError message={errors.email} />
                             </div>
 
-                            <div className="grid gap-2">
-                                <div className="flex items-center">
-                                    <Label htmlFor="password">Password</Label>
-                                    {canResetPassword && (
-                                        <TextLink
-                                            href={request()}
-                                            className="ml-auto text-sm"
-                                            tabIndex={5}
-                                        >
-                                            Forgot your password?
-                                        </TextLink>
-                                    )}
+                            <div className="mb-[23px]">
+                                <Label
+                                    htmlFor="password"
+                                    className={`${fieldLabelClass} mb-1 block`}
+                                >
+                                    Contraseña
+                                </Label>
+                                <div className="relative">
+                                    <Input
+                                        id="password"
+                                        type="password"
+                                        name="password"
+                                        required
+                                        tabIndex={2}
+                                        autoComplete="current-password"
+                                        placeholder="••••••••"
+                                        className={`${underlineInputClass} pr-10 tracking-[3px]`}
+                                    />
+                                    <LockKeyhole className="pointer-events-none absolute top-1/2 right-0.5 size-[23px] -translate-y-1/2 text-[#8D8F8E]" />
                                 </div>
-                                <PasswordInput
-                                    id="password"
-                                    name="password"
-                                    required
-                                    tabIndex={2}
-                                    autoComplete="current-password"
-                                    placeholder="Password"
-                                />
                                 <InputError message={errors.password} />
                             </div>
 
-                            <div className="flex items-center space-x-3">
-                                <Checkbox
-                                    id="remember"
-                                    name="remember"
-                                    tabIndex={3}
-                                />
-                                <Label htmlFor="remember">Remember me</Label>
+                            <div className="mb-8 flex items-center justify-between gap-3">
+                                <div className="flex items-center gap-2">
+                                    <Checkbox
+                                        id="remember"
+                                        name="remember"
+                                        tabIndex={3}
+                                        className="size-[18px] rounded-[2px] lg:size-[21px]"
+                                    />
+                                    <Label
+                                        htmlFor="remember"
+                                        className="text-sm text-[#5B687C] lg:text-base"
+                                    >
+                                        Recordarme
+                                    </Label>
+                                </div>
+                                {canResetPassword && (
+                                    <TextLink
+                                        href={request()}
+                                        className="text-right text-sm font-medium text-[#5B687C] decoration-transparent hover:text-[#161B2F] lg:text-base"
+                                        tabIndex={5}
+                                    >
+                                        ¿Olvidó su contraseña?
+                                    </TextLink>
+                                )}
                             </div>
 
                             <Button
                                 type="submit"
-                                className="mt-4 w-full"
+                                className="h-auto w-full rounded-[9px] py-4 text-sm font-semibold tracking-[2px] uppercase lg:py-[18px] lg:text-base"
                                 tabIndex={4}
                                 disabled={processing}
                                 data-test="login-button"
                             >
                                 {processing && <Spinner />}
-                                Log in
+                                Ingresar
                             </Button>
-                        </div>
-
-                        <div className="text-center text-sm text-muted-foreground">
-                            Don't have an account?{' '}
-                            <TextLink href={register()} tabIndex={5}>
-                                Sign up
-                            </TextLink>
                         </div>
                     </>
                 )}
@@ -112,6 +128,6 @@ export default function Login({ status, canResetPassword }: Props) {
 }
 
 Login.layout = {
-    title: 'Log in to your account',
-    description: 'Enter your email and password below to log in',
+    title: 'Bienvenido de nuevo',
+    description: 'Acceda a su panel de costeo hospitalario.',
 };

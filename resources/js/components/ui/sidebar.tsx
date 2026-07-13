@@ -427,7 +427,7 @@ function SidebarGroupAction({
       )}
       {...props}
     />
-  )
+  )   
 }
 
 function SidebarGroupContent({
