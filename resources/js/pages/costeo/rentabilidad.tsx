@@ -34,7 +34,7 @@ export default function Rentabilidad({
 
     const datos = por_procedimiento.map((fila) => ({
         ...fila,
-        etiqueta: `${fila.procedimiento.codigo_cups} · ${abreviar(fila.procedimiento.nombre)}`,
+        etiqueta: fila.procedimiento.nombre,
     }));
 
     return (
@@ -75,56 +75,63 @@ export default function Rentabilidad({
                             procedimiento
                         </CardDescription>
                     </CardHeader>
-                    <CardContent className="h-96">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={datos}>
-                                <CartesianGrid
-                                    strokeDasharray="3 3"
-                                    className="opacity-30"
-                                />
-                                <XAxis
-                                    dataKey="etiqueta"
-                                    fontSize={11}
-                                    interval={0}
-                                    angle={-18}
-                                    textAnchor="end"
-                                    height={60}
-                                />
-                                <YAxis
-                                    tickFormatter={(v: number) => cop(v)}
-                                    fontSize={11}
-                                    width={95}
-                                />
-                                <Tooltip
-                                    formatter={(valor) => cop(Number(valor))}
-                                    labelFormatter={(cups) => {
-                                        const fila = datos.find(
-                                            (d) => d.etiqueta === cups,
-                                        );
-
-                                        return fila
-                                            ? `${fila.procedimiento.nombre} (${cups})`
-                                            : cups;
-                                    }}
-                                />
-                                <Legend />
-                                <Bar
-                                    dataKey="costo_promedio"
-                                    name="Costo promedio"
-                                    fill="#9E3B3B"
-                                />
-                                <Bar
-                                    dataKey="facturado_promedio"
-                                    name="Tarifa facturada"
-                                    fill="#5B687C"
-                                />
-                                <Bar
-                                    dataKey="tarifa_referencia"
-                                    name="Referencia SOAT −25 %"
-                                    fill="#4C837C"
-                                />
-                            </BarChart>
-                        </ResponsiveContainer>
+                    <CardContent className="h-96 overflow-x-auto">
+                        <div
+                            className="h-full"
+                            style={{
+                                minWidth: `${Math.max(720, datos.length * 130)}px`,
+                            }}
+                        >
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={datos}>
+                                    <CartesianGrid
+                                        strokeDasharray="3 3"
+                                        className="opacity-30"
+                                    />
+                                    <XAxis
+                                        dataKey="etiqueta"
+                                        fontSize={11}
+                                        interval={0}
+                                        angle={0}
+                                        textAnchor="middle"
+                                        tickMargin={10}
+                                        height={48}
+                                        tickFormatter={(nombre: string) =>
+                                            abreviar(nombre)
+                                        }
+                                    />
+                                    <YAxis
+                                        tickFormatter={(v: number) => cop(v)}
+                                        fontSize={11}
+                                        width={95}
+                                    />
+                                    <Tooltip
+                                        formatter={(valor) =>
+                                            cop(Number(valor))
+                                        }
+                                        labelFormatter={(nombre) =>
+                                            String(nombre)
+                                        }
+                                    />
+                                    <Legend />
+                                    <Bar
+                                        dataKey="costo_promedio"
+                                        name="Costo promedio"
+                                        fill="#9E3B3B"
+                                    />
+                                    <Bar
+                                        dataKey="facturado_promedio"
+                                        name="Tarifa facturada"
+                                        fill="#5B687C"
+                                    />
+                                    <Bar
+                                        dataKey="tarifa_referencia"
+                                        name="Referencia SOAT −25 %"
+                                        fill="#4C837C"
+                                    />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
                     </CardContent>
                 </Card>
 
