@@ -198,7 +198,10 @@ export default function ParametrosIndex({
                                             <span className="flex-1 truncate">
                                                 {titulo}
                                             </span>
-                                            <Badge variant="secondary">
+                                            <Badge
+                                                variant="secondary"
+                                                className="min-w-10 justify-center px-2.5 py-1 font-serif text-[20px]! leading-none! tracking-[0]! tabular-nums"
+                                            >
                                                 {modulo.total}
                                             </Badge>
                                         </CardTitle>

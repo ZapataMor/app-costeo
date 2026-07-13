@@ -493,7 +493,10 @@ a,
     border-color: rgb(91 104 124 / 0.18);
     border-radius: 16px;
     background: var(--card);
-    box-shadow: none;
+    box-shadow:
+        inset 0 1px 0 rgb(255 255 255 / 0.82),
+        0 2px 5px rgb(22 27 47 / 0.1),
+        0 18px 38px -24px rgb(22 27 47 / 0.5);
     animation: none;
     transition:
         transform 220ms ease,
@@ -502,7 +505,17 @@ a,
 }
 
 .sicoq-app [data-slot='card']:hover {
-    box-shadow: none;
+    box-shadow:
+        inset 0 1px 0 rgb(255 255 255 / 0.88),
+        0 4px 8px rgb(22 27 47 / 0.1),
+        0 24px 46px -24px rgb(22 27 47 / 0.56);
+}
+
+.dark .sicoq-app [data-slot='card'] {
+    box-shadow:
+        inset 0 1px 0 rgb(255 255 255 / 0.06),
+        0 3px 8px rgb(0 0 0 / 0.24),
+        0 20px 42px -24px rgb(0 0 0 / 0.72);
 }
 
 .sicoq-app .sicoq-hcard:hover {
@@ -530,6 +543,41 @@ a,
 .sicoq-app [data-slot='button'] {
     border-radius: 9px;
     letter-spacing: 0;
+}
+
+body.sicoq-authenticated button,
+body.sicoq-authenticated [data-slot='button'] {
+    background-color: transparent !important;
+    background-image: none !important;
+}
+
+body.sicoq-authenticated button:hover,
+body.sicoq-authenticated button:active,
+body.sicoq-authenticated [data-slot='button']:hover,
+body.sicoq-authenticated [data-slot='button']:active {
+    background-color: transparent !important;
+}
+
+body.sicoq-authenticated [data-slot='button'] {
+    color: var(--foreground);
+    box-shadow: none;
+}
+
+body.sicoq-authenticated
+    [data-slot='button']:not([data-variant='ghost']):not(
+        [data-variant='link']
+    ) {
+    border: 1px solid var(--input);
+}
+
+body.sicoq-authenticated [data-slot='button'][data-variant='destructive'] {
+    border-color: rgb(158 59 59 / 0.45);
+    color: var(--destructive);
+}
+
+body.sicoq-authenticated [data-slot='button']:not(:disabled):hover {
+    border-color: #5b687c;
+    color: #5b687c;
 }
 
 .sicoq-app [data-slot='input'],
@@ -569,6 +617,22 @@ a,
     border-color: var(--border);
     background: var(--popover);
     box-shadow: 0 24px 64px -22px rgb(23 24 31 / 0.45);
+}
+
+body.sicoq-authenticated [data-slot='dialog-overlay'],
+body.sicoq-authenticated [data-slot='sheet-overlay'],
+body.sicoq-authenticated [data-slot='alert-dialog-overlay'] {
+    background: rgb(255 255 255 / 0.04);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+body.sicoq-authenticated [data-slot='dialog-overlay'] {
+    z-index: 70;
+}
+
+body.sicoq-authenticated [data-slot='dialog-content'] {
+    z-index: 71;
 }
 
 .sicoq-app table {
