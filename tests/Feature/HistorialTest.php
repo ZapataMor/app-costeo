@@ -83,6 +83,31 @@ class HistorialTest extends TestCase
         $this->assertDatabaseHas('registros_actividad', ['accion' => 'eliminó', 'auditable_id' => $insumo->id]);
     }
 
+    public function test_el_historial_identifica_al_paciente_por_nombre_e_id_nunca_por_documento(): void
+    {
+        $this->actingAs($this->adminA)->post('/cirugias/pacientes', [
+            'tipo_documento' => 'CC',
+            'documento' => '9988776655',
+            'nombres' => 'Laura',
+            'apellidos' => 'Pushaina',
+            'regimen' => 'subsidiado',
+            'zona' => 'rural',
+        ]);
+
+        $registro = RegistroActividad::query()
+            ->where('accion', 'creó')
+            ->where('auditable_type', \App\Models\Paciente::class)
+            ->firstOrFail();
+
+        $paciente = \App\Models\Paciente::withoutGlobalScopes()->where('nombres', 'Laura')->firstOrFail();
+
+        $this->assertStringContainsString('Laura Pushaina', $registro->descripcion);
+        $this->assertStringContainsString("(#{$paciente->id})", $registro->descripcion);
+        // El documento está cifrado en la BD: jamás debe quedar en texto
+        // plano dentro de la descripción del historial.
+        $this->assertStringNotContainsString('9988776655', $registro->descripcion);
+    }
+
     public function test_admin_hospital_solo_ve_la_actividad_de_su_hospital(): void
     {
         RegistroActividad::query()->create([
