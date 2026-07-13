@@ -5,9 +5,28 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 
 function Select({
+  onOpenChange,
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Root>) {
-  return <SelectPrimitive.Root data-slot="select" {...props} />
+  React.useEffect(() => {
+    return () => document.body.classList.remove("sicoq-select-open")
+  }, [])
+
+  const handleOpenChange = React.useCallback(
+    (open: boolean) => {
+      document.body.classList.toggle("sicoq-select-open", open)
+      onOpenChange?.(open)
+    },
+    [onOpenChange]
+  )
+
+  return (
+    <SelectPrimitive.Root
+      data-slot="select"
+      onOpenChange={handleOpenChange}
+      {...props}
+    />
+  )
 }
 
 function SelectGroup({

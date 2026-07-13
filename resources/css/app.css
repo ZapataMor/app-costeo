@@ -635,6 +635,16 @@ body.sicoq-authenticated [data-slot='dialog-content'] {
     z-index: 71;
 }
 
+body.sicoq-authenticated [data-slot='select-content'] {
+    z-index: 80;
+}
+
+body.sicoq-authenticated.sicoq-select-open[data-scroll-locked] {
+    overflow: auto !important;
+    margin-right: 0 !important;
+    padding-right: 0 !important;
+}
+
 .sicoq-app table {
     width: 100%;
     border-collapse: separate;
