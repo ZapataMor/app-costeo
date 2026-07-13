@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
 use Database\Factories\HospitalFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -24,7 +25,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Hospital extends Model
 {
     /** @use HasFactory<HospitalFactory> */
-    use HasFactory;
+    use Auditable, HasFactory;
 
     protected $table = 'hospitales';
 

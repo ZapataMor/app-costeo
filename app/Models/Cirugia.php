@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
 use App\Models\Concerns\BelongsToHospital;
 use Database\Factories\CirugiaFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -29,7 +30,7 @@ use Illuminate\Support\Carbon;
 class Cirugia extends Model
 {
     /** @use HasFactory<CirugiaFactory> */
-    use BelongsToHospital, HasFactory;
+    use Auditable, BelongsToHospital, HasFactory;
 
     protected $table = 'cirugias';
 

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
 use App\Models\Concerns\BelongsToHospital;
 use Database\Factories\FacturacionFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -24,7 +25,7 @@ use Illuminate\Support\Carbon;
 class Facturacion extends Model
 {
     /** @use HasFactory<FacturacionFactory> */
-    use BelongsToHospital, HasFactory;
+    use Auditable, BelongsToHospital, HasFactory;
 
     protected $table = 'facturaciones';
 

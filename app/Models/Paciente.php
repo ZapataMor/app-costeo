@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Auditable;
 use App\Models\Concerns\BelongsToHospital;
 use Database\Factories\PacienteFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -30,7 +31,7 @@ use Illuminate\Support\Carbon;
 class Paciente extends Model
 {
     /** @use HasFactory<PacienteFactory> */
-    use BelongsToHospital, HasFactory;
+    use Auditable, BelongsToHospital, HasFactory;
 
     protected $table = 'pacientes';
 
@@ -67,9 +68,14 @@ class Paciente extends Model
         });
     }
 
+    /**
+     * HMAC con la clave de la aplicación: un hash simple sería reversible
+     * por fuerza bruta (las cédulas son numéricas y cortas) si se filtra
+     * la base de datos sin la APP_KEY.
+     */
     public static function hashDocumento(string $documento): string
     {
-        return hash('sha256', $documento);
+        return hash_hmac('sha256', $documento, (string) config('app.key'));
     }
 
     /** @return HasMany<Cirugia, $this> */

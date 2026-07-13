@@ -2,10 +2,14 @@
 
 namespace App\Providers;
 
+use App\Models\RegistroActividad;
 use App\Models\User;
 use App\Support\HospitalContext;
 use Carbon\CarbonImmutable;
+use Illuminate\Auth\Events\Login;
+use Illuminate\Auth\Events\Logout;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -28,6 +32,39 @@ class AppServiceProvider extends ServiceProvider
     {
         $this->configureDefaults();
         $this->configureGates();
+        $this->configureAuditoria();
+    }
+
+    /**
+     * Bitácora de sesión: registra en el Historial los inicios y cierres
+     * de sesión de cada usuario.
+     */
+    protected function configureAuditoria(): void
+    {
+        Event::listen(Login::class, function (Login $event): void {
+            /** @var User $user */
+            $user = $event->user;
+
+            RegistroActividad::registrar(
+                'inició sesión',
+                "{$user->name} inició sesión en el aplicativo",
+                usuario: $user,
+            );
+        });
+
+        Event::listen(Logout::class, function (Logout $event): void {
+            $user = $event->user;
+
+            if (! $user instanceof User) {
+                return;
+            }
+
+            RegistroActividad::registrar(
+                'cerró sesión',
+                "{$user->name} cerró sesión en el aplicativo",
+                usuario: $user,
+            );
+        });
     }
 
     /**

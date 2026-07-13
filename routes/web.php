@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\ProcedimientoQuirurgicoController;
 use App\Http\Controllers\Api\V1\RecursoHumanoController;
 use App\Http\Controllers\Cirugias;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\HistorialController;
 use App\Http\Controllers\DashboardCosteoController;
 use App\Http\Controllers\HospitalActivoController;
 use App\Http\Controllers\Parametros;
@@ -20,6 +21,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Switcher de hospital del super_admin
     Route::post('hospital-activo', [HospitalActivoController::class, 'store'])->name('hospital-activo.store');
+
+    // Historial de actividad (auditoría)
+    Route::get('historial', [HistorialController::class, 'index'])->name('historial.index');
 
     // ── Parámetros del hospital (Capa 1) ────────────────────────────────
     Route::prefix('parametros')->name('parametros.')->middleware('hospital.contexto')->group(function () {

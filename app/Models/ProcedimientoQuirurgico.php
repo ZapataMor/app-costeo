@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\NivelConfiabilidad;
+use App\Models\Concerns\Auditable;
 use App\Models\Concerns\BelongsToHospital;
 use Database\Factories\ProcedimientoQuirurgicoFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -26,7 +27,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 class ProcedimientoQuirurgico extends Model
 {
     /** @use HasFactory<ProcedimientoQuirurgicoFactory> */
-    use BelongsToHospital, HasFactory;
+    use Auditable, BelongsToHospital, HasFactory;
 
     protected $table = 'procedimientos_quirurgicos';
 

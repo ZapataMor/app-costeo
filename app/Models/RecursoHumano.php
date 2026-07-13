@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\NivelConfiabilidad;
+use App\Models\Concerns\Auditable;
 use App\Models\Concerns\BelongsToHospital;
 use Database\Factories\RecursoHumanoFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -28,7 +29,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class RecursoHumano extends Model
 {
     /** @use HasFactory<RecursoHumanoFactory> */
-    use BelongsToHospital, HasFactory;
+    use Auditable, BelongsToHospital, HasFactory;
 
     protected $table = 'recursos_humanos';
 

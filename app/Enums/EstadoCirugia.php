@@ -5,6 +5,7 @@ namespace App\Enums;
 enum EstadoCirugia: string
 {
     case Programada = 'programada';
+    case EnProceso = 'en_proceso';
     case Realizada = 'realizada';
     case Cancelada = 'cancelada';
 

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Http\Middleware\SetHospitalContext;
+use App\Models\Hospital;
+use App\Models\RegistroActividad;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -25,8 +27,19 @@ class HospitalActivoController extends Controller
 
         if (($validado['hospital_id'] ?? null) === null) {
             $request->session()->forget(SetHospitalContext::SESSION_KEY);
+
+            RegistroActividad::registrar('cambió de hospital', 'Pasó a la vista consolidada de todos los hospitales');
         } else {
-            $request->session()->put(SetHospitalContext::SESSION_KEY, (int) $validado['hospital_id']);
+            $hospitalId = (int) $validado['hospital_id'];
+            $request->session()->put(SetHospitalContext::SESSION_KEY, $hospitalId);
+
+            $hospital = Hospital::query()->find($hospitalId);
+
+            RegistroActividad::registrar(
+                'cambió de hospital',
+                "Seleccionó el hospital «{$hospital?->nombre}» como contexto de trabajo",
+                hospitalId: $hospitalId,
+            );
         }
 
         return back();

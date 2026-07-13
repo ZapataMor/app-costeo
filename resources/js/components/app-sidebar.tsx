@@ -1,5 +1,6 @@
 import { Link } from '@inertiajs/react';
 import {
+    History,
     LayoutGrid,
     SlidersHorizontal,
     Stethoscope,
@@ -26,6 +27,14 @@ const generalNavItems: NavItem[] = [
         title: 'Dashboard',
         href: dashboard(),
         icon: LayoutGrid,
+    },
+];
+
+const historialNavItems: NavItem[] = [
+    {
+        title: 'Historial',
+        href: '/historial',
+        icon: History,
     },
 ];
 
@@ -78,6 +87,7 @@ export function AppSidebar() {
                 <NavMain items={generalNavItems} label="General" />
                 <NavMain items={parametrosNavItems} className="my-[14px]" />
                 <NavMain items={mainNavItems} label="Costeo" />
+                <NavMain items={historialNavItems} className="mt-[14px]" />
             </SidebarContent>
 
             <SidebarFooter className="mx-4 mb-4 border-t border-white/[.09] px-0 pt-3 pb-0">
