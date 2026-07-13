@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import type { AuthLayoutProps } from '@/types';
 
@@ -55,6 +56,7 @@ type Tile = {
     row: string;
     orient: Orientation;
     src: string;
+    backSrc: string | null;
     transform: string;
     transition: string;
 };
@@ -86,6 +88,7 @@ function buildTiles(): Tile[] {
         row: cell.row,
         orient: cell.orient,
         src: cell.orient === 'v' ? vertical[vi++] : horizontal[hi++],
+        backSrc: null,
         transform: 'none',
         transition: 'none',
     }));
@@ -97,6 +100,23 @@ const FALLBACK_GRADIENTS = [
     'linear-gradient(200deg, #161b2f 0%, #0e1319 70%)',
     'linear-gradient(130deg, #24303f 0%, #0e1319 90%)',
 ];
+
+function tileFaceStyle(
+    src: string,
+    orient: Orientation,
+    index: number,
+    loaded: Set<string>,
+): CSSProperties {
+    return {
+        backgroundImage: loaded.has(src)
+            ? `url("${src}")`
+            : FALLBACK_GRADIENTS[index % FALLBACK_GRADIENTS.length],
+        backgroundSize: 'cover',
+        backgroundPosition: orient === 'v' ? 'center 22%' : 'center 46%',
+        backgroundRepeat: 'no-repeat',
+        filter: 'saturate(.92) contrast(1.03) brightness(.9)',
+    };
+}
 
 function CollageWall() {
     const [tiles, setTiles] = useState<Tile[]>(buildTiles);
@@ -152,38 +172,61 @@ function CollageWall() {
             const [axis, sign] =
                 options[Math.floor(Math.random() * options.length)];
 
-            // 1) girar hasta el canto (la imagen desaparece)
-            updateTile(index, {
-                transform: `${axis}(${sign * 90}deg)`,
-                transition: 'transform .32s cubic-bezier(.4,0,.7,.4)',
+            // Preparar la imagen trasera antes de iniciar el giro.
+            setTiles((prev) => {
+                const tile = prev[index];
+
+                if (tile.backSrc || !loadedRef.current.has(tile.src)) {
+                    return prev;
+                }
+
+                const pool =
+                    tile.orient === 'v' ? VERTICAL_POOL : HORIZONTAL_POOL;
+                const shown = new Set(
+                    prev.flatMap((item, i) =>
+                        i === index
+                            ? [item.src]
+                            : [
+                                  item.src,
+                                  ...(item.backSrc ? [item.backSrc] : []),
+                              ],
+                    ),
+                );
+                const candidates = pool.filter(
+                    (src) => loadedRef.current.has(src) && !shown.has(src),
+                );
+
+                if (candidates.length === 0) {
+                    return prev;
+                }
+
+                const next =
+                    candidates[Math.floor(Math.random() * candidates.length)];
+
+                return prev.map((item, i) =>
+                    i === index
+                        ? {
+                              ...item,
+                              backSrc: next,
+                              transform: `${axis}(${sign * 90}deg)`,
+                              transition:
+                                  'transform .32s cubic-bezier(.4,0,.7,.4)',
+                          }
+                        : item,
+                );
             });
 
             timeouts.push(
                 setTimeout(() => {
-                    // 2) cambiar por una imagen nueva de la misma orientación
-                    //    que no esté ya visible en otro mosaico
+                    // Promover la cara trasera y mantenerla como respaldo.
                     setTiles((prev) => {
                         const tile = prev[index];
-                        const pool =
-                            tile.orient === 'v'
-                                ? VERTICAL_POOL
-                                : HORIZONTAL_POOL;
-                        const shown = new Set(
-                            prev
-                                .filter((_, i) => i !== index)
-                                .map((t) => t.src),
-                        );
-                        const candidates = pool.filter(
-                            (src) =>
-                                loadedRef.current.has(src) &&
-                                !shown.has(src) &&
-                                src !== tile.src,
-                        );
-                        const next = candidates.length
-                            ? candidates[
-                                  Math.floor(Math.random() * candidates.length)
-                              ]
-                            : tile.src;
+
+                        if (!tile.backSrc) {
+                            return prev;
+                        }
+
+                        const next = tile.backSrc;
 
                         return prev.map((t, i) =>
                             i === index
@@ -197,7 +240,7 @@ function CollageWall() {
                         );
                     });
 
-                    // 3) asentar en plano (la imagen nueva aparece girando)
+                    // Asentar la nueva cara sin retirar todavia el respaldo.
                     timeouts.push(
                         setTimeout(() => {
                             updateTile(index, {
@@ -206,6 +249,12 @@ function CollageWall() {
                                     'transform .34s cubic-bezier(.3,.6,.3,1)',
                             });
                         }, 30),
+                    );
+
+                    timeouts.push(
+                        setTimeout(() => {
+                            updateTile(index, { backSrc: null });
+                        }, 400),
                     );
                 }, 330),
             );
@@ -231,26 +280,31 @@ function CollageWall() {
                         perspective: '700px',
                     }}
                 >
-                    <div
-                        className="h-full w-full"
-                        style={{
-                            backgroundImage: loaded.has(tile.src)
-                                ? `url("${tile.src}")`
-                                : FALLBACK_GRADIENTS[
-                                      index % FALLBACK_GRADIENTS.length
-                                  ],
-                            backgroundSize: 'cover',
-                            backgroundPosition:
-                                tile.orient === 'v'
-                                    ? 'center 22%'
-                                    : 'center 46%',
-                            backgroundRepeat: 'no-repeat',
-                            filter: 'saturate(.92) contrast(1.03) brightness(.9)',
-                            transform: tile.transform,
-                            transition: tile.transition,
-                            backfaceVisibility: 'hidden',
-                        }}
-                    />
+                    <div className="relative h-full w-full">
+                        <div
+                            className="absolute inset-0"
+                            style={tileFaceStyle(
+                                tile.backSrc ?? tile.src,
+                                tile.orient,
+                                index,
+                                loaded,
+                            )}
+                        />
+                        <div
+                            className="absolute inset-0"
+                            style={{
+                                ...tileFaceStyle(
+                                    tile.src,
+                                    tile.orient,
+                                    index,
+                                    loaded,
+                                ),
+                                transform: tile.transform,
+                                transition: tile.transition,
+                                backfaceVisibility: 'hidden',
+                            }}
+                        />
+                    </div>
                 </div>
             ))}
         </div>
