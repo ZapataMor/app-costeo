@@ -26,6 +26,9 @@ use Illuminate\Support\Carbon;
  * @property string $tipo
  * @property string $estado
  * @property string|null $diagnostico_cie10
+ * @property int|null $minutos_disponibles_mes_registrado
+ * @property float|null $factor_indirecto_registrado
+ * @property string|null $costo_hora_sala_registrado
  */
 class Cirugia extends Model
 {
@@ -45,6 +48,9 @@ class Cirugia extends Model
         'estado',
         'diagnostico_cie10',
         'observaciones',
+        'minutos_disponibles_mes_registrado',
+        'factor_indirecto_registrado',
+        'costo_hora_sala_registrado',
     ];
 
     protected function casts(): array
@@ -53,6 +59,9 @@ class Cirugia extends Model
             'fecha' => 'date',
             'hora_inicio' => 'datetime',
             'hora_fin' => 'datetime',
+            'minutos_disponibles_mes_registrado' => 'integer',
+            'factor_indirecto_registrado' => 'float',
+            'costo_hora_sala_registrado' => 'decimal:2',
         ];
     }
 
@@ -108,7 +117,7 @@ class Cirugia extends Model
     public function equiposMedicos(): BelongsToMany
     {
         return $this->belongsToMany(EquipoMedico::class, 'cirugia_equipo_medico')
-            ->withPivot('minutos_uso')
+            ->withPivot('minutos_uso', 'costo_hora_registrado')
             ->withTimestamps();
     }
 

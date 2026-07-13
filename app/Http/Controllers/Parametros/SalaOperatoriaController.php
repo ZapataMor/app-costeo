@@ -8,6 +8,7 @@ use App\Http\Requests\StoreSalaOperatoriaRequest;
 use App\Http\Requests\UpdateSalaOperatoriaRequest;
 use App\Models\SalaOperatoria;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -54,6 +55,8 @@ class SalaOperatoriaController extends Controller
 
     public function destroy(SalaOperatoria $salaOperatoria): RedirectResponse
     {
+        Gate::authorize('operar-hospital');
+
         if ($salaOperatoria->cirugias()->exists()) {
             Inertia::flash('toast', [
                 'type' => 'error',

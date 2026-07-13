@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Enums\EstadoCirugia;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreCirugiaRequest;
 use App\Models\Cirugia;
 use App\Services\Cirugias\RegistrarCirugia;
 use App\Services\Costing\TdabcCostingService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Gate;
 
 class CirugiaController extends Controller
 {
@@ -32,6 +34,14 @@ class CirugiaController extends Controller
      */
     public function calcularCosto(Cirugia $cirugia, TdabcCostingService $motor): JsonResponse
     {
+        Gate::authorize('operar-hospital');
+
+        if ($cirugia->estado !== EstadoCirugia::Realizada->value) {
+            return response()->json([
+                'message' => 'Solo se costean cirugías en estado «realizada».',
+            ], 422);
+        }
+
         return response()->json($motor->calcular($cirugia));
     }
 }

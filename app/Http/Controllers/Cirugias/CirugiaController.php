@@ -17,6 +17,7 @@ use App\Models\SalaOperatoria;
 use App\Services\Cirugias\RegistrarCirugia;
 use App\Services\Costing\TdabcCostingService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -130,6 +131,18 @@ class CirugiaController extends Controller
 
     public function calcular(Cirugia $cirugia, TdabcCostingService $motor): RedirectResponse
     {
+        Gate::authorize('operar-hospital');
+
+        if ($cirugia->estado !== EstadoCirugia::Realizada->value) {
+            Inertia::flash('toast', [
+                'type' => 'error',
+                'message' => 'Solo se costean cirugías en estado «realizada»: costear una cirugía '.
+                    'en proceso o cancelada contaminaría los indicadores.',
+            ]);
+
+            return back();
+        }
+
         $motor->calcular($cirugia);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Costo TDABC calculado.']);

@@ -2,6 +2,7 @@
 
 namespace App\Services\Indicators;
 
+use App\Enums\EstadoCirugia;
 use App\Models\Cirugia;
 use App\Models\CostoCirugia;
 use App\Models\Facturacion;
@@ -34,8 +35,8 @@ class KpiService
      */
     public function costos(): array
     {
-        $costos = CostoCirugia::query()
-            ->pluck('costo_total')
+        $costos = $this->baseCostosContabilizables()
+            ->pluck('costos_cirugia.costo_total')
             ->map(fn ($v): float => (float) $v)
             ->all();
 
@@ -90,14 +91,15 @@ class KpiService
 
     /**
      * Margen por procedimiento: costo real vs. tarifa facturada y vs. la
-     * referencia SOAT − 25 %.
+     * referencia SOAT − 25 %. Solo compara cirugías facturadas: mezclar
+     * costeadas-sin-factura con facturadas compararía poblaciones distintas.
      *
      * @return array<string, mixed>
      */
     public function margen(): array
     {
         $filas = $this->baseCostosPorProcedimiento()
-            ->leftJoin('facturaciones', 'facturaciones.cirugia_id', '=', 'cirugias.id')
+            ->join('facturaciones', 'facturaciones.cirugia_id', '=', 'cirugias.id')
             ->groupBy(
                 'procedimientos_quirurgicos.id',
                 'procedimientos_quirurgicos.codigo_cups',
@@ -388,15 +390,29 @@ class KpiService
     }
 
     /**
-     * Join base: costo de cirugía → cirugía → procedimiento principal.
+     * Costos contabilizables: solo cirugías realizadas y con hora de fin.
+     * Las programadas, en proceso o canceladas —y las realizadas sin
+     * marcar como terminadas— no deben sesgar los indicadores.
      * El HospitalScope de CostoCirugia acota todo al hospital activo.
+     *
+     * @return Builder<CostoCirugia>
+     */
+    protected function baseCostosContabilizables(): Builder
+    {
+        return CostoCirugia::query()
+            ->join('cirugias', 'cirugias.id', '=', 'costos_cirugia.cirugia_id')
+            ->where('cirugias.estado', EstadoCirugia::Realizada->value)
+            ->whereNotNull('cirugias.hora_fin');
+    }
+
+    /**
+     * Join base: costo contabilizable → cirugía → procedimiento principal.
      *
      * @return Builder<CostoCirugia>
      */
     protected function baseCostosPorProcedimiento(): Builder
     {
-        return CostoCirugia::query()
-            ->join('cirugias', 'cirugias.id', '=', 'costos_cirugia.cirugia_id')
+        return $this->baseCostosContabilizables()
             ->join('cirugia_procedimiento', function ($join): void {
                 $join->on('cirugia_procedimiento.cirugia_id', '=', 'cirugias.id')
                     ->where('cirugia_procedimiento.es_principal', true);

@@ -8,6 +8,7 @@ use App\Http\Requests\StoreEquipoMedicoRequest;
 use App\Http\Requests\UpdateEquipoMedicoRequest;
 use App\Models\EquipoMedico;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -54,6 +55,8 @@ class EquipoMedicoController extends Controller
 
     public function destroy(EquipoMedico $equipoMedico): RedirectResponse
     {
+        Gate::authorize('operar-hospital');
+
         if ($equipoMedico->cirugias()->exists()) {
             Inertia::flash('toast', [
                 'type' => 'error',

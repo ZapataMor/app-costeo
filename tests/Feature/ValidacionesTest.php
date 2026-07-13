@@ -141,6 +141,7 @@ class ValidacionesTest extends TestCase
             'hora_inicio' => '2026-06-10 08:00:00',
             'hora_fin' => '2026-06-10 09:00:00',
             'tipo' => 'programada',
+            'estado' => 'realizada', // sin marcarla realizada no se puede costear
             'diagnostico_cie10' => 'K35.8',
             'procedimientos' => [['id' => $procedimiento->id, 'es_principal' => true]],
             'equipo' => [

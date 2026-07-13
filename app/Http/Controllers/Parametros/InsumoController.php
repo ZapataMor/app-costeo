@@ -9,6 +9,7 @@ use App\Http\Requests\StoreInsumoRequest;
 use App\Http\Requests\UpdateInsumoRequest;
 use App\Models\Insumo;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -55,6 +56,8 @@ class InsumoController extends Controller
 
     public function destroy(Insumo $insumo): RedirectResponse
     {
+        Gate::authorize('operar-hospital');
+
         if ($insumo->consumos()->exists()) {
             Inertia::flash('toast', [
                 'type' => 'error',

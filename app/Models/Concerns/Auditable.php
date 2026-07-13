@@ -65,9 +65,15 @@ trait Auditable
     public function nombreAuditable(): string
     {
         /** @var Model $this */
+        // Pacientes: nombre completo + id. NUNCA el documento: está cifrado
+        // en la BD y aquí quedaría en texto plano dentro del historial.
+        if ($this->getAttribute('nombres') !== null) {
+            return trim($this->getAttribute('nombres').' '.$this->getAttribute('apellidos'))
+                .' (#'.$this->getKey().')';
+        }
+
         return (string) ($this->getAttribute('nombre')
             ?? $this->getAttribute('codigo')
-            ?? $this->getAttribute('documento')
             ?? '#'.$this->getKey());
     }
 }

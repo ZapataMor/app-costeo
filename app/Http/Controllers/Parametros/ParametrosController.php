@@ -14,6 +14,7 @@ use App\Models\ProcedimientoQuirurgico;
 use App\Models\RecursoHumano;
 use App\Models\SalaOperatoria;
 use App\Support\HospitalContext;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -82,7 +83,7 @@ class ParametrosController extends Controller
      * Conteo + primeros registros de un catálogo (ya filtrado al hospital
      * activo por el HospitalScope global).
      *
-     * @param  \Illuminate\Database\Eloquent\Builder<covariant Model>  $query
+     * @param  Builder<covariant Model>  $query
      * @param  callable(Model): array{id: int, nombre: string, detalle: string|null, valor: float|null, unidad: string|null}  $fila
      * @return array{total: int, items: list<array{id: int, nombre: string, detalle: string|null, valor: float|null, unidad: string|null}>}
      */

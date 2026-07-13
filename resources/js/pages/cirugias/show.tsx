@@ -1,16 +1,27 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { ArrowLeft, Calculator } from 'lucide-react';
+import { ArrowLeft, Calculator, TriangleAlert } from 'lucide-react';
 import { useState } from 'react';
 import CirugiaController from '@/actions/App/Http/Controllers/Cirugias/CirugiaController';
 import { DesgloseCosto } from '@/components/cirugias/desglose-costo';
 import Heading from '@/components/heading';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { CirugiaDetalle, CostoCirugia } from '@/types/cirugias';
 
-export default function CirugiasShow({ cirugia, costo }: { cirugia: CirugiaDetalle; costo: CostoCirugia | null }) {
+export default function CirugiasShow({
+    cirugia,
+    costo,
+}: {
+    cirugia: CirugiaDetalle;
+    costo: CostoCirugia | null;
+}) {
     const [calculando, setCalculando] = useState(false);
+
+    const sinTerminar = cirugia.hora_fin === null;
+    const sinEstadoRealizada = cirugia.estado !== 'realizada';
+    const noContabilizada = sinTerminar || sinEstadoRealizada;
 
     const calcular = () => {
         router.post(
@@ -32,7 +43,9 @@ export default function CirugiasShow({ cirugia, costo }: { cirugia: CirugiaDetal
                     <Heading
                         title={`Cirugía #${cirugia.id} · ${cirugia.fecha ?? 'sin fecha'}`}
                         description={
-                            cirugia.paciente ? `Paciente: ${cirugia.paciente.nombres} ${cirugia.paciente.apellidos}` : undefined
+                            cirugia.paciente
+                                ? `Paciente: ${cirugia.paciente.nombres} ${cirugia.paciente.apellidos}`
+                                : undefined
                         }
                     />
                     <div className="flex gap-2">
@@ -42,79 +55,156 @@ export default function CirugiasShow({ cirugia, costo }: { cirugia: CirugiaDetal
                                 Volver
                             </Link>
                         </Button>
-                        <Button onClick={calcular} disabled={calculando}>
+                        <Button
+                            onClick={calcular}
+                            disabled={calculando || sinEstadoRealizada}
+                        >
                             <Calculator className="size-4" />
-                            {costo ? 'Recalcular costo' : 'Calcular costo TDABC'}
+                            {costo
+                                ? 'Recalcular costo'
+                                : 'Calcular costo TDABC'}
                         </Button>
                     </div>
                 </div>
 
+                {noContabilizada && (
+                    <Alert className="border-amber-300/70 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+                        <TriangleAlert className="size-4" />
+                        <AlertTitle>
+                            Esta cirugía no se está contando en los indicadores
+                        </AlertTitle>
+                        <AlertDescription className="text-amber-800 dark:text-amber-300/90">
+                            {sinTerminar && (
+                                <p>
+                                    No se ha marcado como terminada: falta la
+                                    hora de finalización.
+                                </p>
+                            )}
+                            {sinEstadoRealizada && (
+                                <p>
+                                    Su estado es «
+                                    {cirugia.estado.replace('_', ' ')}»: solo
+                                    las cirugías realizadas se costean y entran
+                                    a los indicadores.
+                                </p>
+                            )}
+                        </AlertDescription>
+                    </Alert>
+                )}
+
                 <div className="grid gap-4 lg:grid-cols-2">
                     <Card>
                         <CardHeader>
-                            <CardTitle className="text-base">Datos de la cirugía</CardTitle>
+                            <CardTitle className="text-base">
+                                Datos de la cirugía
+                            </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-2 text-sm">
                             <div className="flex justify-between">
-                                <span className="text-muted-foreground">Inicio</span>
-                                <span className="tabular-nums">{cirugia.hora_inicio ?? '—'}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-muted-foreground">Fin</span>
-                                <span className="tabular-nums">{cirugia.hora_fin ?? '—'}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-muted-foreground">Duración</span>
+                                <span className="text-muted-foreground">
+                                    Inicio
+                                </span>
                                 <span className="tabular-nums">
-                                    {cirugia.duracion_minutos !== null ? `${cirugia.duracion_minutos} min` : '—'}
+                                    {cirugia.hora_inicio ?? '—'}
                                 </span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-muted-foreground">Tipo / Estado</span>
+                                <span className="text-muted-foreground">
+                                    Fin
+                                </span>
+                                <span className="tabular-nums">
+                                    {cirugia.hora_fin ?? '—'}
+                                </span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">
+                                    Duración
+                                </span>
+                                <span className="tabular-nums">
+                                    {cirugia.duracion_minutos !== null
+                                        ? `${cirugia.duracion_minutos} min`
+                                        : '—'}
+                                </span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-muted-foreground">
+                                    Tipo / Estado
+                                </span>
                                 <span className="capitalize">
-                                    {cirugia.tipo} / {cirugia.estado}
+                                    {cirugia.tipo} /{' '}
+                                    {cirugia.estado.replace('_', ' ')}
                                 </span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-muted-foreground">Sala</span>
-                                <span>{cirugia.sala?.nombre ?? 'Sin sala'}</span>
+                                <span className="text-muted-foreground">
+                                    Sala
+                                </span>
+                                <span>
+                                    {cirugia.sala?.nombre ?? 'Sin sala'}
+                                </span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-muted-foreground">Diagnóstico CIE-10</span>
-                                <span className="font-mono">{cirugia.diagnostico_cie10 ?? '—'}</span>
+                                <span className="text-muted-foreground">
+                                    Diagnóstico CIE-10
+                                </span>
+                                <span className="font-mono">
+                                    {cirugia.diagnostico_cie10 ?? '—'}
+                                </span>
                             </div>
                             {cirugia.observaciones && (
-                                <p className="pt-2 text-muted-foreground">{cirugia.observaciones}</p>
+                                <p className="pt-2 text-muted-foreground">
+                                    {cirugia.observaciones}
+                                </p>
                             )}
                         </CardContent>
                     </Card>
 
                     <Card>
                         <CardHeader>
-                            <CardTitle className="text-base">Procedimientos y equipo</CardTitle>
+                            <CardTitle className="text-base">
+                                Procedimientos y equipo
+                            </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3 text-sm">
                             <div className="space-y-1">
                                 {cirugia.procedimientos.map((proc) => (
-                                    <div key={proc.id} className="flex items-center gap-2">
-                                        <span className="font-mono text-xs text-muted-foreground">{proc.codigo_cups}</span>
+                                    <div
+                                        key={proc.id}
+                                        className="flex items-center gap-2"
+                                    >
+                                        <span className="font-mono text-xs text-muted-foreground">
+                                            {proc.codigo_cups}
+                                        </span>
                                         <span>{proc.nombre}</span>
-                                        {proc.es_principal && <Badge variant="secondary">Principal</Badge>}
+                                        {proc.es_principal && (
+                                            <Badge variant="secondary">
+                                                Principal
+                                            </Badge>
+                                        )}
                                     </div>
                                 ))}
                             </div>
                             <div className="border-t pt-3">
                                 {cirugia.equipo.map((miembro, i) => (
-                                    <div key={i} className="flex items-center justify-between py-0.5">
+                                    <div
+                                        key={i}
+                                        className="flex items-center justify-between py-0.5"
+                                    >
                                         <span>
                                             {miembro.nombre ?? '—'}{' '}
-                                            <span className="capitalize text-muted-foreground">({miembro.rol})</span>
+                                            <span className="text-muted-foreground capitalize">
+                                                ({miembro.rol})
+                                            </span>
                                         </span>
-                                        <span className="tabular-nums">{miembro.minutos_participacion} min</span>
+                                        <span className="tabular-nums">
+                                            {miembro.minutos_participacion} min
+                                        </span>
                                     </div>
                                 ))}
                                 {cirugia.equipo.length === 0 && (
-                                    <p className="text-muted-foreground">Sin equipo quirúrgico registrado.</p>
+                                    <p className="text-muted-foreground">
+                                        Sin equipo quirúrgico registrado.
+                                    </p>
                                 )}
                             </div>
                         </CardContent>
@@ -126,7 +216,8 @@ export default function CirugiasShow({ cirugia, costo }: { cirugia: CirugiaDetal
                 ) : (
                     <Card>
                         <CardContent className="py-8 text-center text-muted-foreground">
-                            Esta cirugía aún no tiene costo calculado. Usa «Calcular costo TDABC» para generar el desglose.
+                            Esta cirugía aún no tiene costo calculado. Usa
+                            «Calcular costo TDABC» para generar el desglose.
                         </CardContent>
                     </Card>
                 )}

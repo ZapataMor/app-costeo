@@ -8,7 +8,11 @@ import { Button } from '@/components/ui/button';
 import { cop } from '@/lib/formato';
 import type { PaginadoCirugias } from '@/types/cirugias';
 
-export default function CirugiasIndex({ cirugias }: { cirugias: PaginadoCirugias }) {
+export default function CirugiasIndex({
+    cirugias,
+}: {
+    cirugias: PaginadoCirugias;
+}) {
     return (
         <>
             <Head title="Cirugías" />
@@ -26,55 +30,113 @@ export default function CirugiasIndex({ cirugias }: { cirugias: PaginadoCirugias
                             <tr className="border-b bg-muted/50 text-left text-muted-foreground">
                                 <th className="p-3 font-medium">Fecha</th>
                                 <th className="p-3 font-medium">Paciente</th>
-                                <th className="p-3 font-medium">Procedimiento principal</th>
+                                <th className="p-3 font-medium">
+                                    Procedimiento principal
+                                </th>
                                 <th className="p-3 font-medium">Tipo</th>
                                 <th className="p-3 font-medium">Estado</th>
-                                <th className="p-3 text-right font-medium">Duración</th>
-                                <th className="p-3 text-right font-medium">Costo TDABC</th>
-                                <th className="p-3 text-right font-medium">Acciones</th>
+                                <th className="p-3 text-right font-medium">
+                                    Duración
+                                </th>
+                                <th className="p-3 text-right font-medium">
+                                    Costo TDABC
+                                </th>
+                                <th className="p-3 text-right font-medium">
+                                    Acciones
+                                </th>
                             </tr>
                         </thead>
                         <tbody>
                             {cirugias.data.length === 0 && (
                                 <tr>
-                                    <td colSpan={8} className="p-6 text-center text-muted-foreground">
-                                        No hay cirugías registradas. Usa «Registrar cirugía» para capturar la primera.
+                                    <td
+                                        colSpan={8}
+                                        className="p-6 text-center text-muted-foreground"
+                                    >
+                                        No hay cirugías registradas. Usa
+                                        «Registrar cirugía» para capturar la
+                                        primera.
                                     </td>
                                 </tr>
                             )}
                             {cirugias.data.map((cirugia) => (
-                                <tr key={cirugia.id} className="border-b last:border-0">
-                                    <td className="p-3 tabular-nums">{cirugia.fecha ?? '—'}</td>
+                                <tr
+                                    key={cirugia.id}
+                                    className="border-b last:border-0"
+                                >
+                                    <td className="p-3 tabular-nums">
+                                        {cirugia.fecha ?? '—'}
+                                    </td>
                                     <td className="p-3">
-                                        {cirugia.paciente ? `${cirugia.paciente.nombres} ${cirugia.paciente.apellidos}` : '—'}
+                                        {cirugia.paciente
+                                            ? `${cirugia.paciente.nombres} ${cirugia.paciente.apellidos}`
+                                            : '—'}
                                     </td>
                                     <td className="p-3">
                                         {cirugia.procedimiento_principal ? (
                                             <>
                                                 <span className="font-mono text-xs text-muted-foreground">
-                                                    {cirugia.procedimiento_principal.codigo_cups}
+                                                    {
+                                                        cirugia
+                                                            .procedimiento_principal
+                                                            .codigo_cups
+                                                    }
                                                 </span>{' '}
-                                                {cirugia.procedimiento_principal.nombre}
+                                                {
+                                                    cirugia
+                                                        .procedimiento_principal
+                                                        .nombre
+                                                }
                                             </>
                                         ) : (
                                             '—'
                                         )}
                                     </td>
-                                    <td className="p-3 capitalize">{cirugia.tipo}</td>
-                                    <td className="p-3 capitalize">{cirugia.estado}</td>
+                                    <td className="p-3 capitalize">
+                                        {cirugia.tipo}
+                                    </td>
+                                    <td className="p-3">
+                                        <span className="capitalize">
+                                            {cirugia.estado.replace('_', ' ')}
+                                        </span>
+                                        {(cirugia.estado !== 'realizada' ||
+                                            cirugia.duracion_minutos ===
+                                                null) && (
+                                            <Badge
+                                                variant="outline"
+                                                className="ml-2 border-amber-300/70 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-400"
+                                            >
+                                                No contabilizada
+                                            </Badge>
+                                        )}
+                                    </td>
                                     <td className="p-3 text-right tabular-nums">
-                                        {cirugia.duracion_minutos !== null ? `${cirugia.duracion_minutos} min` : '—'}
+                                        {cirugia.duracion_minutos !== null
+                                            ? `${cirugia.duracion_minutos} min`
+                                            : '—'}
                                     </td>
                                     <td className="p-3 text-right tabular-nums">
                                         {cirugia.costo_total !== null ? (
                                             cop(Number(cirugia.costo_total))
                                         ) : (
-                                            <Badge variant="outline">Sin costear</Badge>
+                                            <Badge variant="outline">
+                                                Sin costear
+                                            </Badge>
                                         )}
                                     </td>
                                     <td className="p-3 text-right">
-                                        <Button asChild variant="ghost" size="icon" aria-label="Ver detalle">
-                                            <Link href={CirugiaController.show.url(cirugia.id)} prefetch>
+                                        <Button
+                                            asChild
+                                            variant="ghost"
+                                            size="icon"
+                                            aria-label="Ver detalle"
+                                        >
+                                            <Link
+                                                href={CirugiaController.show.url(
+                                                    cirugia.id,
+                                                )}
+                                                prefetch
+                                            >
                                                 <Eye className="size-4" />
                                             </Link>
                                         </Button>
@@ -85,7 +147,12 @@ export default function CirugiasIndex({ cirugias }: { cirugias: PaginadoCirugias
                     </table>
                 </div>
 
-                <Paginacion links={cirugias.links} total={cirugias.total} from={cirugias.from} to={cirugias.to} />
+                <Paginacion
+                    links={cirugias.links}
+                    total={cirugias.total}
+                    from={cirugias.from}
+                    to={cirugias.to}
+                />
             </div>
         </>
     );

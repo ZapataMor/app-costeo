@@ -6,8 +6,11 @@ use App\Enums\EstadoCirugia;
 use App\Enums\RolQuirurgico;
 use App\Enums\TipoCirugia;
 use App\Support\HospitalContext;
+use Closure;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
+use Throwable;
 
 class StoreCirugiaRequest extends FormRequest
 {
@@ -31,7 +34,10 @@ class StoreCirugiaRequest extends FormRequest
                 Rule::exists('salas_operatorias', 'id')->where('hospital_id', $hospitalId),
             ],
             'fecha' => ['required', 'date'],
-            'hora_inicio' => ['required', 'date'],
+            // La hora de inicio debe caer en el mismo día de la fecha: los
+            // indicadores mensuales filtran por fecha pero suman minutos de
+            // las horas, y un desfase distorsionaría la utilización de salas.
+            'hora_inicio' => ['required', 'date', $this->reglaHoraInicioCoincideConFecha()],
             // Consistencia temporal: la cirugía debe terminar después de empezar
             'hora_fin' => ['nullable', 'date', 'after:hora_inicio'],
             'tipo' => ['required', Rule::in(TipoCirugia::values())],
@@ -81,5 +87,27 @@ class StoreCirugiaRequest extends FormRequest
             'hora_fin.after' => 'La hora de finalización debe ser posterior a la hora de inicio.',
             'diagnostico_cie10.regex' => 'El diagnóstico debe ser un código CIE-10 válido (p. ej. O82 o K35.8).',
         ];
+    }
+
+    protected function reglaHoraInicioCoincideConFecha(): Closure
+    {
+        return function (string $attribute, mixed $value, Closure $fail): void {
+            $fecha = $this->input('fecha');
+
+            if (! is_string($fecha) || $fecha === '' || ! is_string($value) || $value === '') {
+                return; // 'required'/'date' reportan estos casos
+            }
+
+            try {
+                $inicio = Carbon::parse($value);
+                $dia = Carbon::parse($fecha);
+            } catch (Throwable) {
+                return;
+            }
+
+            if (! $inicio->isSameDay($dia)) {
+                $fail('La hora de inicio debe corresponder al día indicado en la fecha de la cirugía.');
+            }
+        };
     }
 }

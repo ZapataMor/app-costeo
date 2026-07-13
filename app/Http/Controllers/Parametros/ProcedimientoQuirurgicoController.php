@@ -9,6 +9,7 @@ use App\Http\Requests\StoreProcedimientoQuirurgicoRequest;
 use App\Http\Requests\UpdateProcedimientoQuirurgicoRequest;
 use App\Models\ProcedimientoQuirurgico;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -55,6 +56,8 @@ class ProcedimientoQuirurgicoController extends Controller
 
     public function destroy(ProcedimientoQuirurgico $procedimiento): RedirectResponse
     {
+        Gate::authorize('operar-hospital');
+
         if ($procedimiento->cirugias()->exists()) {
             Inertia::flash('toast', [
                 'type' => 'error',

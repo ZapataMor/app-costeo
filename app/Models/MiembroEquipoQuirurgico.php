@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $recurso_humano_id
  * @property string $rol
  * @property int $minutos_participacion
+ * @property string|null $costo_mensual_registrado
  */
 class MiembroEquipoQuirurgico extends Model
 {
@@ -29,12 +30,14 @@ class MiembroEquipoQuirurgico extends Model
         'recurso_humano_id',
         'rol',
         'minutos_participacion',
+        'costo_mensual_registrado',
     ];
 
     protected function casts(): array
     {
         return [
             'minutos_participacion' => 'integer',
+            'costo_mensual_registrado' => 'decimal:2',
         ];
     }
 

@@ -17,7 +17,7 @@ return new class extends Migration
             $table->dateTime('hora_inicio');
             $table->dateTime('hora_fin')->nullable();
             $table->string('tipo', 15)->default('programada'); // programada | urgencia
-            $table->string('estado', 15)->default('realizada'); // programada | realizada | cancelada
+            $table->string('estado', 15)->default('en_proceso'); // programada | en_proceso | realizada | cancelada
             $table->string('diagnostico_cie10', 8)->nullable();
             $table->text('observaciones')->nullable();
             $table->timestamps();

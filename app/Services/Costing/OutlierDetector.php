@@ -2,6 +2,7 @@
 
 namespace App\Services\Costing;
 
+use App\Enums\EstadoCirugia;
 use App\Models\CostoCirugia;
 use App\Support\Estadistica;
 use Illuminate\Support\Collection;
@@ -25,6 +26,9 @@ class OutlierDetector
     {
         $filas = CostoCirugia::query()
             ->join('cirugias', 'cirugias.id', '=', 'costos_cirugia.cirugia_id')
+            // Solo cirugías contabilizables (realizadas y terminadas)
+            ->where('cirugias.estado', EstadoCirugia::Realizada->value)
+            ->whereNotNull('cirugias.hora_fin')
             ->join('cirugia_procedimiento', function ($join): void {
                 $join->on('cirugia_procedimiento.cirugia_id', '=', 'cirugias.id')
                     ->where('cirugia_procedimiento.es_principal', true);

@@ -4,13 +4,20 @@ namespace App\Services\Cirugias;
 
 use App\Models\Cirugia;
 use App\Models\ConsumoInsumo;
+use App\Models\EquipoMedico;
 use App\Models\Insumo;
 use App\Models\MiembroEquipoQuirurgico;
+use App\Models\RecursoHumano;
 use Illuminate\Support\Facades\DB;
 
 /**
  * Registra una cirugía con procedimientos, equipo quirúrgico, consumos de
- * insumos (con snapshot de precio) y equipos médicos en una transacción.
+ * insumos y equipos médicos en una transacción. Congela (snapshot) TODAS
+ * las tarifas vigentes al momento del registro —insumos, costo mensual del
+ * personal, costo/hora de sala y equipos, y parámetros TDABC del hospital—
+ * para que el costo histórico no cambie si los parámetros de Capa 1 se
+ * actualizan después.
+ *
  * Compartido por la API v1 y la UI web; espera datos ya validados por
  * StoreCirugiaRequest.
  */
@@ -40,6 +47,14 @@ class RegistrarCirugia
         return DB::transaction(function () use ($atributos, $procedimientos, $equipo, $consumos, $equiposMedicos): Cirugia {
             $cirugia = Cirugia::create($atributos);
 
+            // Snapshot de los parámetros TDABC del hospital y la sala
+            $cirugia->loadMissing(['hospital', 'sala']);
+            $cirugia->forceFill([
+                'minutos_disponibles_mes_registrado' => $cirugia->hospital->minutosDisponiblesMes(),
+                'factor_indirecto_registrado' => $cirugia->hospital->factor_indirecto,
+                'costo_hora_sala_registrado' => $cirugia->sala?->costo_hora,
+            ])->save();
+
             // Procedimientos: garantiza exactamente un principal
             $hayPrincipal = array_any(
                 $procedimientos,
@@ -55,11 +70,14 @@ class RegistrarCirugia
             }
 
             foreach ($equipo as $miembro) {
+                $recurso = RecursoHumano::findOrFail((int) $miembro['recurso_humano_id']);
+
                 MiembroEquipoQuirurgico::create([
                     'cirugia_id' => $cirugia->id,
-                    'recurso_humano_id' => $miembro['recurso_humano_id'],
+                    'recurso_humano_id' => $recurso->id,
                     'rol' => $miembro['rol'],
                     'minutos_participacion' => $miembro['minutos_participacion'],
+                    'costo_mensual_registrado' => $recurso->costoMensualTotal(),
                 ]);
             }
 
@@ -76,12 +94,17 @@ class RegistrarCirugia
             }
 
             foreach ($equiposMedicos as $equipoMedico) {
-                $cirugia->equiposMedicos()->attach($equipoMedico['id'], [
+                $equipoModelo = EquipoMedico::findOrFail((int) $equipoMedico['id']);
+
+                $cirugia->equiposMedicos()->attach($equipoModelo->id, [
                     'minutos_uso' => $equipoMedico['minutos_uso'],
+                    'costo_hora_registrado' => $equipoModelo->costo_hora,
                 ]);
             }
 
-            return $cirugia;
+            // Recarga los defaults que aplica la base de datos (p. ej.
+            // estado 'en_proceso' cuando no se envía explícitamente).
+            return $cirugia->refresh();
         });
     }
 }

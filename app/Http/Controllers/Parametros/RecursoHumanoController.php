@@ -9,6 +9,7 @@ use App\Http\Requests\StoreRecursoHumanoRequest;
 use App\Http\Requests\UpdateRecursoHumanoRequest;
 use App\Models\RecursoHumano;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -55,6 +56,8 @@ class RecursoHumanoController extends Controller
 
     public function destroy(RecursoHumano $recursoHumano): RedirectResponse
     {
+        Gate::authorize('operar-hospital');
+
         if ($recursoHumano->participaciones()->exists()) {
             Inertia::flash('toast', [
                 'type' => 'error',
