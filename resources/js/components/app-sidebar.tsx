@@ -1,10 +1,11 @@
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import {
     History,
     LayoutGrid,
     SlidersHorizontal,
     Stethoscope,
     Syringe,
+    UsersRound,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { HospitalSwitcher } from '@/components/hospital-switcher';
@@ -38,12 +39,17 @@ const historialNavItems: NavItem[] = [
     },
 ];
 
-const mainNavItems: NavItem[] = [
+// Módulo de registro de procedimientos (antes «Cirugías»): único módulo
+// visible para el digitador.
+const registroNavItems: NavItem[] = [
     {
-        title: 'Cirugías',
+        title: 'Registro de procedimientos',
         href: '/cirugias',
         icon: Syringe,
     },
+];
+
+const costeoNavItems: NavItem[] = [
     {
         title: 'Costeo quirúrgico',
         href: '/costeo',
@@ -59,7 +65,20 @@ const parametrosNavItems: NavItem[] = [
     },
 ];
 
+const digitadoresNavItems: NavItem[] = [
+    {
+        title: 'Digitadores',
+        href: '/digitadores',
+        icon: UsersRound,
+    },
+];
+
 export function AppSidebar() {
+    const { auth } = usePage().props;
+    const role = auth.user?.role;
+    const esDigitador = role === 'digitador';
+    const esAdminHospital = role === 'admin_hospital';
+
     return (
         <Sidebar
             collapsible="icon"
@@ -74,7 +93,7 @@ export function AppSidebar() {
                             asChild
                             className="h-auto p-1 hover:bg-transparent data-[active=true]:bg-transparent"
                         >
-                            <Link href={dashboard()} prefetch>
+                            <Link href={esDigitador ? '/cirugias' : dashboard()} prefetch>
                                 <AppLogo />
                             </Link>
                         </SidebarMenuButton>
@@ -84,10 +103,33 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent className="px-2">
-                <NavMain items={generalNavItems} label="General" />
-                <NavMain items={parametrosNavItems} className="my-[14px]" />
-                <NavMain items={mainNavItems} label="Costeo" />
-                <NavMain items={historialNavItems} className="mt-[14px]" />
+                {esDigitador ? (
+                    // El digitador solo registra procedimientos.
+                    <NavMain items={registroNavItems} label="Registro" />
+                ) : (
+                    <>
+                        <NavMain items={generalNavItems} label="General" />
+                        <NavMain
+                            items={parametrosNavItems}
+                            className="my-[14px]"
+                        />
+                        <NavMain
+                            items={[...registroNavItems, ...costeoNavItems]}
+                            label="Costeo"
+                        />
+                        {esAdminHospital && (
+                            <NavMain
+                                items={digitadoresNavItems}
+                                label="Administración"
+                                className="mt-[14px]"
+                            />
+                        )}
+                        <NavMain
+                            items={historialNavItems}
+                            className="mt-[14px]"
+                        />
+                    </>
+                )}
             </SidebarContent>
 
             <SidebarFooter className="mx-4 mb-4 border-t border-white/[.09] px-0 pt-3 pb-0">

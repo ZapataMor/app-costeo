@@ -6,6 +6,7 @@ enum RolUsuario: string
 {
     case SuperAdmin = 'super_admin';
     case AdminHospital = 'admin_hospital';
+    case Digitador = 'digitador';
 
     /**
      * @return list<string>

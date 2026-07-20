@@ -1,5 +1,11 @@
 import { Head, Link } from '@inertiajs/react';
-import { AlertTriangle, ChartColumnBig, TrendingUp, Waves } from 'lucide-react';
+import {
+    AlertTriangle,
+    ChartColumnBig,
+    ClipboardList,
+    TrendingUp,
+    Waves,
+} from 'lucide-react';
 import { KpiCard } from '@/components/costeo/kpi-card';
 import {
     Card,
@@ -25,6 +31,13 @@ const etiquetasChequeos: Record<string, string> = {
 };
 
 const paneles = [
+    {
+        titulo: 'Procedimientos',
+        descripcion:
+            'Explora cada procedimiento, sus cirugías realizadas y el costo detallado de cada una.',
+        href: '/costeo/procedimientos',
+        icono: ClipboardList,
+    },
     {
         titulo: 'Costo por componente',
         descripcion:
@@ -111,7 +124,7 @@ export default function CosteoIndex({
                     />
                 </div>
 
-                <div className="grid gap-[18px] md:grid-cols-2 xl:grid-cols-4">
+                <div className="grid gap-[18px] md:grid-cols-2 xl:grid-cols-5">
                     {paneles.map((panel) => (
                         <Link key={panel.href} href={panel.href} prefetch>
                             <Card className="h-full transition-colors hover:bg-accent/50">

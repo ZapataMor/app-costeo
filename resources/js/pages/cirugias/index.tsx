@@ -10,18 +10,22 @@ import type { PaginadoCirugias } from '@/types/cirugias';
 
 export default function CirugiasIndex({
     cirugias,
+    puedeCostear = true,
 }: {
     cirugias: PaginadoCirugias;
+    puedeCostear?: boolean;
 }) {
+    const colSpanVacio = puedeCostear ? 8 : 6;
+
     return (
         <>
-            <Head title="Cirugías" />
+            <Head title="Procedimientos" />
             <div className="flex flex-col gap-4 p-4">
                 <EncabezadoListado
-                    titulo="Cirugías"
-                    descripcion="Registro de cirugías reales que consumen los parámetros de Capa 1 y alimentan el costeo TDABC."
+                    titulo="Procedimientos"
+                    descripcion="Registro de procedimientos clínicos que consumen los parámetros de Capa 1 y alimentan el costeo TDABC."
                     hrefNuevo={CirugiaController.create.url()}
-                    textoNuevo="Registrar cirugía"
+                    textoNuevo="Registrar procedimiento"
                 />
 
                 <div className="overflow-x-auto rounded-lg border">
@@ -38,24 +42,28 @@ export default function CirugiasIndex({
                                 <th className="p-3 text-right font-medium">
                                     Duración
                                 </th>
-                                <th className="p-3 text-right font-medium">
-                                    Costo TDABC
-                                </th>
-                                <th className="p-3 text-right font-medium">
-                                    Acciones
-                                </th>
+                                {puedeCostear && (
+                                    <>
+                                        <th className="p-3 text-right font-medium">
+                                            Costo TDABC
+                                        </th>
+                                        <th className="p-3 text-right font-medium">
+                                            Acciones
+                                        </th>
+                                    </>
+                                )}
                             </tr>
                         </thead>
                         <tbody>
                             {cirugias.data.length === 0 && (
                                 <tr>
                                     <td
-                                        colSpan={8}
+                                        colSpan={colSpanVacio}
                                         className="p-6 text-center text-muted-foreground"
                                     >
-                                        No hay cirugías registradas. Usa
-                                        «Registrar cirugía» para capturar la
-                                        primera.
+                                        No hay procedimientos registrados. Usa
+                                        «Registrar procedimiento» para capturar
+                                        el primero.
                                     </td>
                                 </tr>
                             )}
@@ -115,32 +123,40 @@ export default function CirugiasIndex({
                                             ? `${cirugia.duracion_minutos} min`
                                             : '—'}
                                     </td>
-                                    <td className="p-3 text-right tabular-nums">
-                                        {cirugia.costo_total !== null ? (
-                                            cop(Number(cirugia.costo_total))
-                                        ) : (
-                                            <Badge variant="outline">
-                                                Sin costear
-                                            </Badge>
-                                        )}
-                                    </td>
-                                    <td className="p-3 text-right">
-                                        <Button
-                                            asChild
-                                            variant="ghost"
-                                            size="icon"
-                                            aria-label="Ver detalle"
-                                        >
-                                            <Link
-                                                href={CirugiaController.show.url(
-                                                    cirugia.id,
+                                    {puedeCostear && (
+                                        <>
+                                            <td className="p-3 text-right tabular-nums">
+                                                {cirugia.costo_total !== null ? (
+                                                    cop(
+                                                        Number(
+                                                            cirugia.costo_total,
+                                                        ),
+                                                    )
+                                                ) : (
+                                                    <Badge variant="outline">
+                                                        Sin costear
+                                                    </Badge>
                                                 )}
-                                                prefetch
-                                            >
-                                                <Eye className="size-4" />
-                                            </Link>
-                                        </Button>
-                                    </td>
+                                            </td>
+                                            <td className="p-3 text-right">
+                                                <Button
+                                                    asChild
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    aria-label="Ver detalle"
+                                                >
+                                                    <Link
+                                                        href={CirugiaController.show.url(
+                                                            cirugia.id,
+                                                        )}
+                                                        prefetch
+                                                    >
+                                                        <Eye className="size-4" />
+                                                    </Link>
+                                                </Button>
+                                            </td>
+                                        </>
+                                    )}
                                 </tr>
                             ))}
                         </tbody>
@@ -159,5 +175,5 @@ export default function CirugiasIndex({
 }
 
 CirugiasIndex.layout = {
-    breadcrumbs: [{ title: 'Cirugías', href: '/cirugias' }],
+    breadcrumbs: [{ title: 'Procedimientos', href: '/cirugias' }],
 };

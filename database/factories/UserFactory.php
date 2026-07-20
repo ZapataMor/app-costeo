@@ -29,6 +29,8 @@ class UserFactory extends Factory
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
+            'role' => RolUsuario::AdminHospital->value,
+            'activo' => true,
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
             'two_factor_secret' => null,
@@ -45,6 +47,17 @@ class UserFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'role' => RolUsuario::SuperAdmin->value,
             'hospital_id' => null,
+        ]);
+    }
+
+    /**
+     * Digitador: registra procedimientos en un hospital concreto. Requiere
+     * asignar `hospital_id` al crearlo.
+     */
+    public function digitador(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => RolUsuario::Digitador->value,
         ]);
     }
 

@@ -1,4 +1,4 @@
-export type RolUsuario = 'super_admin' | 'admin_hospital';
+export type RolUsuario = 'super_admin' | 'admin_hospital' | 'digitador';
 
 export type User = {
     id: number;
@@ -9,6 +9,7 @@ export type User = {
     two_factor_enabled?: boolean;
     hospital_id: number | null;
     role: RolUsuario;
+    activo?: boolean;
     created_at: string;
     updated_at: string;
     [key: string]: unknown;

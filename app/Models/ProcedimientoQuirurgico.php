@@ -9,6 +9,7 @@ use Database\Factories\ProcedimientoQuirurgicoFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\Pivot;
 
 /**
  * Procedimiento quirúrgico según codificación CUPS.
@@ -23,6 +24,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
  * @property string|null $tarifa_soat
  * @property string|null $fuente
  * @property NivelConfiabilidad $nivel_confiabilidad
+ * @property-read Pivot|null $pivot
  */
 class ProcedimientoQuirurgico extends Model
 {

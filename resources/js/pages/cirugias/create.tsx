@@ -127,11 +127,11 @@ export default function CirugiasCreate({
 
     return (
         <>
-            <Head title="Registrar cirugía" />
+            <Head title="Registrar procedimiento" />
             <div className="flex flex-col gap-4 p-4">
                 <Heading
-                    title="Registrar cirugía"
-                    description="La cirugía consume los parámetros de Capa 1: procedimientos, personal, insumos, equipos y sala."
+                    title="Registrar procedimiento"
+                    description="El procedimiento consume los parámetros de Capa 1: procedimientos, personal, insumos, equipos y sala."
                 />
 
                 <form onSubmit={enviar} className="max-w-4xl space-y-4">
@@ -749,7 +749,7 @@ export default function CirugiasCreate({
                         <Alert className="border-amber-300/70 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
                             <TriangleAlert className="size-4" />
                             <AlertTitle>
-                                Esta cirugía no se contabilizará en los
+                                Este procedimiento no se contabilizará en los
                                 indicadores
                             </AlertTitle>
                             <AlertDescription className="text-amber-800 dark:text-amber-300/90">
@@ -763,8 +763,8 @@ export default function CirugiasCreate({
                                     <p>
                                         Su estado es «
                                         {data.estado.replace('_', ' ')}»: solo
-                                        las cirugías realizadas se costean y
-                                        entran a los indicadores.
+                                        los procedimientos realizados se costean
+                                        y entran a los indicadores.
                                     </p>
                                 )}
                                 <p>
@@ -777,7 +777,7 @@ export default function CirugiasCreate({
 
                     <div className="flex items-center gap-3">
                         <Button type="submit" disabled={processing}>
-                            Registrar cirugía
+                            Registrar procedimiento
                         </Button>
                         <Button asChild variant="outline">
                             <Link href={CirugiaController.index.url()}>
@@ -793,7 +793,7 @@ export default function CirugiasCreate({
 
 CirugiasCreate.layout = {
     breadcrumbs: [
-        { title: 'Cirugías', href: '/cirugias' },
+        { title: 'Procedimientos', href: '/cirugias' },
         { title: 'Registrar', href: '/cirugias/create' },
     ],
 };

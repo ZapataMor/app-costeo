@@ -20,6 +20,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property int $id
  * @property int|null $hospital_id
  * @property RolUsuario $role
+ * @property bool $activo
  * @property string $name
  * @property string $email
  * @property Carbon|null $email_verified_at
@@ -50,6 +51,7 @@ class User extends Authenticatable implements PasskeyUser
             'password' => 'hashed',
             'two_factor_confirmed_at' => 'datetime',
             'role' => RolUsuario::class,
+            'activo' => 'boolean',
         ];
     }
 
@@ -67,5 +69,10 @@ class User extends Authenticatable implements PasskeyUser
     public function isAdminHospital(): bool
     {
         return $this->role === RolUsuario::AdminHospital;
+    }
+
+    public function isDigitador(): bool
+    {
+        return $this->role === RolUsuario::Digitador;
     }
 }

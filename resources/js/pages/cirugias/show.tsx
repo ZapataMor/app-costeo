@@ -37,11 +37,11 @@ export default function CirugiasShow({
 
     return (
         <>
-            <Head title={`Cirugía #${cirugia.id}`} />
+            <Head title={`Procedimiento #${cirugia.id}`} />
             <div className="flex flex-col gap-4 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                     <Heading
-                        title={`Cirugía #${cirugia.id} · ${cirugia.fecha ?? 'sin fecha'}`}
+                        title={`Procedimiento #${cirugia.id} · ${cirugia.fecha ?? 'sin fecha'}`}
                         description={
                             cirugia.paciente
                                 ? `Paciente: ${cirugia.paciente.nombres} ${cirugia.paciente.apellidos}`
@@ -71,7 +71,8 @@ export default function CirugiasShow({
                     <Alert className="border-amber-300/70 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
                         <TriangleAlert className="size-4" />
                         <AlertTitle>
-                            Esta cirugía no se está contando en los indicadores
+                            Este procedimiento no se está contando en los
+                            indicadores
                         </AlertTitle>
                         <AlertDescription className="text-amber-800 dark:text-amber-300/90">
                             {sinTerminar && (
@@ -84,8 +85,8 @@ export default function CirugiasShow({
                                 <p>
                                     Su estado es «
                                     {cirugia.estado.replace('_', ' ')}»: solo
-                                    las cirugías realizadas se costean y entran
-                                    a los indicadores.
+                                    los procedimientos realizados se costean y
+                                    entran a los indicadores.
                                 </p>
                             )}
                         </AlertDescription>
@@ -96,7 +97,7 @@ export default function CirugiasShow({
                     <Card>
                         <CardHeader>
                             <CardTitle className="text-base">
-                                Datos de la cirugía
+                                Datos del procedimiento
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-2 text-sm">
@@ -216,7 +217,7 @@ export default function CirugiasShow({
                 ) : (
                     <Card>
                         <CardContent className="py-8 text-center text-muted-foreground">
-                            Esta cirugía aún no tiene costo calculado. Usa
+                            Este procedimiento aún no tiene costo calculado. Usa
                             «Calcular costo TDABC» para generar el desglose.
                         </CardContent>
                     </Card>
@@ -228,7 +229,7 @@ export default function CirugiasShow({
 
 CirugiasShow.layout = {
     breadcrumbs: [
-        { title: 'Cirugías', href: '/cirugias' },
+        { title: 'Procedimientos', href: '/cirugias' },
         { title: 'Detalle', href: '#' },
     ],
 };

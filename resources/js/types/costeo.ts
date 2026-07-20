@@ -1,7 +1,82 @@
+import type { LinkPaginacion } from '@/types/parametros';
+
 export type ProcedimientoResumen = {
     id: number;
     codigo_cups: string;
     nombre: string;
+};
+
+// ── Explorador de procedimientos (Costeo → Procedimientos) ──────────────
+
+export type FiltrosProcedimientosCosteo = {
+    q: string;
+    especialidad: string;
+    complejidad: string;
+};
+
+export type ProcedimientoCosteoFila = {
+    id: number;
+    codigo_cups: string;
+    nombre: string;
+    especialidad: string;
+    complejidad: string;
+    duracion_estimada_minutos: number;
+    n_realizadas: number;
+    n_costeadas: number;
+    costo_promedio: number | null;
+};
+
+export type PaginadoProcedimientosCosteo = {
+    data: ProcedimientoCosteoFila[];
+    links: LinkPaginacion[];
+    total: number;
+    from: number | null;
+    to: number | null;
+};
+
+export type ProcedimientoCosteoInfo = {
+    id: number;
+    codigo_cups: string;
+    nombre: string;
+    especialidad: string;
+    complejidad: string;
+    duracion_estimada_minutos: number;
+    tarifa_soat: string | null;
+};
+
+export type EstadisticasProcedimiento = {
+    n_realizadas: number;
+    n_costeadas: number;
+    costo_promedio: number | null;
+    costo_minimo: number | null;
+    costo_maximo: number | null;
+    duracion_promedio_minutos: number | null;
+};
+
+export type FiltrosInstanciasCirugia = {
+    desde: string;
+    hasta: string;
+    estado: string;
+};
+
+export type InstanciaCirugiaFila = {
+    id: number;
+    fecha: string | null;
+    hora_inicio: string | null;
+    hora_fin: string | null;
+    paciente: { nombres: string; apellidos: string } | null;
+    sala: string | null;
+    estado: string;
+    duracion_minutos: number | null;
+    costo_total: string | null;
+};
+
+export type PaginadoInstanciasCirugia = {
+    data: InstanciaCirugiaFila[];
+    links: LinkPaginacion[];
+    total: number;
+    from: number | null;
+    to: number | null;
 };
 
 export type CostoPorProcedimiento = {
@@ -91,7 +166,10 @@ export type GlosasRecaudo = {
 
 export type Completitud = {
     total_cirugias_realizadas: number;
-    chequeos: Record<string, { registradas: number; porcentaje: number | null }>;
+    chequeos: Record<
+        string,
+        { registradas: number; porcentaje: number | null }
+    >;
     completas: number;
     completitud_global: number | null;
 };

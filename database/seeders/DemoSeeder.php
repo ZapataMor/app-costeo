@@ -59,6 +59,12 @@ class DemoSeeder extends Seeder
             'hospital_id' => $sanJose->id,
         ]);
 
+        User::factory()->digitador()->create([
+            'name' => 'Digitador San Rafael [SEMILLA]',
+            'email' => 'digitador@sanrafael.test',
+            'hospital_id' => $sanJose->id,
+        ]);
+
         HospitalContext::set($sanJose->id);
         $this->seedHospitalPrincipal($sanJose, $motor);
 
@@ -77,6 +83,12 @@ class DemoSeeder extends Seeder
         User::factory()->create([
             'name' => 'Admin Riohacha [SEMILLA]',
             'email' => 'admin@riohacha.test',
+            'hospital_id' => $remedios->id,
+        ]);
+
+        User::factory()->digitador()->create([
+            'name' => 'Digitador Riohacha [SEMILLA]',
+            'email' => 'digitador@riohacha.test',
             'hospital_id' => $remedios->id,
         ]);
 

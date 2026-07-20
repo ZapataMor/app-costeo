@@ -54,7 +54,7 @@ class DemoSeederTest extends TestCase
         }
     }
 
-    public function test_el_seeder_crea_un_super_admin_y_un_admin_por_hospital(): void
+    public function test_el_seeder_crea_un_super_admin_un_admin_y_un_digitador_por_hospital(): void
     {
         $this->seed(DemoSeeder::class);
 
@@ -63,9 +63,15 @@ class DemoSeederTest extends TestCase
         $this->assertNull($superAdmin->hospital_id);
 
         foreach (Hospital::all() as $hospital) {
-            $admins = User::where('hospital_id', $hospital->id)->get();
+            $admins = User::where('hospital_id', $hospital->id)
+                ->where('role', 'admin_hospital')->get();
             $this->assertCount(1, $admins, "El hospital {$hospital->nombre} debe tener exactamente 1 admin.");
             $this->assertTrue($admins->first()->isAdminHospital());
+
+            $digitadores = User::where('hospital_id', $hospital->id)
+                ->where('role', 'digitador')->get();
+            $this->assertCount(1, $digitadores, "El hospital {$hospital->nombre} debe tener exactamente 1 digitador.");
+            $this->assertTrue($digitadores->first()->isDigitador());
         }
     }
 
