@@ -9,9 +9,15 @@
 
 @theme {
     --font-sans:
-        'Raleway', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
-        'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
-    --font-serif: 'Playfair Display', Georgia, 'Times New Roman', serif;
+        'Instrument Sans', ui-sans-serif, system-ui, sans-serif,
+        'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+        'Noto Color Emoji';
+    /* Alias de compatibilidad: las utilidades font-serif existentes tambien
+       resuelven a Instrument Sans para mantener una unica tipografia. */
+    --font-serif: var(--font-sans);
+    --font-mono:
+        ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+        'Liberation Mono', 'Courier New', monospace;
 
     --radius-lg: var(--radius);
     --radius-md: calc(var(--radius) - 2px);
@@ -141,8 +147,13 @@
         @apply border-border;
     }
 
+    html {
+        font-family: var(--font-sans);
+    }
+
     body {
         @apply bg-background text-foreground;
+        font-family: var(--font-sans);
         background-image:
             radial-gradient(
                 1100px 700px at 85% -10%,
@@ -179,7 +190,7 @@
     [data-slot='card-title'],
     [data-slot='dialog-title'],
     [data-slot='sheet-title'] {
-        font-family: var(--font-serif);
+        font-family: var(--font-sans);
         letter-spacing: 0.015em;
     }
 
@@ -381,10 +392,6 @@ a,
  * Aplicacion autenticada SICOQ
  * ============================================================ */
 .sicoq-app {
-    --font-sans:
-        'Raleway', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
-        'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
-    --font-serif: 'Playfair Display', Georgia, 'Times New Roman', serif;
     --background: #dad5d3;
     --foreground: #161b2f;
     --card: #fbfaf9;
@@ -409,10 +416,6 @@ a,
 }
 
 body.sicoq-authenticated {
-    --font-sans:
-        'Raleway', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
-        'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
-    --font-serif: 'Playfair Display', Georgia, 'Times New Roman', serif;
     font-family: var(--font-sans);
 }
 
