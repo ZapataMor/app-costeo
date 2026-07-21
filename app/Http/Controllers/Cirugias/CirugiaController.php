@@ -18,7 +18,6 @@ use App\Models\Insumo;
 use App\Models\Paciente;
 use App\Models\ProcedimientoQuirurgico;
 use App\Models\RecursoHumano;
-use App\Models\RegistroActividad;
 use App\Models\SalaOperatoria;
 use App\Models\Scopes\HospitalScope;
 use App\Services\Cirugias\ActualizarCirugia;
@@ -40,15 +39,11 @@ class CirugiaController extends Controller
         $esDigitador = $request->user()->isDigitador();
 
         // El digitador no ve el histórico del hospital —ni los datos de otros
-        // pacientes ni los costos—: su pantalla es solo el botón de registrar.
+        // pacientes ni los costos—: su pantalla es el botón de registrar más
+        // lo que él mismo capturó, para poder corregirlo.
         if ($esDigitador) {
             return Inertia::render('cirugias/inicio', [
-                'registradosHoy' => RegistroActividad::query()
-                    ->where('user_id', $request->user()->id)
-                    ->where('auditable_type', Cirugia::class)
-                    ->where('accion', 'creó')
-                    ->whereDate('created_at', today())
-                    ->count(),
+                'mios' => $this->registrosPropios($request->user()->id),
             ]);
         }
 
@@ -169,6 +164,9 @@ class CirugiaController extends Controller
 
     public function edit(Cirugia $cirugia): Response
     {
+        // El digitador solo corrige lo que él mismo capturó.
+        Gate::authorize('corregir-cirugia', $cirugia);
+
         $cirugia->load(['procedimientos', 'equipoQuirurgico', 'consumos', 'equiposMedicos']);
 
         return Inertia::render('cirugias/edit', [
@@ -218,13 +216,18 @@ class CirugiaController extends Controller
         ActualizarCirugia $actualizar,
         TdabcCostingService $motor,
     ): RedirectResponse {
+        Gate::authorize('corregir-cirugia', $cirugia);
+
         $actualizar->ejecutar($cirugia, $request->validated());
 
         $this->sincronizarCosto($cirugia, $motor);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Procedimiento actualizado.']);
 
-        return redirect()->route('cirugias.show', $cirugia);
+        // El digitador no tiene detalle costeado: vuelve a su pantalla.
+        return $request->user()->isDigitador()
+            ? redirect()->route('cirugias.index')
+            : redirect()->route('cirugias.show', $cirugia);
     }
 
     /**
@@ -235,6 +238,8 @@ class CirugiaController extends Controller
      */
     public function cerrar(CerrarCirugiaRequest $request, Cirugia $cirugia, TdabcCostingService $motor): RedirectResponse
     {
+        Gate::authorize('corregir-cirugia', $cirugia);
+
         $cirugia->update([
             'hora_fin' => $request->date('hora_fin'),
             'estado' => EstadoCirugia::Realizada->value,
@@ -284,6 +289,41 @@ class CirugiaController extends Controller
         // Vuelve a la página que pidió el cálculo (detalle de registro o
         // detalle del módulo Costeo); sin referencia, al detalle de registro.
         return redirect()->back(fallback: route('cirugias.show', $cirugia));
+    }
+
+    /**
+     * Lo que este digitador capturó y todavía puede corregir: lo de hoy, más
+     * cualquier registro suyo que siga abierto de días anteriores —si no,
+     * un procedimiento sin cerrar quedaría varado fuera de su alcance.
+     *
+     * Sin costos: el digitador no los ve.
+     *
+     * @return list<array<string, mixed>>
+     */
+    protected function registrosPropios(int $usuarioId): array
+    {
+        return Cirugia::query()
+            ->with(['paciente', 'procedimientos'])
+            ->where('registrado_por', $usuarioId)
+            ->where(fn (Builder $q) => $q
+                ->whereDate('created_at', today())
+                ->orWhereNull('hora_fin')
+                ->orWhere('estado', '!=', EstadoCirugia::Realizada->value))
+            ->orderByDesc('id')
+            ->limit(50)
+            ->get()
+            ->map(fn (Cirugia $cirugia): array => [
+                'id' => $cirugia->id,
+                'fecha' => $cirugia->fecha->toDateString(),
+                'paciente' => $cirugia->paciente?->only(['nombres', 'apellidos']),
+                'procedimiento_principal' => $cirugia->procedimientoPrincipal()?->only(['codigo_cups', 'nombre']),
+                'estado' => $cirugia->estado,
+                'duracion_minutos' => $cirugia->duracionMinutos(),
+                'puede_cerrarse' => $cirugia->hora_fin === null
+                    || $cirugia->estado !== EstadoCirugia::Realizada->value,
+                'hora_inicio' => $cirugia->hora_inicio->format('Y-m-d\TH:i'),
+            ])
+            ->all();
     }
 
     /**

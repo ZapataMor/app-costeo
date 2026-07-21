@@ -18,6 +18,7 @@ use Illuminate\Support\Carbon;
  *
  * @property int $id
  * @property int $hospital_id
+ * @property int|null $registrado_por
  * @property int $paciente_id
  * @property int|null $sala_operatoria_id
  * @property Carbon $fecha
@@ -39,6 +40,7 @@ class Cirugia extends Model
 
     protected $fillable = [
         'hospital_id',
+        'registrado_por',
         'paciente_id',
         'sala_operatoria_id',
         'fecha',
@@ -79,6 +81,12 @@ class Cirugia extends Model
     public function paciente(): BelongsTo
     {
         return $this->belongsTo(Paciente::class);
+    }
+
+    /** Quién capturó el registro; nulo en datos sembrados o migrados. */
+    public function registradoPor(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'registrado_por');
     }
 
     /** @return BelongsTo<SalaOperatoria, $this> */

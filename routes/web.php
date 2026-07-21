@@ -69,22 +69,23 @@ Route::middleware(['auth', 'verified'])->group(function () {
         });
 
     // ── Registro de procedimientos (Capa 2) ─────────────────────────────
-    // El digitador SOLO registra: su índice es la pantalla con el botón de
-    // registrar, y no accede al histórico, al detalle costeado ni a la
-    // corrección. Todo lo demás es de admin_hospital/super_admin.
+    // El digitador registra y solo ve/corrige LO QUE ÉL MISMO capturó (gate
+    // `corregir-cirugia`); nunca el histórico del hospital, el detalle
+    // costeado ni la eliminación, que son de admin_hospital/super_admin.
     Route::prefix('cirugias')->name('cirugias.')->middleware('hospital.contexto')->group(function () {
         Route::get('/', [Cirugias\CirugiaController::class, 'index'])->name('index');
         Route::get('create', [Cirugias\CirugiaController::class, 'create'])->name('create');
         Route::post('/', [Cirugias\CirugiaController::class, 'store'])->name('store');
         Route::post('pacientes', [Cirugias\PacienteController::class, 'store'])->name('pacientes.store');
 
+        // Corrección: sin esto, un error de captura sería permanente y un
+        // procedimiento abierto («en proceso», sin hora de fin) jamás
+        // podría cerrarse ni entrar al costeo.
+        Route::get('{cirugia}/edit', [Cirugias\CirugiaController::class, 'edit'])->name('edit');
+        Route::put('{cirugia}', [Cirugias\CirugiaController::class, 'update'])->name('update');
+        Route::patch('{cirugia}/cerrar', [Cirugias\CirugiaController::class, 'cerrar'])->name('cerrar');
+
         Route::middleware('rol:super_admin,admin_hospital')->group(function () {
-            // Corrección: sin esto, un error de captura sería permanente y un
-            // procedimiento abierto («en proceso», sin hora de fin) jamás
-            // podría cerrarse ni entrar al costeo.
-            Route::get('{cirugia}/edit', [Cirugias\CirugiaController::class, 'edit'])->name('edit');
-            Route::put('{cirugia}', [Cirugias\CirugiaController::class, 'update'])->name('update');
-            Route::patch('{cirugia}/cerrar', [Cirugias\CirugiaController::class, 'cerrar'])->name('cerrar');
 
             Route::get('{cirugia}', [Cirugias\CirugiaController::class, 'show'])->name('show');
             Route::post('{cirugia}/calcular-costo', [Cirugias\CirugiaController::class, 'calcular'])->name('calcular');

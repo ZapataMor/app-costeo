@@ -8,6 +8,7 @@ use App\Models\EquipoMedico;
 use App\Models\Insumo;
 use App\Models\MiembroEquipoQuirurgico;
 use App\Models\RecursoHumano;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -43,6 +44,10 @@ class RegistrarCirugia
 
         /** @var list<array{id: int, minutos_uso: int}> $equiposMedicos */
         $equiposMedicos = $datos['equipos_medicos'] ?? [];
+
+        // Autoría: el digitador solo verá y corregirá lo que él capturó.
+        // Los seeders y comandos (sin sesión) la dejan nula.
+        $atributos['registrado_por'] ??= Auth::id();
 
         return DB::transaction(function () use ($atributos, $procedimientos, $equipo, $consumos, $equiposMedicos): Cirugia {
             $cirugia = Cirugia::create($atributos);

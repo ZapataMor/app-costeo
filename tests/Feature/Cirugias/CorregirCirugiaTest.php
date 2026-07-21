@@ -196,7 +196,7 @@ class CorregirCirugiaTest extends TestCase
         $this->assertSame(45, $equipo->first()->minutos_participacion);
     }
 
-    public function test_corregir_y_cerrar_son_del_administrador_no_del_digitador(): void
+    public function test_el_administrador_corrige_cualquier_procedimiento_de_su_hospital(): void
     {
         $digitador = User::factory()->create([
             'hospital_id' => $this->hospital->id,
@@ -204,26 +204,26 @@ class CorregirCirugiaTest extends TestCase
             'activo' => true,
         ]);
 
+        // Capturado por el digitador: el administrador igual lo supervisa.
         $cirugia = Cirugia::factory()->create([
             'hospital_id' => $this->hospital->id,
+            'registrado_por' => $digitador->id,
             'estado' => EstadoCirugia::EnProceso->value,
             'fecha' => '2026-07-15',
             'hora_inicio' => '2026-07-15 08:00:00',
             'hora_fin' => null,
         ]);
 
-        // El digitador solo registra: corregir, cerrar y eliminar quedan
-        // fuera de su alcance.
-        $this->actingAs($digitador)->get("/cirugias/{$cirugia->id}/edit")->assertForbidden();
-        $this->actingAs($digitador)
+        $this->actingAs($this->admin)->get("/cirugias/{$cirugia->id}/edit")->assertOk();
+        $this->actingAs($this->admin)
             ->patch("/cirugias/{$cirugia->id}/cerrar", ['hora_fin' => '2026-07-15T09:00'])
-            ->assertForbidden();
-        $this->actingAs($digitador)->delete("/cirugias/{$cirugia->id}")->assertForbidden();
+            ->assertRedirect();
 
-        $this->assertDatabaseHas('cirugias', [
-            'id' => $cirugia->id,
-            'estado' => EstadoCirugia::EnProceso->value,
-        ]);
+        $this->assertSame(EstadoCirugia::Realizada->value, $cirugia->refresh()->estado);
+
+        // Eliminar sigue siendo exclusivo del administrador.
+        $this->actingAs($digitador)->delete("/cirugias/{$cirugia->id}")->assertForbidden();
+        $this->assertDatabaseHas('cirugias', ['id' => $cirugia->id]);
     }
 
     public function test_eliminar_borra_el_procedimiento_y_su_costo(): void

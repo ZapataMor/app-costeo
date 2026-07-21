@@ -52,32 +52,103 @@ class DigitadorTest extends TestCase
         $this->actingAs($this->digitador)->get('/cirugias/create')->assertOk();
     }
 
-    public function test_el_digitador_no_ve_el_historico_sino_solo_el_boton_de_registrar(): void
+    public function test_el_digitador_solo_ve_sus_propios_registros(): void
     {
         HospitalContext::set($this->hospital->id);
-        Cirugia::factory()->count(3)->create(['hospital_id' => $this->hospital->id]);
+
+        $suyo = Cirugia::factory()->create([
+            'hospital_id' => $this->hospital->id,
+            'registrado_por' => $this->digitador->id,
+        ]);
+        // De otro digitador y del administrador: no debe verlos.
+        $otroDigitador = User::factory()->digitador()->create(['hospital_id' => $this->hospital->id]);
+        Cirugia::factory()->create([
+            'hospital_id' => $this->hospital->id,
+            'registrado_por' => $otroDigitador->id,
+        ]);
+        Cirugia::factory()->count(2)->create(['hospital_id' => $this->hospital->id]);
+
         HospitalContext::clear();
 
-        // Su pantalla es la de registro: nunca recibe el listado de
-        // procedimientos de otros pacientes ni los costos del hospital.
         $this->actingAs($this->digitador)
             ->get('/cirugias')
             ->assertInertia(fn (Assert $page) => $page
                 ->component('cirugias/inicio')
-                ->missing('cirugias'));
+                // Nunca recibe el listado paginado del hospital ni los costos.
+                ->missing('cirugias')
+                ->has('mios', 1)
+                ->where('mios.0.id', $suyo->id));
     }
 
-    public function test_el_digitador_no_corrige_ni_cierra_procedimientos(): void
+    public function test_el_digitador_corrige_y_cierra_lo_suyo_pero_no_lo_ajeno(): void
     {
         HospitalContext::set($this->hospital->id);
-        $cirugia = Cirugia::factory()->create(['hospital_id' => $this->hospital->id]);
+
+        $suyo = Cirugia::factory()->create([
+            'hospital_id' => $this->hospital->id,
+            'registrado_por' => $this->digitador->id,
+            'estado' => 'en_proceso',
+            'fecha' => '2026-07-15',
+            'hora_inicio' => '2026-07-15 08:00:00',
+            'hora_fin' => null,
+        ]);
+        $ajeno = Cirugia::factory()->create([
+            'hospital_id' => $this->hospital->id,
+            'estado' => 'en_proceso',
+            'fecha' => '2026-07-15',
+            'hora_inicio' => '2026-07-15 08:00:00',
+            'hora_fin' => null,
+        ]);
+
         HospitalContext::clear();
 
-        $this->actingAs($this->digitador)->get("/cirugias/{$cirugia->id}/edit")->assertForbidden();
-        $this->actingAs($this->digitador)->put("/cirugias/{$cirugia->id}")->assertForbidden();
+        $this->actingAs($this->digitador)->get("/cirugias/{$suyo->id}/edit")->assertOk();
         $this->actingAs($this->digitador)
-            ->patch("/cirugias/{$cirugia->id}/cerrar", ['hora_fin' => '2026-07-15T09:00'])
+            ->patch("/cirugias/{$suyo->id}/cerrar", ['hora_fin' => '2026-07-15T09:30'])
+            ->assertRedirect();
+        $this->assertSame('realizada', $suyo->refresh()->estado);
+
+        // Lo capturado por otra persona queda fuera de su alcance.
+        $this->actingAs($this->digitador)->get("/cirugias/{$ajeno->id}/edit")->assertForbidden();
+        $this->actingAs($this->digitador)
+            ->patch("/cirugias/{$ajeno->id}/cerrar", ['hora_fin' => '2026-07-15T09:30'])
             ->assertForbidden();
+        $this->assertSame('en_proceso', $ajeno->refresh()->estado);
+    }
+
+    public function test_el_digitador_nunca_elimina_ni_ve_el_detalle_costeado(): void
+    {
+        HospitalContext::set($this->hospital->id);
+        $suyo = Cirugia::factory()->create([
+            'hospital_id' => $this->hospital->id,
+            'registrado_por' => $this->digitador->id,
+        ]);
+        HospitalContext::clear();
+
+        // Ni siquiera sobre lo propio: eliminar y analizar son del admin.
+        $this->actingAs($this->digitador)->delete("/cirugias/{$suyo->id}")->assertForbidden();
+        $this->actingAs($this->digitador)->get("/cirugias/{$suyo->id}")->assertForbidden();
+    }
+
+    public function test_el_registro_guarda_quien_lo_capturo(): void
+    {
+        HospitalContext::set($this->hospital->id);
+        $paciente = Paciente::factory()->create(['hospital_id' => $this->hospital->id]);
+        $procedimiento = ProcedimientoQuirurgico::factory()->create(['hospital_id' => $this->hospital->id]);
+        HospitalContext::clear();
+
+        $this->actingAs($this->digitador)->post('/cirugias', [
+            'paciente_id' => $paciente->id,
+            'fecha' => '2026-07-15',
+            'hora_inicio' => '2026-07-15 08:00:00',
+            'tipo' => 'programada',
+            'procedimientos' => [['id' => $procedimiento->id, 'es_principal' => true]],
+        ])->assertRedirect('/cirugias');
+
+        $this->assertDatabaseHas('cirugias', [
+            'paciente_id' => $paciente->id,
+            'registrado_por' => $this->digitador->id,
+        ]);
     }
 
     public function test_el_digitador_no_accede_al_resto_del_aplicativo(): void

@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\Cirugia;
 use App\Models\RegistroActividad;
 use App\Models\User;
 use App\Support\HospitalContext;
@@ -78,6 +79,18 @@ class AppServiceProvider extends ServiceProvider
         // Crear/editar datos exige un hospital activo: el admin siempre lo
         // tiene (middleware); el super_admin debe seleccionar uno primero.
         Gate::define('operar-hospital', fn (User $user): bool => HospitalContext::id() !== null);
+
+        // Corregir o cerrar un procedimiento. El administrador puede con
+        // cualquiera de su hospital; el digitador SOLO con los que él mismo
+        // capturó, para poder arreglar sus propios errores en caliente sin
+        // ver ni tocar el trabajo ajeno.
+        Gate::define('corregir-cirugia', function (User $user, Cirugia $cirugia): bool {
+            if (! $user->isDigitador()) {
+                return HospitalContext::id() !== null;
+            }
+
+            return $cirugia->registrado_por === $user->id;
+        });
     }
 
     /**
