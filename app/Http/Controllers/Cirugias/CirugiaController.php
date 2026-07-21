@@ -18,6 +18,7 @@ use App\Models\Insumo;
 use App\Models\Paciente;
 use App\Models\ProcedimientoQuirurgico;
 use App\Models\RecursoHumano;
+use App\Models\RegistroActividad;
 use App\Models\SalaOperatoria;
 use App\Models\Scopes\HospitalScope;
 use App\Services\Cirugias\ActualizarCirugia;
@@ -36,8 +37,20 @@ class CirugiaController extends Controller
 {
     public function index(Request $request): Response
     {
-        // El digitador solo registra: no ve el costo ni entra al detalle.
-        $esDigitador = auth()->user()->isDigitador();
+        $esDigitador = $request->user()->isDigitador();
+
+        // El digitador no ve el histórico del hospital —ni los datos de otros
+        // pacientes ni los costos—: su pantalla es solo el botón de registrar.
+        if ($esDigitador) {
+            return Inertia::render('cirugias/inicio', [
+                'registradosHoy' => RegistroActividad::query()
+                    ->where('user_id', $request->user()->id)
+                    ->where('auditable_type', Cirugia::class)
+                    ->where('accion', 'creó')
+                    ->whereDate('created_at', today())
+                    ->count(),
+            ]);
+        }
 
         $busqueda = trim((string) $request->string('q'));
         $estado = trim((string) $request->string('estado'));
@@ -78,7 +91,7 @@ class CirugiaController extends Controller
                 'tipo' => $cirugia->tipo,
                 'estado' => $cirugia->estado,
                 'duracion_minutos' => $cirugia->duracionMinutos(),
-                'costo_total' => $esDigitador ? null : $cirugia->costo?->costo_total,
+                'costo_total' => $cirugia->costo?->costo_total,
                 // Un procedimiento abierto se cierra desde el listado sin
                 // volver a pasar por el formulario completo.
                 'puede_cerrarse' => $cirugia->hora_fin === null
@@ -88,7 +101,6 @@ class CirugiaController extends Controller
 
         return Inertia::render('cirugias/index', [
             'cirugias' => $cirugias,
-            'puedeCostear' => ! $esDigitador,
             'estados' => EstadoCirugia::values(),
             'filtros' => [
                 'q' => $busqueda,
@@ -182,6 +194,8 @@ class CirugiaController extends Controller
                     ->map(fn ($miembro): array => [
                         'recurso_humano_id' => (string) $miembro->recurso_humano_id,
                         'rol' => $miembro->rol,
+                        'hora_inicio' => $miembro->hora_inicio?->format('Y-m-d\TH:i') ?? '',
+                        'hora_fin' => $miembro->hora_fin?->format('Y-m-d\TH:i') ?? '',
                         'minutos_participacion' => (string) $miembro->minutos_participacion,
                     ])->values(),
                 'consumos' => $cirugia->consumos
@@ -210,9 +224,7 @@ class CirugiaController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Procedimiento actualizado.']);
 
-        return $request->user()->isDigitador()
-            ? redirect()->route('cirugias.index')
-            : redirect()->route('cirugias.show', $cirugia);
+        return redirect()->route('cirugias.show', $cirugia);
     }
 
     /**
@@ -309,8 +321,15 @@ class CirugiaController extends Controller
         $hospital = Hospital::query()->find(HospitalContext::id());
 
         return [
+            // El documento va descifrado para poder buscar por él en el
+            // selector: identificar al paciente por cédula es como llega la
+            // información al quirófano. Solo lo ve quien ya opera el hospital.
             'pacientes' => Paciente::orderBy('apellidos')
-                ->get(['id', 'nombres', 'apellidos', 'tipo_documento']),
+                ->get(['id', 'nombres', 'apellidos', 'tipo_documento', 'documento'])
+                ->map(fn (Paciente $paciente): array => [
+                    ...$paciente->only(['id', 'nombres', 'apellidos', 'tipo_documento']),
+                    'documento' => $paciente->documento,
+                ]),
             'salas' => SalaOperatoria::where('activa', true)->orderBy('nombre')->get(['id', 'nombre', 'costo_hora']),
             'procedimientos' => ProcedimientoQuirurgico::orderBy('nombre')
                 ->get(['id', 'codigo_cups', 'nombre', 'duracion_estimada_minutos']),

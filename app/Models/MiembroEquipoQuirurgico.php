@@ -6,6 +6,7 @@ use Database\Factories\MiembroEquipoQuirurgicoFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 
 /**
  * Participación de un recurso humano en una cirugía (equipo quirúrgico),
@@ -15,6 +16,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $cirugia_id
  * @property int $recurso_humano_id
  * @property string $rol
+ * @property Carbon|null $hora_inicio
+ * @property Carbon|null $hora_fin
  * @property int $minutos_participacion
  * @property string|null $costo_mensual_registrado
  */
@@ -29,6 +32,8 @@ class MiembroEquipoQuirurgico extends Model
         'cirugia_id',
         'recurso_humano_id',
         'rol',
+        'hora_inicio',
+        'hora_fin',
         'minutos_participacion',
         'costo_mensual_registrado',
     ];
@@ -36,6 +41,8 @@ class MiembroEquipoQuirurgico extends Model
     protected function casts(): array
     {
         return [
+            'hora_inicio' => 'datetime',
+            'hora_fin' => 'datetime',
             'minutos_participacion' => 'integer',
             'costo_mensual_registrado' => 'decimal:2',
         ];

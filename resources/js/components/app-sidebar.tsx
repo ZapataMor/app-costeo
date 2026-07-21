@@ -113,7 +113,8 @@ export function AppSidebar() {
 
             <SidebarContent className="px-2">
                 {esDigitador ? (
-                    // El digitador solo registra procedimientos.
+                    // El digitador solo registra: su índice es la pantalla con
+                    // el botón, sin histórico ni costos.
                     <NavMain items={registroNavItems} label="Registro" />
                 ) : (
                     <>

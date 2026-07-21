@@ -52,6 +52,19 @@ export type CatalogosCirugia = {
     parametrosTdabc: ParametrosTdabc;
 };
 
+/** Minutos entre dos `datetime-local`; null si falta alguno o el rango es inválido. */
+function minutosEntre(inicio: string, fin: string): number | null {
+    if (inicio === '' || fin === '') {
+        return null;
+    }
+
+    const minutos = Math.round(
+        (new Date(fin).getTime() - new Date(inicio).getTime()) / 60000,
+    );
+
+    return minutos > 0 ? minutos : null;
+}
+
 const vacio: DatosCirugia = {
     paciente_id: '',
     sala_operatoria_id: '',
@@ -107,7 +120,10 @@ export function FormularioCirugia({
             pacientes.map((p) => ({
                 valor: String(p.id),
                 etiqueta: `${p.apellidos}, ${p.nombres}`,
-                detalle: p.tipo_documento,
+                detalle: `${p.tipo_documento} ${p.documento}`,
+                // Buscar por número de identificación es como llega el
+                // paciente identificado desde el quirófano.
+                busqueda: p.documento,
             })),
         [pacientes],
     );
@@ -170,22 +186,8 @@ export function FormularioCirugia({
     const sinEstadoRealizada = data.estado !== 'realizada';
     const noContabilizable = sinHoraFin || sinEstadoRealizada;
 
-    /** Duración real capturada, base para sugerir los minutos de cada recurso. */
-    const duracionMinutos = (): number | null => {
-        if (data.hora_inicio === '' || data.hora_fin === '') {
-            return null;
-        }
-
-        const minutos = Math.round(
-            (new Date(data.hora_fin).getTime() -
-                new Date(data.hora_inicio).getTime()) /
-                60000,
-        );
-
-        return minutos > 0 ? minutos : null;
-    };
-
-    const duracion = duracionMinutos();
+    /** Duración real capturada, base para sugerir los tiempos de cada recurso. */
+    const duracion = minutosEntre(data.hora_inicio, data.hora_fin);
 
     const estimacion = useMemo(
         () =>
@@ -234,6 +236,26 @@ export function FormularioCirugia({
         setData(campo, data[campo].filter((_, i) => i !== indice) as never);
     };
 
+    /**
+     * Cambia la entrada o la salida de un miembro y recalcula sus minutos,
+     * que son lo que realmente cuesta. El backend hace el mismo cálculo al
+     * validar, así que el número que se ve es el que se guarda.
+     */
+    const cambiarHorasMiembro = (
+        indice: number,
+        cambios: { hora_inicio?: string; hora_fin?: string },
+    ) => {
+        const fila = { ...data.equipo[indice], ...cambios };
+        const minutos = minutosEntre(fila.hora_inicio, fila.hora_fin);
+
+        actualizarFila('equipo', indice, {
+            ...cambios,
+            ...(minutos !== null
+                ? { minutos_participacion: String(minutos) }
+                : {}),
+        });
+    };
+
     return (
         <form onSubmit={enviar} className="max-w-4xl space-y-4">
             <Card>
@@ -254,7 +276,7 @@ export function FormularioCirugia({
                             valor={data.paciente_id}
                             onCambio={(v) => setData('paciente_id', v)}
                             placeholder="Seleccione paciente"
-                            placeholderBusqueda="Buscar por nombre o apellido…"
+                            placeholderBusqueda="Buscar por documento, nombre o apellido…"
                             sinResultados="Ningún paciente coincide. Use «Nuevo paciente»."
                         />
                         <InputError message={error('paciente_id')} />
@@ -460,15 +482,16 @@ export function FormularioCirugia({
                         Equipo quirúrgico
                     </CardTitle>
                     <CardDescription>
-                        Personal que participó y sus minutos (base del costo
-                        TDABC de talento humano).
+                        Personal que participó. Registre su entrada y salida —o
+                        los minutos directamente—: son la base del costo TDABC
+                        de talento humano.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
                     {data.equipo.map((fila, i) => (
                         <div
                             key={i}
-                            className="flex flex-wrap items-center gap-2"
+                            className="flex flex-wrap items-end gap-2 rounded-lg border p-3"
                         >
                             <div className="min-w-56 flex-1">
                                 <BuscadorSelect
@@ -516,17 +539,74 @@ export function FormularioCirugia({
                                 </Select>
                                 <InputError message={error(`equipo.${i}.rol`)} />
                             </div>
-                            <div className="w-32">
+                            <div className="grid gap-1">
+                                <Label
+                                    htmlFor={`equipo_entrada_${i}`}
+                                    className="text-xs text-muted-foreground"
+                                >
+                                    Entrada
+                                </Label>
                                 <Input
+                                    id={`equipo_entrada_${i}`}
+                                    type="datetime-local"
+                                    className="w-52"
+                                    value={fila.hora_inicio}
+                                    onChange={(e) =>
+                                        cambiarHorasMiembro(i, {
+                                            hora_inicio: e.target.value,
+                                        })
+                                    }
+                                />
+                                <InputError
+                                    message={error(`equipo.${i}.hora_inicio`)}
+                                />
+                            </div>
+                            <div className="grid gap-1">
+                                <Label
+                                    htmlFor={`equipo_salida_${i}`}
+                                    className="text-xs text-muted-foreground"
+                                >
+                                    Salida
+                                </Label>
+                                <Input
+                                    id={`equipo_salida_${i}`}
+                                    type="datetime-local"
+                                    className="w-52"
+                                    value={fila.hora_fin}
+                                    onChange={(e) =>
+                                        cambiarHorasMiembro(i, {
+                                            hora_fin: e.target.value,
+                                        })
+                                    }
+                                />
+                                <InputError
+                                    message={error(`equipo.${i}.hora_fin`)}
+                                />
+                            </div>
+                            <div className="grid gap-1">
+                                <Label
+                                    htmlFor={`equipo_minutos_${i}`}
+                                    className="text-xs text-muted-foreground"
+                                >
+                                    Minutos
+                                </Label>
+                                <Input
+                                    id={`equipo_minutos_${i}`}
                                     type="number"
                                     min={1}
                                     max={1440}
+                                    className="w-28"
                                     placeholder="Minutos"
                                     value={fila.minutos_participacion}
                                     onChange={(e) =>
+                                        // Editar los minutos a mano descarta
+                                        // las horas: dejarlas daría un rango
+                                        // que no cuadra con lo que se cobra.
                                         actualizarFila('equipo', i, {
                                             minutos_participacion:
                                                 e.target.value,
+                                            hora_inicio: '',
+                                            hora_fin: '',
                                         })
                                     }
                                 />
@@ -557,9 +637,11 @@ export function FormularioCirugia({
                                 {
                                     recurso_humano_id: '',
                                     rol: '',
-                                    // Por defecto participan toda la cirugía;
+                                    // Por defecto entra y sale con la cirugía;
                                     // ajustar la excepción es más rápido que
-                                    // teclear los minutos de cada persona.
+                                    // capturar los tiempos de cada persona.
+                                    hora_inicio: data.hora_inicio,
+                                    hora_fin: data.hora_fin,
                                     minutos_participacion: String(
                                         duracion ?? '',
                                     ),

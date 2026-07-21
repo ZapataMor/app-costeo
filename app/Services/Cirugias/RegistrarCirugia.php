@@ -76,6 +76,10 @@ class RegistrarCirugia
                     'cirugia_id' => $cirugia->id,
                     'recurso_humano_id' => $recurso->id,
                     'rol' => $miembro['rol'],
+                    // Opcionales: solo documentan de dónde salieron los
+                    // minutos cuando se capturó por horas de entrada/salida.
+                    'hora_inicio' => $miembro['hora_inicio'] ?? null,
+                    'hora_fin' => $miembro['hora_fin'] ?? null,
                     'minutos_participacion' => $miembro['minutos_participacion'],
                     'costo_mensual_registrado' => $recurso->costoMensualTotal(),
                 ]);

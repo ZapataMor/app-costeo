@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Hospital;
 use App\Models\Insumo;
+use App\Models\Paciente;
 use App\Models\RegistroActividad;
 use App\Models\User;
 use App\Support\HospitalContext;
@@ -96,10 +97,10 @@ class HistorialTest extends TestCase
 
         $registro = RegistroActividad::query()
             ->where('accion', 'creó')
-            ->where('auditable_type', \App\Models\Paciente::class)
+            ->where('auditable_type', Paciente::class)
             ->firstOrFail();
 
-        $paciente = \App\Models\Paciente::withoutGlobalScopes()->where('nombres', 'Laura')->firstOrFail();
+        $paciente = Paciente::withoutGlobalScopes()->where('nombres', 'Laura')->firstOrFail();
 
         $this->assertStringContainsString('Laura Pushaina', $registro->descripcion);
         $this->assertStringContainsString("(#{$paciente->id})", $registro->descripcion);

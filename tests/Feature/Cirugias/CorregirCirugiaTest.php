@@ -196,7 +196,7 @@ class CorregirCirugiaTest extends TestCase
         $this->assertSame(45, $equipo->first()->minutos_participacion);
     }
 
-    public function test_el_digitador_puede_corregir_y_cerrar_pero_no_eliminar(): void
+    public function test_corregir_y_cerrar_son_del_administrador_no_del_digitador(): void
     {
         $digitador = User::factory()->create([
             'hospital_id' => $this->hospital->id,
@@ -212,15 +212,18 @@ class CorregirCirugiaTest extends TestCase
             'hora_fin' => null,
         ]);
 
-        $this->actingAs($digitador)->get("/cirugias/{$cirugia->id}/edit")->assertOk();
-
+        // El digitador solo registra: corregir, cerrar y eliminar quedan
+        // fuera de su alcance.
+        $this->actingAs($digitador)->get("/cirugias/{$cirugia->id}/edit")->assertForbidden();
         $this->actingAs($digitador)
             ->patch("/cirugias/{$cirugia->id}/cerrar", ['hora_fin' => '2026-07-15T09:00'])
-            ->assertRedirect();
-
+            ->assertForbidden();
         $this->actingAs($digitador)->delete("/cirugias/{$cirugia->id}")->assertForbidden();
 
-        $this->assertDatabaseHas('cirugias', ['id' => $cirugia->id]);
+        $this->assertDatabaseHas('cirugias', [
+            'id' => $cirugia->id,
+            'estado' => EstadoCirugia::EnProceso->value,
+        ]);
     }
 
     public function test_eliminar_borra_el_procedimiento_y_su_costo(): void
@@ -240,6 +243,94 @@ class CorregirCirugiaTest extends TestCase
 
         $this->assertDatabaseMissing('cirugias', ['id' => $cirugia->id]);
         $this->assertDatabaseMissing('costos_cirugia', ['cirugia_id' => $cirugia->id]);
+    }
+
+    public function test_los_minutos_del_equipo_se_derivan_de_la_entrada_y_la_salida(): void
+    {
+        $recurso = RecursoHumano::factory()->create([
+            'hospital_id' => $this->hospital->id,
+            'activo' => true,
+        ]);
+
+        $datos = $this->datosBase([
+            'equipo' => [[
+                'recurso_humano_id' => $recurso->id,
+                'rol' => 'cirujano',
+                'hora_inicio' => '2026-07-15T08:15',
+                'hora_fin' => '2026-07-15T09:45',
+                // Se manda un valor incoherente a propósito: manda el rango.
+                'minutos_participacion' => 5,
+            ]],
+        ]);
+
+        $this->actingAs($this->admin)->post('/cirugias', $datos)->assertRedirect();
+
+        $miembro = Cirugia::query()->latest('id')->firstOrFail()->equipoQuirurgico->firstOrFail();
+
+        $this->assertSame(90, $miembro->minutos_participacion);
+        $this->assertSame('2026-07-15 08:15', $miembro->hora_inicio->format('Y-m-d H:i'));
+        $this->assertSame('2026-07-15 09:45', $miembro->hora_fin->format('Y-m-d H:i'));
+    }
+
+    public function test_se_pueden_seguir_capturando_los_minutos_sin_horas(): void
+    {
+        $recurso = RecursoHumano::factory()->create([
+            'hospital_id' => $this->hospital->id,
+            'activo' => true,
+        ]);
+
+        $datos = $this->datosBase([
+            'equipo' => [[
+                'recurso_humano_id' => $recurso->id,
+                'rol' => 'cirujano',
+                'minutos_participacion' => 40,
+            ]],
+        ]);
+
+        $this->actingAs($this->admin)->post('/cirugias', $datos)->assertRedirect();
+
+        $miembro = Cirugia::query()->latest('id')->firstOrFail()->equipoQuirurgico->firstOrFail();
+
+        $this->assertSame(40, $miembro->minutos_participacion);
+        $this->assertNull($miembro->hora_inicio);
+    }
+
+    public function test_una_salida_anterior_a_la_entrada_se_rechaza(): void
+    {
+        $recurso = RecursoHumano::factory()->create([
+            'hospital_id' => $this->hospital->id,
+            'activo' => true,
+        ]);
+
+        $datos = $this->datosBase([
+            'equipo' => [[
+                'recurso_humano_id' => $recurso->id,
+                'rol' => 'cirujano',
+                'hora_inicio' => '2026-07-15T09:00',
+                'hora_fin' => '2026-07-15T08:00',
+                'minutos_participacion' => 60,
+            ]],
+        ]);
+
+        $this->actingAs($this->admin)
+            ->post('/cirugias', $datos)
+            ->assertSessionHasErrors('equipo.0.hora_fin');
+    }
+
+    public function test_el_formulario_expone_el_documento_para_buscar_al_paciente(): void
+    {
+        Paciente::factory()->create([
+            'hospital_id' => $this->hospital->id,
+            'documento' => '1122334455',
+            'nombres' => 'Ana María',
+        ]);
+
+        $this->actingAs($this->admin)
+            ->get('/cirugias/create')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('pacientes.0.documento', '1122334455')
+                ->where('pacientes.0.nombres', 'Ana María'));
     }
 
     public function test_no_se_puede_corregir_una_cirugia_de_otro_hospital(): void

@@ -21,7 +21,7 @@ export type PaginadoCirugias = {
     to: number | null;
 };
 
-export type CatalogoPaciente = { id: number; nombres: string; apellidos: string; tipo_documento: string };
+export type CatalogoPaciente = { id: number; nombres: string; apellidos: string; tipo_documento: string; documento: string };
 export type CatalogoSala = { id: number; nombre: string; costo_hora: string };
 export type CatalogoProcedimiento = { id: number; codigo_cups: string; nombre: string; duracion_estimada_minutos: number };
 export type CatalogoRecurso = { id: number; nombre: string; rol: string; especialidad: string | null; costo_mensual: number };
@@ -39,6 +39,9 @@ export type ProcedimientoFila = { id: string; es_principal: boolean };
 export type MiembroFila = {
     recurso_humano_id: string;
     rol: string;
+    /** Entrada y salida del quirófano; vacías si se digitaron los minutos. */
+    hora_inicio: string;
+    hora_fin: string;
     minutos_participacion: string;
 };
 export type ConsumoFila = { insumo_id: string; cantidad: string };

@@ -9,7 +9,6 @@ use App\Models\Insumo;
 use App\Models\Paciente;
 use App\Models\ProcedimientoQuirurgico;
 use App\Models\RecursoHumano;
-use App\Models\RegistroActividad;
 use App\Models\SalaOperatoria;
 use App\Models\User;
 use App\Support\HospitalContext;
@@ -53,13 +52,32 @@ class DigitadorTest extends TestCase
         $this->actingAs($this->digitador)->get('/cirugias/create')->assertOk();
     }
 
-    public function test_el_digitador_no_ve_el_costo_en_el_listado(): void
+    public function test_el_digitador_no_ve_el_historico_sino_solo_el_boton_de_registrar(): void
     {
+        HospitalContext::set($this->hospital->id);
+        Cirugia::factory()->count(3)->create(['hospital_id' => $this->hospital->id]);
+        HospitalContext::clear();
+
+        // Su pantalla es la de registro: nunca recibe el listado de
+        // procedimientos de otros pacientes ni los costos del hospital.
         $this->actingAs($this->digitador)
             ->get('/cirugias')
             ->assertInertia(fn (Assert $page) => $page
-                ->component('cirugias/index')
-                ->where('puedeCostear', false));
+                ->component('cirugias/inicio')
+                ->missing('cirugias'));
+    }
+
+    public function test_el_digitador_no_corrige_ni_cierra_procedimientos(): void
+    {
+        HospitalContext::set($this->hospital->id);
+        $cirugia = Cirugia::factory()->create(['hospital_id' => $this->hospital->id]);
+        HospitalContext::clear();
+
+        $this->actingAs($this->digitador)->get("/cirugias/{$cirugia->id}/edit")->assertForbidden();
+        $this->actingAs($this->digitador)->put("/cirugias/{$cirugia->id}")->assertForbidden();
+        $this->actingAs($this->digitador)
+            ->patch("/cirugias/{$cirugia->id}/cerrar", ['hora_fin' => '2026-07-15T09:00'])
+            ->assertForbidden();
     }
 
     public function test_el_digitador_no_accede_al_resto_del_aplicativo(): void

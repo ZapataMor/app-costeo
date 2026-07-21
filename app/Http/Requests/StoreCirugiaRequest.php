@@ -60,6 +60,11 @@ class StoreCirugiaRequest extends FormRequest
                 Rule::exists('recursos_humanos', 'id')->where('hospital_id', $hospitalId),
             ],
             'equipo.*.rol' => ['required', Rule::in(RolQuirurgico::values())],
+            // La participación se puede capturar por horas de entrada y
+            // salida (como la cirugía) o directo en minutos; prepareForValidation
+            // deriva los minutos cuando vienen las horas.
+            'equipo.*.hora_inicio' => ['nullable', 'date'],
+            'equipo.*.hora_fin' => ['nullable', 'date', 'after:equipo.*.hora_inicio'],
             'equipo.*.minutos_participacion' => ['required', 'integer', 'min:1', 'max:1440'],
 
             'consumos' => ['sometimes', 'array'],
@@ -86,7 +91,58 @@ class StoreCirugiaRequest extends FormRequest
         return [
             'hora_fin.after' => 'La hora de finalización debe ser posterior a la hora de inicio.',
             'diagnostico_cie10.regex' => 'El diagnóstico debe ser un código CIE-10 válido (p. ej. O82 o K35.8).',
+            'equipo.*.hora_fin.after' => 'La salida debe ser posterior a la entrada.',
+            'equipo.*.minutos_participacion.required' => 'Indique los minutos, o las horas de entrada y salida.',
         ];
+    }
+
+    /**
+     * Deriva los minutos de participación de las horas de entrada y salida
+     * cuando la captura se hizo así: los minutos siguen siendo la base del
+     * costo TDABC, y esto evita que el usuario tenga que restar a mano.
+     */
+    protected function prepareForValidation(): void
+    {
+        $equipo = $this->input('equipo');
+
+        if (! is_array($equipo)) {
+            return;
+        }
+
+        $this->merge([
+            'equipo' => array_map(function (mixed $miembro): mixed {
+                if (! is_array($miembro)) {
+                    return $miembro;
+                }
+
+                $minutos = $this->minutosEntre(
+                    $miembro['hora_inicio'] ?? null,
+                    $miembro['hora_fin'] ?? null,
+                );
+
+                if ($minutos !== null) {
+                    $miembro['minutos_participacion'] = $minutos;
+                }
+
+                return $miembro;
+            }, $equipo),
+        ]);
+    }
+
+    protected function minutosEntre(mixed $inicio, mixed $fin): ?int
+    {
+        if (! is_string($inicio) || ! is_string($fin) || $inicio === '' || $fin === '') {
+            return null;
+        }
+
+        try {
+            $minutos = (int) Carbon::parse($inicio)->diffInMinutes(Carbon::parse($fin), absolute: false);
+        } catch (Throwable) {
+            return null;
+        }
+
+        // Un rango invertido lo reporta la regla `after`, no este cálculo.
+        return $minutos > 0 ? $minutos : null;
     }
 
     protected function reglaHoraInicioCoincideConFecha(): Closure

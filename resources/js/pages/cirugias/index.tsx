@@ -62,20 +62,17 @@ function RangoFechas({ filtros }: { filtros: Record<string, string> }) {
 
 export default function CirugiasIndex({
     cirugias,
-    puedeCostear = true,
     estados,
     filtros,
     totalPendientes,
 }: {
     cirugias: PaginadoCirugias;
-    puedeCostear?: boolean;
     estados: string[];
     filtros: Record<string, string>;
     totalPendientes: number;
 }) {
-    // Fecha, paciente, procedimiento, tipo, estado, duración, acciones
-    // (+ costo cuando el rol puede verlo).
-    const colSpanVacio = puedeCostear ? 8 : 7;
+    // Fecha, paciente, procedimiento, tipo, estado, duración, costo, acciones.
+    const colSpanVacio = 8;
 
     const viendoPendientes = filtros.pendientes === '1';
 
@@ -119,16 +116,14 @@ export default function CirugiasIndex({
                     extra={
                         <>
                             <RangoFechas filtros={filtros} />
-                            {puedeCostear && (
-                                <BotonExportar
-                                    url="/exportar/cirugias"
-                                    filtros={{
-                                        estado: filtros.estado ?? '',
-                                        desde: filtros.desde ?? '',
-                                        hasta: filtros.hasta ?? '',
-                                    }}
-                                />
-                            )}
+                            <BotonExportar
+                                url="/exportar/cirugias"
+                                filtros={{
+                                    estado: filtros.estado ?? '',
+                                    desde: filtros.desde ?? '',
+                                    hasta: filtros.hasta ?? '',
+                                }}
+                            />
                             <Button
                                 type="button"
                                 variant={viendoPendientes ? 'default' : 'outline'}
@@ -161,11 +156,9 @@ export default function CirugiasIndex({
                                 <th className="p-3 text-right font-medium">
                                     Duración
                                 </th>
-                                {puedeCostear && (
-                                    <th className="p-3 text-right font-medium">
-                                        Costo TDABC
-                                    </th>
-                                )}
+                                <th className="p-3 text-right font-medium">
+                                    Costo TDABC
+                                </th>
                                 <th className="p-3 text-right font-medium">
                                     Acciones
                                 </th>
@@ -240,17 +233,15 @@ export default function CirugiasIndex({
                                             ? `${cirugia.duracion_minutos} min`
                                             : '—'}
                                     </td>
-                                    {puedeCostear && (
-                                        <td className="p-3 text-right tabular-nums">
-                                            {cirugia.costo_total !== null ? (
-                                                cop(Number(cirugia.costo_total))
-                                            ) : (
-                                                <Badge variant="outline">
-                                                    Sin costear
-                                                </Badge>
-                                            )}
-                                        </td>
-                                    )}
+                                    <td className="p-3 text-right tabular-nums">
+                                        {cirugia.costo_total !== null ? (
+                                            cop(Number(cirugia.costo_total))
+                                        ) : (
+                                            <Badge variant="outline">
+                                                Sin costear
+                                            </Badge>
+                                        )}
+                                    </td>
                                     <td className="p-3 text-right whitespace-nowrap">
                                         {cirugia.puede_cerrarse && (
                                             <CerrarCirugiaModal
@@ -274,24 +265,22 @@ export default function CirugiasIndex({
                                                 <Pencil className="size-4" />
                                             </Link>
                                         </Button>
-                                        {puedeCostear && (
-                                            <Button
-                                                asChild
-                                                variant="ghost"
-                                                size="icon"
-                                                aria-label="Ver detalle"
-                                                title="Ver detalle"
+                                        <Button
+                                            asChild
+                                            variant="ghost"
+                                            size="icon"
+                                            aria-label="Ver detalle"
+                                            title="Ver detalle"
+                                        >
+                                            <Link
+                                                href={CirugiaController.show.url(
+                                                    cirugia.id,
+                                                )}
+                                                prefetch
                                             >
-                                                <Link
-                                                    href={CirugiaController.show.url(
-                                                        cirugia.id,
-                                                    )}
-                                                    prefetch
-                                                >
-                                                    <Eye className="size-4" />
-                                                </Link>
-                                            </Button>
-                                        )}
+                                                <Eye className="size-4" />
+                                            </Link>
+                                        </Button>
                                     </td>
                                 </tr>
                             ))}
