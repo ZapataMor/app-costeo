@@ -5,6 +5,7 @@ namespace App\Services\Costing;
 use App\Enums\EstadoCirugia;
 use App\Models\CostoCirugia;
 use App\Support\Estadistica;
+use App\Support\Periodo;
 use Illuminate\Support\Collection;
 
 /**
@@ -18,6 +19,21 @@ class OutlierDetector
     public const UMBRAL_Z = 3.0;
 
     public const FACTOR_IQR = 1.5;
+
+    /** Ventana temporal del análisis; vacía = toda la historia. */
+    protected Periodo $periodo;
+
+    public function __construct()
+    {
+        $this->periodo = new Periodo;
+    }
+
+    public function enPeriodo(Periodo $periodo): static
+    {
+        $this->periodo = $periodo;
+
+        return $this;
+    }
 
     /**
      * @return Collection<int, array<string, mixed>> un grupo por procedimiento
@@ -42,6 +58,14 @@ class OutlierDetector
             ->when(
                 $procedimientoId !== null,
                 fn ($query) => $query->where('procedimientos_quirurgicos.id', $procedimientoId),
+            )
+            ->when(
+                $this->periodo->desde !== null,
+                fn ($query) => $query->whereDate('cirugias.fecha', '>=', $this->periodo->desde->toDateString()),
+            )
+            ->when(
+                $this->periodo->hasta !== null,
+                fn ($query) => $query->whereDate('cirugias.fecha', '<=', $this->periodo->hasta->toDateString()),
             )
             ->select([
                 'costos_cirugia.cirugia_id',

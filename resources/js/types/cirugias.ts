@@ -9,6 +9,8 @@ export type CirugiaFila = {
     estado: string;
     duracion_minutos: number | null;
     costo_total: string | null;
+    puede_cerrarse: boolean;
+    hora_inicio: string;
 };
 
 export type PaginadoCirugias = {
@@ -19,12 +21,44 @@ export type PaginadoCirugias = {
     to: number | null;
 };
 
-export type CatalogoPaciente = { id: number; nombres: string; apellidos: string };
+export type CatalogoPaciente = { id: number; nombres: string; apellidos: string; tipo_documento: string };
 export type CatalogoSala = { id: number; nombre: string; costo_hora: string };
 export type CatalogoProcedimiento = { id: number; codigo_cups: string; nombre: string; duracion_estimada_minutos: number };
-export type CatalogoRecurso = { id: number; nombre: string; rol: string; especialidad: string | null };
+export type CatalogoRecurso = { id: number; nombre: string; rol: string; especialidad: string | null; costo_mensual: number };
+
+/** Parámetros TDABC del hospital activo: base de la estimación en vivo. */
+export type ParametrosTdabc = {
+    minutos_disponibles_mes: number | null;
+    factor_indirecto: number | null;
+};
 export type CatalogoInsumo = { id: number; codigo: string; nombre: string; unidad: string; costo_unitario: string };
 export type CatalogoEquipoMedico = { id: number; nombre: string; costo_hora: string };
+
+/** Filas repetibles del formulario de captura (todo en texto: viene de inputs). */
+export type ProcedimientoFila = { id: string; es_principal: boolean };
+export type MiembroFila = {
+    recurso_humano_id: string;
+    rol: string;
+    minutos_participacion: string;
+};
+export type ConsumoFila = { insumo_id: string; cantidad: string };
+export type EquipoMedicoFila = { id: string; minutos_uso: string };
+
+export type DatosCirugia = {
+    paciente_id: string;
+    sala_operatoria_id: string;
+    fecha: string;
+    hora_inicio: string;
+    hora_fin: string;
+    tipo: string;
+    estado: string;
+    diagnostico_cie10: string;
+    observaciones: string;
+    procedimientos: ProcedimientoFila[];
+    equipo: MiembroFila[];
+    consumos: ConsumoFila[];
+    equipos_medicos: EquipoMedicoFila[];
+};
 
 export type CirugiaDetalle = {
     id: number;
@@ -81,6 +115,28 @@ export type DetalleCosto = {
         costo_unitario: number;
         costo: number;
     }[];
+};
+
+export type Facturacion = {
+    id: number;
+    cirugia_id: number;
+    valor_facturado: string;
+    valor_glosado: string;
+    valor_recaudado: string;
+    tarifa_referencia_soat: string | null;
+    fecha_facturacion: string | null;
+};
+
+export type ResultadoClinico = {
+    id: number;
+    cirugia_id: number;
+    complicacion_intraoperatoria: boolean;
+    descripcion_complicacion_intra: string | null;
+    complicacion_postoperatoria: boolean;
+    descripcion_complicacion_post: string | null;
+    dias_estancia: number;
+    reingreso_30_dias: boolean;
+    mortalidad: boolean;
 };
 
 export type CostoCirugia = {

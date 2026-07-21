@@ -5,6 +5,7 @@ import {
     SlidersHorizontal,
     Stethoscope,
     Syringe,
+    Users,
     UsersRound,
 } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
@@ -39,13 +40,21 @@ const historialNavItems: NavItem[] = [
     },
 ];
 
-// Módulo de registro de procedimientos (antes «Cirugías»): único módulo
-// visible para el digitador.
+// Captura de datos (Capa 2). El digitador solo ve el registro de
+// procedimientos; da de alta pacientes desde el propio formulario.
 const registroNavItems: NavItem[] = [
     {
         title: 'Registro de procedimientos',
         href: '/cirugias',
         icon: Syringe,
+    },
+];
+
+const pacientesNavItems: NavItem[] = [
+    {
+        title: 'Pacientes',
+        href: '/pacientes',
+        icon: Users,
     },
 ];
 
@@ -110,20 +119,26 @@ export function AppSidebar() {
                     <>
                         <NavMain items={generalNavItems} label="General" />
                         <NavMain
-                            items={parametrosNavItems}
-                            className="my-[14px]"
+                            items={[
+                                ...registroNavItems,
+                                ...pacientesNavItems,
+                            ]}
+                            label="Captura"
+                            className="mt-[14px]"
                         />
                         <NavMain
-                            items={[...registroNavItems, ...costeoNavItems]}
-                            label="Costeo"
+                            items={costeoNavItems}
+                            label="Análisis"
+                            className="mt-[14px]"
                         />
-                        {esAdminHospital && (
-                            <NavMain
-                                items={digitadoresNavItems}
-                                label="Administración"
-                                className="mt-[14px]"
-                            />
-                        )}
+                        <NavMain
+                            items={[
+                                ...parametrosNavItems,
+                                ...(esAdminHospital ? digitadoresNavItems : []),
+                            ]}
+                            label="Configuración"
+                            className="mt-[14px]"
+                        />
                         <NavMain
                             items={historialNavItems}
                             className="mt-[14px]"

@@ -10,6 +10,7 @@ use App\Models\Hospital;
 use App\Models\SalaOperatoria;
 use App\Support\Estadistica;
 use App\Support\HospitalContext;
+use App\Support\Periodo;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -27,6 +28,30 @@ class KpiService
 {
     /** Referencia tarifaria del modelo: SOAT − 25 %. */
     public const FACTOR_REFERENCIA_SOAT = 0.75;
+
+    /** Ventana temporal aplicada a todos los indicadores. */
+    protected Periodo $periodo;
+
+    public function __construct()
+    {
+        $this->periodo = new Periodo;
+    }
+
+    /**
+     * Acota los indicadores a una ventana temporal. Sin llamarla, el
+     * servicio calcula sobre toda la historia (comportamiento por defecto).
+     */
+    public function enPeriodo(Periodo $periodo): static
+    {
+        $this->periodo = $periodo;
+
+        return $this;
+    }
+
+    public function periodo(): Periodo
+    {
+        return $this->periodo;
+    }
 
     /**
      * Costo promedio por cirugía (global) y por procedimiento principal.
@@ -238,11 +263,14 @@ class KpiService
      */
     public function glosasRecaudo(): array
     {
-        $totales = Facturacion::query()
+        $totales = $this->acotarAlPeriodo(
+            Facturacion::query()
+                ->join('cirugias', 'cirugias.id', '=', 'facturaciones.cirugia_id'),
+        )
             ->selectRaw('count(*) as n')
-            ->selectRaw('coalesce(sum(valor_facturado), 0) as facturado')
-            ->selectRaw('coalesce(sum(valor_glosado), 0) as glosado')
-            ->selectRaw('coalesce(sum(valor_recaudado), 0) as recaudado')
+            ->selectRaw('coalesce(sum(facturaciones.valor_facturado), 0) as facturado')
+            ->selectRaw('coalesce(sum(facturaciones.valor_glosado), 0) as glosado')
+            ->selectRaw('coalesce(sum(facturaciones.valor_recaudado), 0) as recaudado')
             ->toBase()
             ->first();
 
@@ -268,7 +296,9 @@ class KpiService
      */
     public function completitud(): array
     {
-        $base = fn () => Cirugia::query()->where('estado', 'realizada');
+        $base = fn () => $this->acotarAlPeriodo(
+            Cirugia::query()->where('estado', 'realizada'),
+        );
 
         $total = $base()->count();
 
@@ -399,10 +429,34 @@ class KpiService
      */
     protected function baseCostosContabilizables(): Builder
     {
-        return CostoCirugia::query()
-            ->join('cirugias', 'cirugias.id', '=', 'costos_cirugia.cirugia_id')
-            ->where('cirugias.estado', EstadoCirugia::Realizada->value)
-            ->whereNotNull('cirugias.hora_fin');
+        return $this->acotarAlPeriodo(
+            CostoCirugia::query()
+                ->join('cirugias', 'cirugias.id', '=', 'costos_cirugia.cirugia_id')
+                ->where('cirugias.estado', EstadoCirugia::Realizada->value)
+                ->whereNotNull('cirugias.hora_fin'),
+        );
+    }
+
+    /**
+     * Aplica la ventana temporal sobre `cirugias.fecha`. La tabla `cirugias`
+     * debe estar en la consulta (por join o por ser la tabla base).
+     *
+     * @template TModel of \Illuminate\Database\Eloquent\Model
+     *
+     * @param  Builder<TModel>  $consulta
+     * @return Builder<TModel>
+     */
+    protected function acotarAlPeriodo(Builder $consulta): Builder
+    {
+        if ($this->periodo->desde !== null) {
+            $consulta->whereDate('cirugias.fecha', '>=', $this->periodo->desde->toDateString());
+        }
+
+        if ($this->periodo->hasta !== null) {
+            $consulta->whereDate('cirugias.fecha', '<=', $this->periodo->hasta->toDateString());
+        }
+
+        return $consulta;
     }
 
     /**

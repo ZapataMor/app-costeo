@@ -4,21 +4,33 @@ namespace App\Http\Controllers\Parametros;
 
 use App\Enums\CategoriaInsumo;
 use App\Enums\NivelConfiabilidad;
+use App\Http\Controllers\Concerns\FiltraListado;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreInsumoRequest;
 use App\Http\Requests\UpdateInsumoRequest;
 use App\Models\Insumo;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class InsumoController extends Controller
 {
-    public function index(): Response
+    use FiltraListado;
+
+    public function index(Request $request): Response
     {
+        $insumos = $this->aplicarFiltros(
+            Insumo::query(),
+            $request,
+            ['nombre', 'codigo', 'codigo_atc'],
+            ['categoria' => 'categoria', 'activo' => 'activo', 'confiabilidad' => 'nivel_confiabilidad'],
+        );
+
         return Inertia::render('parametros/insumos/index', [
-            'insumos' => Insumo::orderBy('nombre')->paginate(15)->withQueryString(),
+            'insumos' => $insumos->orderBy('nombre')->paginate(15)->withQueryString(),
+            'filtros' => $this->filtrosActivos($request, ['categoria', 'activo', 'confiabilidad']),
             ...$this->catalogos(),
         ]);
     }

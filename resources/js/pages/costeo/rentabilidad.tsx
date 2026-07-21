@@ -10,6 +10,8 @@ import {
     YAxis,
 } from 'recharts';
 import { KpiCard } from '@/components/costeo/kpi-card';
+import type { Periodo } from '@/components/costeo/selector-periodo';
+import { SelectorPeriodo } from '@/components/costeo/selector-periodo';
 import { Badge } from '@/components/ui/badge';
 import {
     Card,
@@ -24,10 +26,14 @@ import type { GlosasRecaudo, MargenProcedimiento } from '@/types/costeo';
 export default function Rentabilidad({
     por_procedimiento,
     glosasRecaudo,
+    periodo,
+    periodoEtiqueta,
 }: {
     factor_referencia_soat: number;
     por_procedimiento: MargenProcedimiento[];
     glosasRecaudo: GlosasRecaudo;
+    periodo: Periodo;
+    periodoEtiqueta: string;
 }) {
     const abreviar = (nombre: string, max = 22) =>
         nombre.length > max ? `${nombre.slice(0, max - 1)}…` : nombre;
@@ -41,6 +47,11 @@ export default function Rentabilidad({
         <>
             <Head title="Rentabilidad" />
             <div className="flex flex-col gap-4 p-4">
+                <SelectorPeriodo
+                    url="/costeo/rentabilidad"
+                    periodo={periodo}
+                    etiqueta={periodoEtiqueta}
+                />
                 <div className="grid gap-4 md:grid-cols-4">
                     <KpiCard
                         titulo="Facturado"

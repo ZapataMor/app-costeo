@@ -2,18 +2,20 @@ import { Head } from '@inertiajs/react';
 import { Link } from '@inertiajs/react';
 import { Pencil } from 'lucide-react';
 import InsumoController from '@/actions/App/Http/Controllers/Parametros/InsumoController';
+import { FiltrosListado } from '@/components/filtros-listado';
 import { ConfirmarEliminacion } from '@/components/parametros/confirmar-eliminacion';
 import { EncabezadoListado } from '@/components/parametros/encabezado-listado';
-import { ModalFormulario } from '@/components/parametros/modal-formulario';
 import { InsumoForm } from '@/components/parametros/forms/insumo-form';
+import { ModalFormulario } from '@/components/parametros/modal-formulario';
 import { NivelConfiabilidadBadge } from '@/components/parametros/nivel-confiabilidad-badge';
 import { Paginacion } from '@/components/parametros/paginacion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { opcionesActivo, opcionesDesdeValores } from '@/lib/filtros';
 import { cop } from '@/lib/formato';
 import type { InsumoParam, Paginado } from '@/types/parametros';
 
-export default function InsumosIndex({ insumos, categorias, nivelesConfiabilidad }: { insumos: Paginado<InsumoParam>; categorias: string[]; nivelesConfiabilidad: string[] }) {
+export default function InsumosIndex({ insumos, categorias, nivelesConfiabilidad, filtros }: { insumos: Paginado<InsumoParam>; categorias: string[]; nivelesConfiabilidad: string[]; filtros: Record<string, string> }) {
     return (
         <>
             <Head title="Insumos" />
@@ -29,6 +31,17 @@ export default function InsumosIndex({ insumos, categorias, nivelesConfiabilidad
                             )}
                         </ModalFormulario>
                     }
+                />
+
+                <FiltrosListado
+                    url="/parametros/insumos"
+                    valores={filtros}
+                    placeholderBusqueda="Nombre, código o ATC…"
+                    filtros={[
+                        { clave: 'categoria', etiqueta: 'Categoría', opciones: opcionesDesdeValores(categorias) },
+                        { clave: 'confiabilidad', etiqueta: 'Confiabilidad', opciones: opcionesDesdeValores(nivelesConfiabilidad) },
+                        { clave: 'activo', etiqueta: 'Estado', opciones: opcionesActivo },
+                    ]}
                 />
 
                 <div className="overflow-x-auto rounded-lg border">

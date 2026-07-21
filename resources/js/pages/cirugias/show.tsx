@@ -1,21 +1,33 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { ArrowLeft, Calculator, TriangleAlert } from 'lucide-react';
+import { ArrowLeft, Calculator, Pencil, TriangleAlert } from 'lucide-react';
 import { useState } from 'react';
 import CirugiaController from '@/actions/App/Http/Controllers/Cirugias/CirugiaController';
 import { DesgloseCosto } from '@/components/cirugias/desglose-costo';
+import { FacturacionCard } from '@/components/cirugias/facturacion-card';
+import { ResultadoClinicoCard } from '@/components/cirugias/resultado-clinico-card';
 import Heading from '@/components/heading';
+import { ConfirmarEliminacion } from '@/components/parametros/confirmar-eliminacion';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import type { CirugiaDetalle, CostoCirugia } from '@/types/cirugias';
+import type {
+    CirugiaDetalle,
+    CostoCirugia,
+    Facturacion,
+    ResultadoClinico,
+} from '@/types/cirugias';
 
 export default function CirugiasShow({
     cirugia,
     costo,
+    facturacion,
+    resultadoClinico,
 }: {
     cirugia: CirugiaDetalle;
     costo: CostoCirugia | null;
+    facturacion: Facturacion | null;
+    resultadoClinico: ResultadoClinico | null;
 }) {
     const [calculando, setCalculando] = useState(false);
 
@@ -48,11 +60,17 @@ export default function CirugiasShow({
                                 : undefined
                         }
                     />
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                         <Button asChild variant="outline">
                             <Link href={CirugiaController.index.url()}>
                                 <ArrowLeft className="size-4" />
                                 Volver
+                            </Link>
+                        </Button>
+                        <Button asChild variant="outline">
+                            <Link href={CirugiaController.edit.url(cirugia.id)}>
+                                <Pencil className="size-4" />
+                                Corregir
                             </Link>
                         </Button>
                         <Button
@@ -64,6 +82,10 @@ export default function CirugiasShow({
                                 ? 'Recalcular costo'
                                 : 'Calcular costo TDABC'}
                         </Button>
+                        <ConfirmarEliminacion
+                            url={CirugiaController.destroy.url(cirugia.id)}
+                            descripcion="Se eliminará el procedimiento con su equipo quirúrgico, consumos, equipos, costo calculado, facturación y resultado clínico. Esta acción no se puede deshacer."
+                        />
                     </div>
                 </div>
 
@@ -222,6 +244,20 @@ export default function CirugiasShow({
                         </CardContent>
                     </Card>
                 )}
+
+                <div className="grid gap-4 lg:grid-cols-2">
+                    <FacturacionCard
+                        cirugiaId={cirugia.id}
+                        facturacion={facturacion}
+                        costoTotal={
+                            costo !== null ? Number(costo.costo_total) : null
+                        }
+                    />
+                    <ResultadoClinicoCard
+                        cirugiaId={cirugia.id}
+                        resultado={resultadoClinico}
+                    />
+                </div>
             </div>
         </>
     );

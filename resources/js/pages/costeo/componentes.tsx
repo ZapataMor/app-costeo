@@ -9,6 +9,8 @@ import {
     XAxis,
     YAxis,
 } from 'recharts';
+import type { Periodo } from '@/components/costeo/selector-periodo';
+import { SelectorPeriodo } from '@/components/costeo/selector-periodo';
 import {
     Card,
     CardContent,
@@ -29,8 +31,12 @@ const series = [
 
 export default function Componentes({
     por_procedimiento,
+    periodo,
+    periodoEtiqueta,
 }: {
     por_procedimiento: ComponentesProcedimiento[];
+    periodo: Periodo;
+    periodoEtiqueta: string;
 }) {
     const datos = por_procedimiento.map((fila) => ({
         ...fila,
@@ -41,6 +47,11 @@ export default function Componentes({
         <>
             <Head title="Costo por componente" />
             <div className="flex flex-col gap-4 p-4">
+                <SelectorPeriodo
+                    url="/costeo/componentes"
+                    periodo={periodo}
+                    etiqueta={periodoEtiqueta}
+                />
                 <Card>
                     <CardHeader>
                         <CardTitle className="text-base">

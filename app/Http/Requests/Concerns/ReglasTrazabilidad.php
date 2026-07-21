@@ -10,7 +10,7 @@ use Illuminate\Validation\Rule;
  * (fuente + nivel_confiabilidad). Si el nivel no se envía, la base de
  * datos aplica el default 'estimado'.
  *
- * @see \App\Enums\NivelConfiabilidad
+ * @see NivelConfiabilidad
  */
 trait ReglasTrazabilidad
 {

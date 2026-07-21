@@ -3,21 +3,33 @@
 namespace App\Http\Controllers\Parametros;
 
 use App\Enums\NivelConfiabilidad;
+use App\Http\Controllers\Concerns\FiltraListado;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreSalaOperatoriaRequest;
 use App\Http\Requests\UpdateSalaOperatoriaRequest;
 use App\Models\SalaOperatoria;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class SalaOperatoriaController extends Controller
 {
-    public function index(): Response
+    use FiltraListado;
+
+    public function index(Request $request): Response
     {
+        $salas = $this->aplicarFiltros(
+            SalaOperatoria::query(),
+            $request,
+            ['nombre'],
+            ['activa' => 'activa', 'confiabilidad' => 'nivel_confiabilidad'],
+        );
+
         return Inertia::render('parametros/salas-operatorias/index', [
-            'salas' => SalaOperatoria::orderBy('nombre')->paginate(15)->withQueryString(),
+            'salas' => $salas->orderBy('nombre')->paginate(15)->withQueryString(),
+            'filtros' => $this->filtrosActivos($request, ['activa', 'confiabilidad']),
             ...$this->catalogos(),
         ]);
     }

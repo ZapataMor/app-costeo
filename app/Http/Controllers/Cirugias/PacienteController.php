@@ -22,6 +22,9 @@ class PacienteController extends Controller
             'message' => "Paciente {$paciente->nombres} {$paciente->apellidos} registrado.",
         ]);
 
+        // El formulario de registro lo usa para dejarlo ya seleccionado.
+        Inertia::flash('pacienteCreadoId', $paciente->id);
+
         return back();
     }
 }

@@ -10,6 +10,8 @@ import {
     XAxis,
     YAxis,
 } from 'recharts';
+import type { Periodo } from '@/components/costeo/selector-periodo';
+import { SelectorPeriodo } from '@/components/costeo/selector-periodo';
 import { Badge } from '@/components/ui/badge';
 import {
     Card,
@@ -29,8 +31,12 @@ const colorPorNivel: Record<string, string> = {
 
 export default function Variabilidad({
     por_procedimiento,
+    periodo,
+    periodoEtiqueta,
 }: {
     por_procedimiento: VariabilidadProcedimiento[];
+    periodo: Periodo;
+    periodoEtiqueta: string;
 }) {
     const datos = por_procedimiento.map((fila) => ({
         ...fila,
@@ -45,6 +51,11 @@ export default function Variabilidad({
         <>
             <Head title="Variabilidad de costos" />
             <div className="flex flex-col gap-4 p-4">
+                <SelectorPeriodo
+                    url="/costeo/variabilidad"
+                    periodo={periodo}
+                    etiqueta={periodoEtiqueta}
+                />
                 <Card>
                     <CardHeader>
                         <CardTitle className="text-base">

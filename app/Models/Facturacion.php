@@ -46,7 +46,8 @@ class Facturacion extends Model
             'valor_glosado' => 'decimal:2',
             'valor_recaudado' => 'decimal:2',
             'tarifa_referencia_soat' => 'decimal:2',
-            'fecha_facturacion' => 'date',
+            // Formato plano: el formulario de captura usa <input type="date">.
+            'fecha_facturacion' => 'date:Y-m-d',
         ];
     }
 

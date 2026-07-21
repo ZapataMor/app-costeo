@@ -1,17 +1,19 @@
 import { Head, Link } from '@inertiajs/react';
 import { Pencil } from 'lucide-react';
 import ProcedimientoQuirurgicoController from '@/actions/App/Http/Controllers/Parametros/ProcedimientoQuirurgicoController';
+import { FiltrosListado } from '@/components/filtros-listado';
 import { ConfirmarEliminacion } from '@/components/parametros/confirmar-eliminacion';
 import { EncabezadoListado } from '@/components/parametros/encabezado-listado';
-import { ModalFormulario } from '@/components/parametros/modal-formulario';
 import { ProcedimientoForm } from '@/components/parametros/forms/procedimiento-form';
+import { ModalFormulario } from '@/components/parametros/modal-formulario';
 import { NivelConfiabilidadBadge } from '@/components/parametros/nivel-confiabilidad-badge';
 import { Paginacion } from '@/components/parametros/paginacion';
 import { Button } from '@/components/ui/button';
+import { opcionesDesdeValores } from '@/lib/filtros';
 import { cop } from '@/lib/formato';
 import type { Paginado, ProcedimientoParam } from '@/types/parametros';
 
-export default function ProcedimientosIndex({ procedimientos, complejidades, nivelesConfiabilidad }: { procedimientos: Paginado<ProcedimientoParam>; complejidades: string[]; nivelesConfiabilidad: string[] }) {
+export default function ProcedimientosIndex({ procedimientos, complejidades, nivelesConfiabilidad, filtros, especialidades }: { procedimientos: Paginado<ProcedimientoParam>; complejidades: string[]; nivelesConfiabilidad: string[]; filtros: Record<string, string>; especialidades: string[] }) {
     return (
         <>
             <Head title="Procedimientos quirúrgicos" />
@@ -27,6 +29,16 @@ export default function ProcedimientosIndex({ procedimientos, complejidades, niv
                             )}
                         </ModalFormulario>
                     }
+                />
+
+                <FiltrosListado
+                    url="/parametros/procedimientos"
+                    valores={filtros}
+                    placeholderBusqueda="Nombre, código CUPS o especialidad…"
+                    filtros={[
+                        { clave: 'especialidad', etiqueta: 'Especialidad', opciones: opcionesDesdeValores(especialidades) },
+                        { clave: 'complejidad', etiqueta: 'Complejidad', opciones: opcionesDesdeValores(complejidades) },
+                    ]}
                 />
 
                 <div className="overflow-x-auto rounded-lg border">

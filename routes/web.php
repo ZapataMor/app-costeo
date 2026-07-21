@@ -11,8 +11,10 @@ use App\Http\Controllers\Costeo;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DashboardCosteoController;
 use App\Http\Controllers\DigitadorController;
+use App\Http\Controllers\ExportacionController;
 use App\Http\Controllers\HistorialController;
 use App\Http\Controllers\HospitalActivoController;
+use App\Http\Controllers\Pacientes;
 use App\Http\Controllers\Parametros;
 use Illuminate\Support\Facades\Route;
 
@@ -67,19 +69,55 @@ Route::middleware(['auth', 'verified'])->group(function () {
         });
 
     // ── Registro de procedimientos (Capa 2) ─────────────────────────────
-    // El digitador solo accede al registro (index/create/store/pacientes);
-    // el detalle y el costeo manual quedan para admin_hospital/super_admin.
+    // El digitador registra y corrige lo que registró (incluido el cierre
+    // rápido); el detalle costeado, el costeo manual y la eliminación
+    // quedan para admin_hospital/super_admin.
     Route::prefix('cirugias')->name('cirugias.')->middleware('hospital.contexto')->group(function () {
         Route::get('/', [Cirugias\CirugiaController::class, 'index'])->name('index');
         Route::get('create', [Cirugias\CirugiaController::class, 'create'])->name('create');
         Route::post('/', [Cirugias\CirugiaController::class, 'store'])->name('store');
         Route::post('pacientes', [Cirugias\PacienteController::class, 'store'])->name('pacientes.store');
 
+        // Corrección: sin esto, un error de captura sería permanente y un
+        // procedimiento abierto («en proceso», sin hora de fin) jamás
+        // podría cerrarse ni entrar al costeo.
+        Route::get('{cirugia}/edit', [Cirugias\CirugiaController::class, 'edit'])->name('edit');
+        Route::put('{cirugia}', [Cirugias\CirugiaController::class, 'update'])->name('update');
+        Route::patch('{cirugia}/cerrar', [Cirugias\CirugiaController::class, 'cerrar'])->name('cerrar');
+
         Route::middleware('rol:super_admin,admin_hospital')->group(function () {
             Route::get('{cirugia}', [Cirugias\CirugiaController::class, 'show'])->name('show');
             Route::post('{cirugia}/calcular-costo', [Cirugias\CirugiaController::class, 'calcular'])->name('calcular');
+            Route::delete('{cirugia}', [Cirugias\CirugiaController::class, 'destroy'])->name('destroy');
+
+            // Cierre del ciclo de datos: sin estas dos capturas, los KPIs de
+            // margen, glosas, recaudo y completitud no tienen origen.
+            Route::post('{cirugia}/facturacion', [Cirugias\FacturacionController::class, 'store'])
+                ->name('facturacion.store');
+            Route::post('{cirugia}/resultado-clinico', [Cirugias\ResultadoClinicoController::class, 'store'])
+                ->name('resultado-clinico.store');
         });
     });
+
+    // ── Exportaciones CSV ───────────────────────────────────────────────
+    // Respetan los filtros de la vista desde la que se descargan.
+    Route::prefix('exportar')->name('exportar.')
+        ->middleware(['rol:super_admin,admin_hospital', 'hospital.contexto'])->group(function () {
+            Route::get('cirugias', [ExportacionController::class, 'cirugias'])->name('cirugias');
+            Route::get('indicadores', [ExportacionController::class, 'indicadores'])->name('indicadores');
+            Route::get('pendientes', [ExportacionController::class, 'pendientes'])->name('pendientes');
+        });
+
+    // ── Pacientes ───────────────────────────────────────────────────────
+    // El digitador da de alta pacientes desde el registro (alta rápida);
+    // la gestión del padrón es del administrador.
+    Route::prefix('pacientes')->name('pacientes.')
+        ->middleware(['rol:super_admin,admin_hospital', 'hospital.contexto'])->group(function () {
+            Route::get('/', [Pacientes\PacienteController::class, 'index'])->name('index');
+            Route::post('/', [Pacientes\PacienteController::class, 'store'])->name('store');
+            Route::put('{paciente}', [Pacientes\PacienteController::class, 'update'])->name('update');
+            Route::delete('{paciente}', [Pacientes\PacienteController::class, 'destroy'])->name('destroy');
+        });
 
     // ── Dashboards de costeo (Capa 3c) ──────────────────────────────────
     Route::prefix('costeo')->name('costeo.')

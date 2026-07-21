@@ -9,6 +9,8 @@ import {
     XAxis,
     YAxis,
 } from 'recharts';
+import type { Periodo } from '@/components/costeo/selector-periodo';
+import { SelectorPeriodo } from '@/components/costeo/selector-periodo';
 import { Badge } from '@/components/ui/badge';
 import {
     Card,
@@ -20,11 +22,24 @@ import {
 import { cop, pct } from '@/lib/formato';
 import type { GrupoOutliers } from '@/types/costeo';
 
-export default function Outliers({ grupos }: { grupos: GrupoOutliers[] }) {
+export default function Outliers({
+    grupos,
+    periodo,
+    periodoEtiqueta,
+}: {
+    grupos: GrupoOutliers[];
+    periodo: Periodo;
+    periodoEtiqueta: string;
+}) {
     return (
         <>
             <Head title="Outliers de costo" />
             <div className="flex flex-col gap-4 p-4">
+                <SelectorPeriodo
+                    url="/costeo/outliers"
+                    periodo={periodo}
+                    etiqueta={periodoEtiqueta}
+                />
                 <p className="text-sm text-muted-foreground">
                     Detección combinada por z-score (|z| &gt; 3) y rango
                     intercuartílico (1,5 × IQR) sobre el costo total de cada

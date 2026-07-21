@@ -6,7 +6,10 @@ import {
     TrendingUp,
     Waves,
 } from 'lucide-react';
+import { BotonExportar } from '@/components/boton-exportar';
 import { KpiCard } from '@/components/costeo/kpi-card';
+import type { Periodo } from '@/components/costeo/selector-periodo';
+import { SelectorPeriodo } from '@/components/costeo/selector-periodo';
 import {
     Card,
     CardContent,
@@ -71,11 +74,15 @@ export default function CosteoIndex({
     completitud,
     utilizacion,
     glosasRecaudo,
+    periodo,
+    periodoEtiqueta,
 }: {
     costos: CostosKpi;
     completitud: Completitud;
     utilizacion: UtilizacionSalas;
     glosasRecaudo: GlosasRecaudo;
+    periodo: Periodo;
+    periodoEtiqueta: string;
 }) {
     return (
         <>
@@ -89,6 +96,22 @@ export default function CosteoIndex({
                         Indicadores operativos, composición de costos y
                         rentabilidad hospitalaria.
                     </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                    <SelectorPeriodo
+                        url="/costeo"
+                        periodo={periodo}
+                        etiqueta={periodoEtiqueta}
+                    />
+                    <BotonExportar
+                        url="/exportar/indicadores"
+                        filtros={{
+                            desde: periodo.desde ?? '',
+                            hasta: periodo.hasta ?? '',
+                        }}
+                        texto="Exportar indicadores"
+                    />
                 </div>
 
                 <div className="grid gap-[18px] md:grid-cols-3 xl:grid-cols-6">

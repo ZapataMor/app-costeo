@@ -1,18 +1,20 @@
 import { Head, Link } from '@inertiajs/react';
 import { Pencil } from 'lucide-react';
 import SalaOperatoriaController from '@/actions/App/Http/Controllers/Parametros/SalaOperatoriaController';
+import { FiltrosListado } from '@/components/filtros-listado';
 import { ConfirmarEliminacion } from '@/components/parametros/confirmar-eliminacion';
 import { EncabezadoListado } from '@/components/parametros/encabezado-listado';
-import { ModalFormulario } from '@/components/parametros/modal-formulario';
 import { SalaOperatoriaForm } from '@/components/parametros/forms/sala-operatoria-form';
+import { ModalFormulario } from '@/components/parametros/modal-formulario';
 import { NivelConfiabilidadBadge } from '@/components/parametros/nivel-confiabilidad-badge';
 import { Paginacion } from '@/components/parametros/paginacion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { opcionesDesdeValores } from '@/lib/filtros';
 import { cop } from '@/lib/formato';
 import type { Paginado, SalaOperatoriaParam } from '@/types/parametros';
 
-export default function SalasOperatoriasIndex({ salas, nivelesConfiabilidad }: { salas: Paginado<SalaOperatoriaParam>; nivelesConfiabilidad: string[] }) {
+export default function SalasOperatoriasIndex({ salas, nivelesConfiabilidad, filtros }: { salas: Paginado<SalaOperatoriaParam>; nivelesConfiabilidad: string[]; filtros: Record<string, string> }) {
     return (
         <>
             <Head title="Salas operatorias" />
@@ -28,6 +30,23 @@ export default function SalasOperatoriasIndex({ salas, nivelesConfiabilidad }: {
                             )}
                         </ModalFormulario>
                     }
+                />
+
+                <FiltrosListado
+                    url="/parametros/salas-operatorias"
+                    valores={filtros}
+                    placeholderBusqueda="Nombre de la sala…"
+                    filtros={[
+                        { clave: 'confiabilidad', etiqueta: 'Confiabilidad', opciones: opcionesDesdeValores(nivelesConfiabilidad) },
+                        {
+                            clave: 'activa',
+                            etiqueta: 'Estado',
+                            opciones: [
+                                { valor: '1', etiqueta: 'Activas' },
+                                { valor: '0', etiqueta: 'Inactivas' },
+                            ],
+                        },
+                    ]}
                 />
 
                 <div className="overflow-x-auto rounded-lg border">

@@ -1,18 +1,20 @@
 import { Head, Link } from '@inertiajs/react';
 import { Pencil } from 'lucide-react';
 import RecursoHumanoController from '@/actions/App/Http/Controllers/Parametros/RecursoHumanoController';
+import { FiltrosListado } from '@/components/filtros-listado';
 import { ConfirmarEliminacion } from '@/components/parametros/confirmar-eliminacion';
 import { EncabezadoListado } from '@/components/parametros/encabezado-listado';
-import { ModalFormulario } from '@/components/parametros/modal-formulario';
 import { RecursoHumanoForm } from '@/components/parametros/forms/recurso-humano-form';
+import { ModalFormulario } from '@/components/parametros/modal-formulario';
 import { NivelConfiabilidadBadge } from '@/components/parametros/nivel-confiabilidad-badge';
 import { Paginacion } from '@/components/parametros/paginacion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { opcionesActivo, opcionesDesdeValores } from '@/lib/filtros';
 import { cop } from '@/lib/formato';
 import type { Paginado, RecursoHumanoParam } from '@/types/parametros';
 
-export default function RecursosHumanosIndex({ recursos, roles, nivelesConfiabilidad }: { recursos: Paginado<RecursoHumanoParam>; roles: string[]; nivelesConfiabilidad: string[] }) {
+export default function RecursosHumanosIndex({ recursos, roles, nivelesConfiabilidad, filtros }: { recursos: Paginado<RecursoHumanoParam>; roles: string[]; nivelesConfiabilidad: string[]; filtros: Record<string, string> }) {
     return (
         <>
             <Head title="Recursos humanos" />
@@ -28,6 +30,17 @@ export default function RecursosHumanosIndex({ recursos, roles, nivelesConfiabil
                             )}
                         </ModalFormulario>
                     }
+                />
+
+                <FiltrosListado
+                    url="/parametros/recursos-humanos"
+                    valores={filtros}
+                    placeholderBusqueda="Nombre o especialidad…"
+                    filtros={[
+                        { clave: 'rol', etiqueta: 'Rol', opciones: opcionesDesdeValores(roles) },
+                        { clave: 'confiabilidad', etiqueta: 'Confiabilidad', opciones: opcionesDesdeValores(nivelesConfiabilidad) },
+                        { clave: 'activo', etiqueta: 'Estado', opciones: opcionesActivo },
+                    ]}
                 />
 
                 <div className="overflow-x-auto rounded-lg border">

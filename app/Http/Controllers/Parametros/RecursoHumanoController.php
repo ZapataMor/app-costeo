@@ -4,21 +4,33 @@ namespace App\Http\Controllers\Parametros;
 
 use App\Enums\NivelConfiabilidad;
 use App\Enums\RolQuirurgico;
+use App\Http\Controllers\Concerns\FiltraListado;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreRecursoHumanoRequest;
 use App\Http\Requests\UpdateRecursoHumanoRequest;
 use App\Models\RecursoHumano;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class RecursoHumanoController extends Controller
 {
-    public function index(): Response
+    use FiltraListado;
+
+    public function index(Request $request): Response
     {
+        $recursos = $this->aplicarFiltros(
+            RecursoHumano::query(),
+            $request,
+            ['nombre', 'especialidad'],
+            ['rol' => 'rol', 'activo' => 'activo', 'confiabilidad' => 'nivel_confiabilidad'],
+        );
+
         return Inertia::render('parametros/recursos-humanos/index', [
-            'recursos' => RecursoHumano::orderBy('nombre')->paginate(15)->withQueryString(),
+            'recursos' => $recursos->orderBy('nombre')->paginate(15)->withQueryString(),
+            'filtros' => $this->filtrosActivos($request, ['rol', 'activo', 'confiabilidad']),
             ...$this->catalogos(),
         ]);
     }

@@ -1,18 +1,20 @@
 import { Head, Link } from '@inertiajs/react';
 import { Pencil } from 'lucide-react';
 import EquipoMedicoController from '@/actions/App/Http/Controllers/Parametros/EquipoMedicoController';
+import { FiltrosListado } from '@/components/filtros-listado';
 import { ConfirmarEliminacion } from '@/components/parametros/confirmar-eliminacion';
 import { EncabezadoListado } from '@/components/parametros/encabezado-listado';
-import { ModalFormulario } from '@/components/parametros/modal-formulario';
 import { EquipoMedicoForm } from '@/components/parametros/forms/equipo-medico-form';
+import { ModalFormulario } from '@/components/parametros/modal-formulario';
 import { NivelConfiabilidadBadge } from '@/components/parametros/nivel-confiabilidad-badge';
 import { Paginacion } from '@/components/parametros/paginacion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { opcionesActivo, opcionesDesdeValores } from '@/lib/filtros';
 import { cop } from '@/lib/formato';
 import type { EquipoMedicoParam, Paginado } from '@/types/parametros';
 
-export default function EquiposMedicosIndex({ equipos, nivelesConfiabilidad }: { equipos: Paginado<EquipoMedicoParam>; nivelesConfiabilidad: string[] }) {
+export default function EquiposMedicosIndex({ equipos, nivelesConfiabilidad, filtros }: { equipos: Paginado<EquipoMedicoParam>; nivelesConfiabilidad: string[]; filtros: Record<string, string> }) {
     return (
         <>
             <Head title="Equipos médicos" />
@@ -28,6 +30,16 @@ export default function EquiposMedicosIndex({ equipos, nivelesConfiabilidad }: {
                             )}
                         </ModalFormulario>
                     }
+                />
+
+                <FiltrosListado
+                    url="/parametros/equipos-medicos"
+                    valores={filtros}
+                    placeholderBusqueda="Nombre del equipo…"
+                    filtros={[
+                        { clave: 'confiabilidad', etiqueta: 'Confiabilidad', opciones: opcionesDesdeValores(nivelesConfiabilidad) },
+                        { clave: 'activo', etiqueta: 'Estado', opciones: opcionesActivo },
+                    ]}
                 />
 
                 <div className="overflow-x-auto rounded-lg border">

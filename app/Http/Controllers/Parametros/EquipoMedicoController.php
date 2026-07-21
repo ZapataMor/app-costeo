@@ -3,21 +3,33 @@
 namespace App\Http\Controllers\Parametros;
 
 use App\Enums\NivelConfiabilidad;
+use App\Http\Controllers\Concerns\FiltraListado;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreEquipoMedicoRequest;
 use App\Http\Requests\UpdateEquipoMedicoRequest;
 use App\Models\EquipoMedico;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class EquipoMedicoController extends Controller
 {
-    public function index(): Response
+    use FiltraListado;
+
+    public function index(Request $request): Response
     {
+        $equipos = $this->aplicarFiltros(
+            EquipoMedico::query(),
+            $request,
+            ['nombre'],
+            ['activo' => 'activo', 'confiabilidad' => 'nivel_confiabilidad'],
+        );
+
         return Inertia::render('parametros/equipos-medicos/index', [
-            'equipos' => EquipoMedico::orderBy('nombre')->paginate(15)->withQueryString(),
+            'equipos' => $equipos->orderBy('nombre')->paginate(15)->withQueryString(),
+            'filtros' => $this->filtrosActivos($request, ['activo', 'confiabilidad']),
             ...$this->catalogos(),
         ]);
     }

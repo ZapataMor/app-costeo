@@ -4,21 +4,37 @@ namespace App\Http\Controllers\Parametros;
 
 use App\Enums\NivelComplejidad;
 use App\Enums\NivelConfiabilidad;
+use App\Http\Controllers\Concerns\FiltraListado;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreProcedimientoQuirurgicoRequest;
 use App\Http\Requests\UpdateProcedimientoQuirurgicoRequest;
 use App\Models\ProcedimientoQuirurgico;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class ProcedimientoQuirurgicoController extends Controller
 {
-    public function index(): Response
+    use FiltraListado;
+
+    public function index(Request $request): Response
     {
+        $procedimientos = $this->aplicarFiltros(
+            ProcedimientoQuirurgico::query(),
+            $request,
+            ['nombre', 'codigo_cups', 'especialidad'],
+            ['complejidad' => 'complejidad', 'especialidad' => 'especialidad'],
+        );
+
         return Inertia::render('parametros/procedimientos/index', [
-            'procedimientos' => ProcedimientoQuirurgico::orderBy('nombre')->paginate(15)->withQueryString(),
+            'procedimientos' => $procedimientos->orderBy('nombre')->paginate(15)->withQueryString(),
+            'filtros' => $this->filtrosActivos($request, ['complejidad', 'especialidad']),
+            'especialidades' => ProcedimientoQuirurgico::query()
+                ->distinct()
+                ->orderBy('especialidad')
+                ->pluck('especialidad'),
             ...$this->catalogos(),
         ]);
     }
