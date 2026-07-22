@@ -99,6 +99,7 @@ class ActualizarCirugia
                     'cirugia_id' => $cirugia->id,
                     'recurso_humano_id' => $recurso->id,
                     'rol' => $miembro['rol'],
+                    'fase' => $miembro['fase'],
                     'hora_inicio' => $miembro['hora_inicio'] ?? null,
                     'hora_fin' => $miembro['hora_fin'] ?? null,
                     'minutos_participacion' => $miembro['minutos_participacion'],
@@ -116,6 +117,7 @@ class ActualizarCirugia
                 ConsumoInsumo::create([
                     'cirugia_id' => $cirugia->id,
                     'insumo_id' => $insumo->id,
+                    'fase' => $consumo['fase'],
                     'cantidad' => $consumo['cantidad'],
                     'costo_unitario_registrado' => $costoUnitario,
                     'costo_total' => round((float) $consumo['cantidad'] * (float) $costoUnitario, 2),

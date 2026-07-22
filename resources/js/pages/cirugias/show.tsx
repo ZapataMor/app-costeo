@@ -14,9 +14,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type {
     CirugiaDetalle,
     CostoCirugia,
+    FaseCiclo,
     Facturacion,
     ResultadoClinico,
 } from '@/types/cirugias';
+
+/** Etiquetas de fase para el detalle; el valor guardado es abreviado. */
+const ETIQUETA_FASE: Record<FaseCiclo, string> = {
+    pre: 'pre-quirúrgica',
+    quirurgica: 'quirúrgica',
+    post: 'post-quirúrgica',
+};
 
 export default function CirugiasShow({
     cirugia,
@@ -217,7 +225,13 @@ export default function CirugiasShow({
                                             {miembro.nombre ?? '—'}{' '}
                                             <span className="text-muted-foreground capitalize">
                                                 ({miembro.rol})
-                                            </span>
+                                            </span>{' '}
+                                            <Badge
+                                                variant="outline"
+                                                className="align-middle text-xs font-normal"
+                                            >
+                                                {ETIQUETA_FASE[miembro.fase]}
+                                            </Badge>
                                         </span>
                                         <span className="tabular-nums">
                                             {miembro.minutos_participacion} min

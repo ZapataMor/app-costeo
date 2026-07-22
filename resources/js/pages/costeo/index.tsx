@@ -4,6 +4,7 @@ import {
     ChartColumnBig,
     ClipboardList,
     TrendingUp,
+    Users,
     Waves,
 } from 'lucide-react';
 import { BotonExportar } from '@/components/boton-exportar';
@@ -40,6 +41,13 @@ const paneles = [
             'Explora cada procedimiento, sus cirugías realizadas y el costo detallado de cada una.',
         href: '/costeo/procedimientos',
         icono: ClipboardList,
+    },
+    {
+        titulo: 'Personal',
+        descripcion:
+            'Cuánto cuesta cada profesional, cuánto gasto moviliza y el histórico de tiempos de sus operaciones.',
+        href: '/costeo/personal',
+        icono: Users,
     },
     {
         titulo: 'Costo por componente',

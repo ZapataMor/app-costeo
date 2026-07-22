@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\FaseCiclo;
 use Database\Factories\MiembroEquipoQuirurgicoFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -16,6 +17,7 @@ use Illuminate\Support\Carbon;
  * @property int $cirugia_id
  * @property int $recurso_humano_id
  * @property string $rol
+ * @property FaseCiclo $fase
  * @property Carbon|null $hora_inicio
  * @property Carbon|null $hora_fin
  * @property int $minutos_participacion
@@ -32,6 +34,7 @@ class MiembroEquipoQuirurgico extends Model
         'cirugia_id',
         'recurso_humano_id',
         'rol',
+        'fase',
         'hora_inicio',
         'hora_fin',
         'minutos_participacion',
@@ -41,6 +44,7 @@ class MiembroEquipoQuirurgico extends Model
     protected function casts(): array
     {
         return [
+            'fase' => FaseCiclo::class,
             'hora_inicio' => 'datetime',
             'hora_fin' => 'datetime',
             'minutos_participacion' => 'integer',

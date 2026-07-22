@@ -5,8 +5,10 @@ namespace Tests\Feature\Cirugias;
 use App\Enums\EstadoCirugia;
 use App\Models\Cirugia;
 use App\Models\Hospital;
+use App\Models\Insumo;
 use App\Models\Paciente;
 use App\Models\ProcedimientoQuirurgico;
+use App\Models\RecursoHumano;
 use App\Models\SalaOperatoria;
 use App\Models\User;
 use App\Support\HospitalContext;
@@ -159,6 +161,85 @@ class FasesDelCicloTest extends TestCase
                 'hora_fin' => '2026-07-15T09:50',
             ]))
             ->assertSessionHasErrors('hora_incision');
+    }
+
+    /**
+     * El objeto de todo el desglose: poder decir cuánto cuesta preparar al
+     * paciente frente a operarlo. La sala se imputa íntegra a la fase
+     * quirúrgica porque es la única en que está ocupada.
+     */
+    public function test_el_costo_se_desglosa_por_fase(): void
+    {
+        $paciente = Paciente::factory()->create(['hospital_id' => $this->hospital->id]);
+        $procedimiento = ProcedimientoQuirurgico::factory()->create(['hospital_id' => $this->hospital->id]);
+        $sala = SalaOperatoria::factory()->create([
+            'hospital_id' => $this->hospital->id,
+            'costo_hora' => 60_000, // 60 min de sala → $60.000
+        ]);
+        $auxiliar = RecursoHumano::factory()->create([
+            'hospital_id' => $this->hospital->id,
+            'rol' => 'circulante',
+            'salario_mensual' => 3_744_000,
+            'prestaciones_mensuales' => 0,
+            'costos_indirectos_mensuales' => 0, // $200/min sobre 18.720 min/mes
+            'activo' => true,
+        ]);
+        $bata = Insumo::factory()->create([
+            'hospital_id' => $this->hospital->id,
+            'costo_unitario' => 5_000,
+            'activo' => true,
+        ]);
+
+        $this->actingAs($this->admin)->post('/cirugias', [
+            'paciente_id' => $paciente->id,
+            'sala_operatoria_id' => $sala->id,
+            'fecha' => '2026-07-15',
+            'hora_ingreso_paciente' => '2026-07-15T07:00',
+            'hora_inicio' => '2026-07-15T08:00',
+            'hora_fin' => '2026-07-15T09:00',
+            'hora_salida_recuperacion' => '2026-07-15T10:00',
+            'tipo' => 'programada',
+            'estado' => EstadoCirugia::Realizada->value,
+            'procedimientos' => [['id' => $procedimiento->id, 'es_principal' => true]],
+            'equipo' => [
+                // La misma persona en dos fases: dos líneas distintas.
+                ['recurso_humano_id' => $auxiliar->id, 'rol' => 'circulante', 'fase' => 'pre', 'minutos_participacion' => 30],
+                ['recurso_humano_id' => $auxiliar->id, 'rol' => 'circulante', 'fase' => 'post', 'minutos_participacion' => 60],
+            ],
+            'consumos' => [
+                ['insumo_id' => $bata->id, 'fase' => 'pre', 'cantidad' => 1],
+            ],
+        ])->assertSessionHasNoErrors();
+
+        $costo = Cirugia::query()->latest('id')->firstOrFail()->costo;
+
+        $porFase = $costo->detalle['por_fase'];
+
+        // Pre: auxiliar 30 min ($6.000) + bata ($5.000)
+        $this->assertEquals(11000.0, $porFase['pre']);
+        // Quirúrgica: solo la sala, 60 min a $60.000/hora
+        $this->assertEquals(60000.0, $porFase['quirurgica']);
+        // Post: auxiliar 60 min
+        $this->assertEquals(12000.0, $porFase['post']);
+
+        $this->assertSame('83000.00', $costo->costo_directo);
+    }
+
+    public function test_una_misma_persona_no_se_puede_repetir_dentro_de_la_misma_fase(): void
+    {
+        $recurso = RecursoHumano::factory()->create([
+            'hospital_id' => $this->hospital->id,
+            'activo' => true,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->post('/cirugias', $this->datosBase([
+                'equipo' => [
+                    ['recurso_humano_id' => $recurso->id, 'rol' => 'cirujano', 'fase' => 'quirurgica', 'minutos_participacion' => 30],
+                    ['recurso_humano_id' => $recurso->id, 'rol' => 'cirujano', 'fase' => 'quirurgica', 'minutos_participacion' => 45],
+                ],
+            ]))
+            ->assertSessionHasErrors('equipo.1.fase');
     }
 
     public function test_el_protocolo_guarda_los_tiempos_estandar_de_cada_fase(): void

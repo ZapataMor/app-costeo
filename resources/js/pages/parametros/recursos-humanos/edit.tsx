@@ -17,7 +17,10 @@ export default function RecursosHumanosEdit({
         <>
             <Head title={`Editar recurso · ${recurso.nombre}`} />
             <div className="flex flex-col gap-4 p-4">
-                <Heading title="Editar recurso humano" description={recurso.nombre} />
+                <Heading
+                    title="Editar recurso humano"
+                    description={recurso.nombre}
+                />
                 <RecursoHumanoForm
                     action={RecursoHumanoController.update.form(recurso.id)}
                     recurso={recurso}

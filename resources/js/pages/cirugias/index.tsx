@@ -126,11 +126,15 @@ export default function CirugiasIndex({
                             />
                             <Button
                                 type="button"
-                                variant={viendoPendientes ? 'default' : 'outline'}
+                                variant={
+                                    viendoPendientes ? 'default' : 'outline'
+                                }
                                 onClick={() =>
                                     router.get(
                                         '/cirugias',
-                                        viendoPendientes ? {} : { pendientes: '1' },
+                                        viendoPendientes
+                                            ? {}
+                                            : { pendientes: '1' },
                                         { preserveState: true, replace: true },
                                     )
                                 }

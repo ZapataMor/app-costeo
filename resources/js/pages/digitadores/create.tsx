@@ -26,31 +26,70 @@ export default function DigitadoresCreate() {
                         <>
                             <div className="grid gap-4">
                                 <div className="grid gap-2">
-                                    <Label htmlFor="name">Nombre completo</Label>
-                                    <Input id="name" name="name" required autoComplete="name" placeholder="p. ej. Laura Gómez" />
+                                    <Label htmlFor="name">
+                                        Nombre completo
+                                    </Label>
+                                    <Input
+                                        id="name"
+                                        name="name"
+                                        required
+                                        autoComplete="name"
+                                        placeholder="p. ej. Laura Gómez"
+                                    />
                                     <InputError message={errors.name} />
                                 </div>
                                 <div className="grid gap-2">
-                                    <Label htmlFor="email">Correo electrónico</Label>
-                                    <Input id="email" name="email" type="email" required autoComplete="off" placeholder="p. ej. laura.gomez@hospital.test" />
+                                    <Label htmlFor="email">
+                                        Correo electrónico
+                                    </Label>
+                                    <Input
+                                        id="email"
+                                        name="email"
+                                        type="email"
+                                        required
+                                        autoComplete="off"
+                                        placeholder="p. ej. laura.gomez@hospital.test"
+                                    />
                                     <InputError message={errors.email} />
                                 </div>
                                 <div className="grid gap-2">
                                     <Label htmlFor="password">Contraseña</Label>
-                                    <Input id="password" name="password" type="password" required autoComplete="new-password" />
+                                    <Input
+                                        id="password"
+                                        name="password"
+                                        type="password"
+                                        required
+                                        autoComplete="new-password"
+                                    />
                                     <InputError message={errors.password} />
                                 </div>
                                 <div className="grid gap-2">
-                                    <Label htmlFor="password_confirmation">Confirmar contraseña</Label>
-                                    <Input id="password_confirmation" name="password_confirmation" type="password" required autoComplete="new-password" />
-                                    <InputError message={errors.password_confirmation} />
+                                    <Label htmlFor="password_confirmation">
+                                        Confirmar contraseña
+                                    </Label>
+                                    <Input
+                                        id="password_confirmation"
+                                        name="password_confirmation"
+                                        type="password"
+                                        required
+                                        autoComplete="new-password"
+                                    />
+                                    <InputError
+                                        message={errors.password_confirmation}
+                                    />
                                 </div>
                             </div>
 
                             <div className="flex items-center gap-3">
-                                <Button disabled={processing}>Crear digitador</Button>
+                                <Button disabled={processing}>
+                                    Crear digitador
+                                </Button>
                                 <Button asChild variant="outline">
-                                    <Link href={DigitadorController.index.url()}>Cancelar</Link>
+                                    <Link
+                                        href={DigitadorController.index.url()}
+                                    >
+                                        Cancelar
+                                    </Link>
                                 </Button>
                             </div>
                         </>

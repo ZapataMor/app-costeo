@@ -102,7 +102,10 @@ export function AppSidebar() {
                             asChild
                             className="h-auto p-1 hover:bg-transparent data-[active=true]:bg-transparent"
                         >
-                            <Link href={esDigitador ? '/cirugias' : dashboard()} prefetch>
+                            <Link
+                                href={esDigitador ? '/cirugias' : dashboard()}
+                                prefetch
+                            >
                                 <AppLogo />
                             </Link>
                         </SidebarMenuButton>
@@ -120,10 +123,7 @@ export function AppSidebar() {
                     <>
                         <NavMain items={generalNavItems} label="General" />
                         <NavMain
-                            items={[
-                                ...registroNavItems,
-                                ...pacientesNavItems,
-                            ]}
+                            items={[...registroNavItems, ...pacientesNavItems]}
                             label="Captura"
                             className="mt-[14px]"
                         />

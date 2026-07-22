@@ -24,7 +24,13 @@ export type PaginadoCirugias = {
     to: number | null;
 };
 
-export type CatalogoPaciente = { id: number; nombres: string; apellidos: string; tipo_documento: string; documento: string };
+export type CatalogoPaciente = {
+    id: number;
+    nombres: string;
+    apellidos: string;
+    tipo_documento: string;
+    documento: string;
+};
 export type CatalogoSala = { id: number; nombre: string; costo_hora: string };
 export type CatalogoProcedimiento = {
     id: number;
@@ -35,27 +41,51 @@ export type CatalogoProcedimiento = {
     minutos_prequirurgico: number | null;
     minutos_recuperacion: number | null;
 };
-export type CatalogoRecurso = { id: number; nombre: string; rol: string; especialidad: string | null; costo_mensual: number };
+export type CatalogoRecurso = {
+    id: number;
+    nombre: string;
+    rol: string;
+    especialidad: string | null;
+    costo_mensual: number;
+};
 
 /** Parámetros TDABC del hospital activo: base de la estimación en vivo. */
 export type ParametrosTdabc = {
     minutos_disponibles_mes: number | null;
     factor_indirecto: number | null;
 };
-export type CatalogoInsumo = { id: number; codigo: string; nombre: string; unidad: string; costo_unitario: string };
-export type CatalogoEquipoMedico = { id: number; nombre: string; costo_hora: string };
+export type CatalogoInsumo = {
+    id: number;
+    codigo: string;
+    nombre: string;
+    unidad: string;
+    costo_unitario: string;
+};
+export type CatalogoEquipoMedico = {
+    id: number;
+    nombre: string;
+    costo_hora: string;
+};
 
 /** Filas repetibles del formulario de captura (todo en texto: viene de inputs). */
+export type FaseCiclo = 'pre' | 'quirurgica' | 'post';
+
 export type ProcedimientoFila = { id: string; es_principal: boolean };
 export type MiembroFila = {
     recurso_humano_id: string;
     rol: string;
+    /** Fase del ciclo a la que se atribuyen estos minutos. */
+    fase: FaseCiclo;
     /** Entrada y salida del quirófano; vacías si se digitaron los minutos. */
     hora_inicio: string;
     hora_fin: string;
     minutos_participacion: string;
 };
-export type ConsumoFila = { insumo_id: string; cantidad: string };
+export type ConsumoFila = {
+    insumo_id: string;
+    fase: FaseCiclo;
+    cantidad: string;
+};
 export type EquipoMedicoFila = { id: string; minutos_uso: string };
 
 export type DatosCirugia = {
@@ -98,10 +128,21 @@ export type CirugiaDetalle = {
     observaciones: string | null;
     paciente: { nombres: string; apellidos: string } | null;
     sala: { nombre: string; costo_hora: string } | null;
-    procedimientos: { id: number; codigo_cups: string; nombre: string; es_principal: boolean }[];
-    equipo: { nombre: string | null; rol: string; minutos_participacion: number }[];
+    procedimientos: {
+        id: number;
+        codigo_cups: string;
+        nombre: string;
+        es_principal: boolean;
+    }[];
+    equipo: {
+        nombre: string | null;
+        rol: string;
+        fase: FaseCiclo;
+        minutos_participacion: number;
+    }[];
     consumos: {
         insumo: string | null;
+        fase: FaseCiclo;
         unidad: string | null;
         cantidad: string;
         costo_unitario_registrado: string;
@@ -116,6 +157,7 @@ export type DetalleCosto = {
         recurso_humano_id: number;
         nombre: string;
         rol: string;
+        fase: FaseCiclo;
         minutos: number;
         costo_por_minuto: number;
         costo: number;
@@ -134,8 +176,11 @@ export type DetalleCosto = {
         costo_hora: number;
         costo: number;
     }[];
+    /** Costo directo agrupado por fase del ciclo. */
+    por_fase: Record<FaseCiclo, number>;
     insumos: {
         insumo_id: number;
+        fase: FaseCiclo;
         nombre: string | null;
         cantidad: number;
         costo_unitario: number;

@@ -33,7 +33,9 @@ type RegistroPropio = {
  * su trabajo es la captura, no el análisis.
  */
 export default function CirugiasInicio({ mios }: { mios: RegistroPropio[] }) {
-    const pendientes = mios.filter((registro) => registro.puede_cerrarse).length;
+    const pendientes = mios.filter(
+        (registro) => registro.puede_cerrarse,
+    ).length;
 
     return (
         <>

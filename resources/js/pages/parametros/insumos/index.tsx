@@ -15,7 +15,17 @@ import { opcionesActivo, opcionesDesdeValores } from '@/lib/filtros';
 import { cop } from '@/lib/formato';
 import type { InsumoParam, Paginado } from '@/types/parametros';
 
-export default function InsumosIndex({ insumos, categorias, nivelesConfiabilidad, filtros }: { insumos: Paginado<InsumoParam>; categorias: string[]; nivelesConfiabilidad: string[]; filtros: Record<string, string> }) {
+export default function InsumosIndex({
+    insumos,
+    categorias,
+    nivelesConfiabilidad,
+    filtros,
+}: {
+    insumos: Paginado<InsumoParam>;
+    categorias: string[];
+    nivelesConfiabilidad: string[];
+    filtros: Record<string, string>;
+}) {
     return (
         <>
             <Head title="Insumos" />
@@ -25,9 +35,17 @@ export default function InsumosIndex({ insumos, categorias, nivelesConfiabilidad
                     titulo="Insumos"
                     descripcion="Medicamentos, materiales y dispositivos con su costo unitario (parámetro de Capa 1)."
                     accion={
-                        <ModalFormulario titulo="Nuevo insumo" textoBoton="Nuevo insumo">
+                        <ModalFormulario
+                            titulo="Nuevo insumo"
+                            textoBoton="Nuevo insumo"
+                        >
                             {(cerrar) => (
-                                <InsumoForm action={InsumoController.store.form()} categorias={categorias} nivelesConfiabilidad={nivelesConfiabilidad} onSuccess={cerrar} />
+                                <InsumoForm
+                                    action={InsumoController.store.form()}
+                                    categorias={categorias}
+                                    nivelesConfiabilidad={nivelesConfiabilidad}
+                                    onSuccess={cerrar}
+                                />
                             )}
                         </ModalFormulario>
                     }
@@ -38,9 +56,22 @@ export default function InsumosIndex({ insumos, categorias, nivelesConfiabilidad
                     valores={filtros}
                     placeholderBusqueda="Nombre, código o ATC…"
                     filtros={[
-                        { clave: 'categoria', etiqueta: 'Categoría', opciones: opcionesDesdeValores(categorias) },
-                        { clave: 'confiabilidad', etiqueta: 'Confiabilidad', opciones: opcionesDesdeValores(nivelesConfiabilidad) },
-                        { clave: 'activo', etiqueta: 'Estado', opciones: opcionesActivo },
+                        {
+                            clave: 'categoria',
+                            etiqueta: 'Categoría',
+                            opciones: opcionesDesdeValores(categorias),
+                        },
+                        {
+                            clave: 'confiabilidad',
+                            etiqueta: 'Confiabilidad',
+                            opciones:
+                                opcionesDesdeValores(nivelesConfiabilidad),
+                        },
+                        {
+                            clave: 'activo',
+                            etiqueta: 'Estado',
+                            opciones: opcionesActivo,
+                        },
                     ]}
                 />
 
@@ -52,47 +83,91 @@ export default function InsumosIndex({ insumos, categorias, nivelesConfiabilidad
                                 <th className="p-3 font-medium">Nombre</th>
                                 <th className="p-3 font-medium">Categoría</th>
                                 <th className="p-3 font-medium">Unidad</th>
-                                <th className="p-3 text-right font-medium">Costo unitario</th>
-                                <th className="p-3 font-medium">Confiabilidad</th>
+                                <th className="p-3 text-right font-medium">
+                                    Costo unitario
+                                </th>
+                                <th className="p-3 font-medium">
+                                    Confiabilidad
+                                </th>
                                 <th className="p-3 font-medium">Fuente</th>
                                 <th className="p-3 font-medium">Estado</th>
-                                <th className="p-3 text-right font-medium">Acciones</th>
+                                <th className="p-3 text-right font-medium">
+                                    Acciones
+                                </th>
                             </tr>
                         </thead>
                         <tbody>
                             {insumos.data.length === 0 && (
                                 <tr>
-                                    <td colSpan={9} className="p-6 text-center text-muted-foreground">
-                                        No hay insumos registrados. Crea el primero con «Nuevo insumo».
+                                    <td
+                                        colSpan={9}
+                                        className="p-6 text-center text-muted-foreground"
+                                    >
+                                        No hay insumos registrados. Crea el
+                                        primero con «Nuevo insumo».
                                     </td>
                                 </tr>
                             )}
                             {insumos.data.map((insumo) => (
-                                <tr key={insumo.id} className="border-b last:border-0">
-                                    <td className="p-3 font-mono text-xs">{insumo.codigo}</td>
-                                    <td className="p-3">{insumo.nombre}</td>
-                                    <td className="p-3 capitalize">{insumo.categoria}</td>
-                                    <td className="p-3">{insumo.unidad}</td>
-                                    <td className="p-3 text-right tabular-nums">{cop(Number(insumo.costo_unitario))}</td>
-                                    <td className="p-3">
-                                        <NivelConfiabilidadBadge nivel={insumo.nivel_confiabilidad} />
+                                <tr
+                                    key={insumo.id}
+                                    className="border-b last:border-0"
+                                >
+                                    <td className="p-3 font-mono text-xs">
+                                        {insumo.codigo}
                                     </td>
-                                    <td className="max-w-48 truncate p-3 text-muted-foreground" title={insumo.fuente ?? ''}>
+                                    <td className="p-3">{insumo.nombre}</td>
+                                    <td className="p-3 capitalize">
+                                        {insumo.categoria}
+                                    </td>
+                                    <td className="p-3">{insumo.unidad}</td>
+                                    <td className="p-3 text-right tabular-nums">
+                                        {cop(Number(insumo.costo_unitario))}
+                                    </td>
+                                    <td className="p-3">
+                                        <NivelConfiabilidadBadge
+                                            nivel={insumo.nivel_confiabilidad}
+                                        />
+                                    </td>
+                                    <td
+                                        className="max-w-48 truncate p-3 text-muted-foreground"
+                                        title={insumo.fuente ?? ''}
+                                    >
                                         {insumo.fuente ?? '—'}
                                     </td>
                                     <td className="p-3">
-                                        <Badge variant={insumo.activo ? 'secondary' : 'outline'}>
-                                            {insumo.activo ? 'Activo' : 'Inactivo'}
+                                        <Badge
+                                            variant={
+                                                insumo.activo
+                                                    ? 'secondary'
+                                                    : 'outline'
+                                            }
+                                        >
+                                            {insumo.activo
+                                                ? 'Activo'
+                                                : 'Inactivo'}
                                         </Badge>
                                     </td>
                                     <td className="p-3 text-right whitespace-nowrap">
-                                        <Button asChild variant="ghost" size="icon" aria-label="Editar">
-                                            <Link href={InsumoController.edit.url(insumo.id)} prefetch>
+                                        <Button
+                                            asChild
+                                            variant="ghost"
+                                            size="icon"
+                                            aria-label="Editar"
+                                        >
+                                            <Link
+                                                href={InsumoController.edit.url(
+                                                    insumo.id,
+                                                )}
+                                                prefetch
+                                            >
                                                 <Pencil className="size-4" />
                                             </Link>
                                         </Button>
                                         <ConfirmarEliminacion
-                                            url={InsumoController.destroy.url(insumo.id)}
+                                            url={InsumoController.destroy.url(
+                                                insumo.id,
+                                            )}
                                             descripcion={`Se eliminará el insumo «${insumo.nombre}». Esta acción no se puede deshacer.`}
                                         />
                                     </td>
@@ -102,12 +177,20 @@ export default function InsumosIndex({ insumos, categorias, nivelesConfiabilidad
                     </table>
                 </div>
 
-                <Paginacion links={insumos.links} total={insumos.total} from={insumos.from} to={insumos.to} />
+                <Paginacion
+                    links={insumos.links}
+                    total={insumos.total}
+                    from={insumos.from}
+                    to={insumos.to}
+                />
             </div>
         </>
     );
 }
 
 InsumosIndex.layout = {
-    breadcrumbs: [{ title: 'Parámetros', href: '/parametros/insumos' }, { title: 'Insumos', href: '/parametros/insumos' }],
+    breadcrumbs: [
+        { title: 'Parámetros', href: '/parametros/insumos' },
+        { title: 'Insumos', href: '/parametros/insumos' },
+    ],
 };

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Cirugias;
 
 use App\Enums\EstadoCirugia;
+use App\Enums\FaseCiclo;
 use App\Enums\Regimen;
 use App\Enums\RolQuirurgico;
 use App\Enums\TipoCirugia;
@@ -198,6 +199,7 @@ class CirugiaController extends Controller
                     ->map(fn ($miembro): array => [
                         'recurso_humano_id' => (string) $miembro->recurso_humano_id,
                         'rol' => $miembro->rol,
+                        'fase' => $miembro->fase->value,
                         'hora_inicio' => $miembro->hora_inicio?->format('Y-m-d\TH:i') ?? '',
                         'hora_fin' => $miembro->hora_fin?->format('Y-m-d\TH:i') ?? '',
                         'minutos_participacion' => (string) $miembro->minutos_participacion,
@@ -205,6 +207,7 @@ class CirugiaController extends Controller
                 'consumos' => $cirugia->consumos
                     ->map(fn ($consumo): array => [
                         'insumo_id' => (string) $consumo->insumo_id,
+                        'fase' => $consumo->fase->value,
                         'cantidad' => rtrim(rtrim((string) $consumo->cantidad, '0'), '.'),
                     ])->values(),
                 'equipos_medicos' => $cirugia->equiposMedicos
@@ -419,6 +422,7 @@ class CirugiaController extends Controller
             'tipos' => TipoCirugia::values(),
             'estados' => EstadoCirugia::values(),
             'rolesQuirurgicos' => RolQuirurgico::values(),
+            'fases' => FaseCiclo::values(),
             'regimenes' => Regimen::values(),
             'parametrosTdabc' => [
                 'minutos_disponibles_mes' => $hospital?->minutosDisponiblesMes(),

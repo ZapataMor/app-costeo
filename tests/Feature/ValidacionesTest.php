@@ -147,10 +147,10 @@ class ValidacionesTest extends TestCase
             'diagnostico_cie10' => 'K35.8',
             'procedimientos' => [['id' => $procedimiento->id, 'es_principal' => true]],
             'equipo' => [
-                ['recurso_humano_id' => $recurso->id, 'rol' => 'cirujano', 'minutos_participacion' => 60],
+                ['recurso_humano_id' => $recurso->id, 'rol' => 'cirujano', 'fase' => 'quirurgica', 'minutos_participacion' => 60],
             ],
             'consumos' => [
-                ['insumo_id' => $insumo->id, 'cantidad' => 3],
+                ['insumo_id' => $insumo->id, 'fase' => 'quirurgica', 'cantidad' => 3],
             ],
         ])->assertCreated();
 

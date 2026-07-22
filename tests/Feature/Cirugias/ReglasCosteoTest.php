@@ -164,8 +164,8 @@ class ReglasCosteoTest extends TestCase
             'tipo' => 'programada',
             'estado' => 'realizada',
             'procedimientos' => [['id' => $procedimiento->id, 'es_principal' => true]],
-            'equipo' => [['recurso_humano_id' => $recurso->id, 'rol' => 'cirujano', 'minutos_participacion' => 120]],
-            'consumos' => [['insumo_id' => $insumo->id, 'cantidad' => 2]],
+            'equipo' => [['recurso_humano_id' => $recurso->id, 'rol' => 'cirujano', 'fase' => 'quirurgica', 'minutos_participacion' => 120]],
+            'consumos' => [['insumo_id' => $insumo->id, 'fase' => 'quirurgica', 'cantidad' => 2]],
             'equipos_medicos' => [['id' => $equipoMedico->id, 'minutos_uso' => 60]],
         ]);
 

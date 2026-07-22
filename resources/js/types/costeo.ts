@@ -188,3 +188,82 @@ export type UtilizacionSalas = {
         utilizacion_pct: number | null;
     }[];
 };
+
+// ── Costeo por persona (Costeo → Personal) ──────────────────────────────
+
+export type FiltrosPersonalCosteo = {
+    q: string;
+    rol: string;
+};
+
+/**
+ * Dos lecturas distintas del mismo profesional: lo que cuestan sus minutos
+ * (costo propio) y lo que cuestan las cirugías que encabeza (costo inducido),
+ * más el índice de esas cirugías contra el promedio de su procedimiento.
+ */
+export type PersonalCosteoFila = {
+    id: number;
+    nombre: string;
+    rol: string;
+    especialidad: string | null;
+    activo: boolean;
+    n_cirugias: number;
+    n_participaciones: number;
+    minutos_total: number;
+    minutos_promedio: number | null;
+    costo_propio_total: number;
+    costo_propio_promedio: number | null;
+    n_como_cirujano: number;
+    costo_inducido_total: number | null;
+    costo_inducido_promedio: number | null;
+    indice_costo: number | null;
+    indice_duracion: number | null;
+    n_comparables: number;
+};
+
+export type PersonaCosteo = PersonalCosteoFila & {
+    costo_mensual_actual: number;
+    costo_por_minuto_actual: number;
+};
+
+export type TotalesPersonal = {
+    n_personas_con_actividad: number;
+    costo_propio_total: number;
+    minutos_total: number;
+};
+
+export type DesglosePersonal = {
+    clave: string;
+    n_participaciones: number;
+    minutos: number;
+    costo_propio: number;
+};
+
+export type ProcedimientoDePersona = {
+    procedimiento: ProcedimientoResumen;
+    n: number;
+    costo_promedio_suyo: number;
+    costo_promedio_hospital: number | null;
+    indice_costo: number | null;
+};
+
+export type ParticipacionHistorica = {
+    cirugia_id: number;
+    fecha: string;
+    procedimiento: ProcedimientoResumen | null;
+    rol: string;
+    fase: string;
+    minutos: number;
+    duracion_cirugia: number | null;
+    costo_propio: number;
+    costo_total_cirugia: number | null;
+    indice_costo: number | null;
+};
+
+export type PaginadoHistorialPersona = {
+    data: ParticipacionHistorica[];
+    links: LinkPaginacion[];
+    total: number;
+    from: number | null;
+    to: number | null;
+};

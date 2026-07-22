@@ -58,10 +58,12 @@ class PresentarCirugiaDetalle
             'equipo' => $cirugia->equipoQuirurgico->map(fn ($miembro): array => [
                 'nombre' => $miembro->recursoHumano?->nombre,
                 'rol' => $miembro->rol,
+                'fase' => $miembro->fase->value,
                 'minutos_participacion' => $miembro->minutos_participacion,
             ]),
             'consumos' => $cirugia->consumos->map(fn ($consumo): array => [
                 'insumo' => $consumo->insumo?->nombre,
+                'fase' => $consumo->fase->value,
                 'unidad' => $consumo->insumo?->unidad,
                 'cantidad' => $consumo->cantidad,
                 'costo_unitario_registrado' => $consumo->costo_unitario_registrado,

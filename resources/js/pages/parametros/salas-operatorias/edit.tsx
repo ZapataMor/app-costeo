@@ -15,7 +15,10 @@ export default function SalasOperatoriasEdit({
         <>
             <Head title={`Editar sala · ${sala.nombre}`} />
             <div className="flex flex-col gap-4 p-4">
-                <Heading title="Editar sala operatoria" description={sala.nombre} />
+                <Heading
+                    title="Editar sala operatoria"
+                    description={sala.nombre}
+                />
                 <SalaOperatoriaForm
                     action={SalaOperatoriaController.update.form(sala.id)}
                     sala={sala}

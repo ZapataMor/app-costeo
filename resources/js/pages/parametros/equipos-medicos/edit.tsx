@@ -15,7 +15,10 @@ export default function EquiposMedicosEdit({
         <>
             <Head title={`Editar equipo · ${equipo.nombre}`} />
             <div className="flex flex-col gap-4 p-4">
-                <Heading title="Editar equipo médico" description={equipo.nombre} />
+                <Heading
+                    title="Editar equipo médico"
+                    description={equipo.nombre}
+                />
                 <EquipoMedicoForm
                     action={EquipoMedicoController.update.form(equipo.id)}
                     equipo={equipo}

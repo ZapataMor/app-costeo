@@ -3,6 +3,7 @@
 namespace App\Services\Costing;
 
 use App\Enums\EstadoCirugia;
+use App\Enums\FaseCiclo;
 use App\Exceptions\CirugiaNoCosteableException;
 use App\Models\Cirugia;
 use App\Models\CostoCirugia;
@@ -58,7 +59,12 @@ class TdabcCostingService
             'sala' => null,
             'equipos' => [],
             'insumos' => [],
+            // Costo directo agrupado por fase del ciclo: es lo que permite
+            // comparar cuánto cuesta preparar al paciente frente a operarlo.
+            'por_fase' => [],
         ];
+
+        $porFase = array_fill_keys(FaseCiclo::values(), 0.0);
 
         // 1. Recurso humano: costo mensual congelado × minutos ÷ minutos disponibles.
         //    (equivale a costo/minuto × minutos, sin error de redondeo intermedio)
@@ -72,11 +78,13 @@ class TdabcCostingService
 
             $costo = round($costoMensual * $miembro->minutos_participacion / $minutosDisponibles, 2);
             $costoRecursoHumano += $costo;
+            $porFase[$miembro->fase->value] += $costo;
 
             $detalle['recurso_humano'][] = [
                 'recurso_humano_id' => $recurso->id,
                 'nombre' => $recurso->nombre,
                 'rol' => $miembro->rol,
+                'fase' => $miembro->fase->value,
                 'minutos' => $miembro->minutos_participacion,
                 'costo_por_minuto' => round($costoMensual / $minutosDisponibles, 4),
                 'costo' => $costo,
@@ -93,6 +101,8 @@ class TdabcCostingService
                 : (float) $cirugia->sala->costo_hora;
 
             $costoSala = round($costoHoraSala * $duracion / 60, 2);
+            // La sala solo se ocupa durante el acto quirúrgico.
+            $porFase[FaseCiclo::Quirurgica->value] += $costoSala;
 
             $detalle['sala'] = [
                 'sala_operatoria_id' => $cirugia->sala->id,
@@ -115,6 +125,8 @@ class TdabcCostingService
 
             $costo = round($costoHora * $minutosUso / 60, 2);
             $costoEquipos += $costo;
+            // Los equipos médicos se usan en sala; no se desglosan por fase.
+            $porFase[FaseCiclo::Quirurgica->value] += $costo;
 
             $detalle['equipos'][] = [
                 'equipo_medico_id' => $equipo->id,
@@ -130,15 +142,22 @@ class TdabcCostingService
 
         foreach ($cirugia->consumos as $consumo) {
             $costoInsumos += (float) $consumo->costo_total;
+            $porFase[$consumo->fase->value] += (float) $consumo->costo_total;
 
             $detalle['insumos'][] = [
                 'insumo_id' => $consumo->insumo_id,
+                'fase' => $consumo->fase->value,
                 'nombre' => $consumo->insumo?->nombre,
                 'cantidad' => (float) $consumo->cantidad,
                 'costo_unitario' => (float) $consumo->costo_unitario_registrado,
                 'costo' => (float) $consumo->costo_total,
             ];
         }
+
+        $detalle['por_fase'] = array_map(
+            static fn (float $costo): float => round($costo, 2),
+            $porFase,
+        );
 
         $costoInsumos = round($costoInsumos, 2);
         $costoDirecto = round($costoRecursoHumano + $costoSala + $costoEquipos + $costoInsumos, 2);

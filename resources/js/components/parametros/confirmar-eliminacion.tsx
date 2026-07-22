@@ -15,7 +15,13 @@ import {
 /**
  * Botón de eliminación con diálogo de confirmación; hace DELETE a la URL dada.
  */
-export function ConfirmarEliminacion({ url, descripcion }: { url: string; descripcion: string }) {
+export function ConfirmarEliminacion({
+    url,
+    descripcion,
+}: {
+    url: string;
+    descripcion: string;
+}) {
     const [abierto, setAbierto] = useState(false);
     const [procesando, setProcesando] = useState(false);
 
@@ -46,7 +52,11 @@ export function ConfirmarEliminacion({ url, descripcion }: { url: string; descri
                     <Button variant="outline" onClick={() => setAbierto(false)}>
                         Cancelar
                     </Button>
-                    <Button variant="destructive" onClick={eliminar} disabled={procesando}>
+                    <Button
+                        variant="destructive"
+                        onClick={eliminar}
+                        disabled={procesando}
+                    >
                         Eliminar
                     </Button>
                 </DialogFooter>

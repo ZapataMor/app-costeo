@@ -12,7 +12,11 @@ type Digitador = {
     created_at: string | null;
 };
 
-export default function DigitadoresIndex({ digitadores }: { digitadores: Digitador[] }) {
+export default function DigitadoresIndex({
+    digitadores,
+}: {
+    digitadores: Digitador[];
+}) {
     return (
         <>
             <Head title="Digitadores" />
@@ -33,30 +37,53 @@ export default function DigitadoresIndex({ digitadores }: { digitadores: Digitad
                                 <th className="p-3 font-medium">Correo</th>
                                 <th className="p-3 font-medium">Creado</th>
                                 <th className="p-3 font-medium">Estado</th>
-                                <th className="p-3 text-right font-medium">Acciones</th>
+                                <th className="p-3 text-right font-medium">
+                                    Acciones
+                                </th>
                             </tr>
                         </thead>
                         <tbody>
                             {digitadores.length === 0 && (
                                 <tr>
-                                    <td colSpan={5} className="p-6 text-center text-muted-foreground">
-                                        Aún no hay digitadores. Crea el primero con «Nuevo digitador».
+                                    <td
+                                        colSpan={5}
+                                        className="p-6 text-center text-muted-foreground"
+                                    >
+                                        Aún no hay digitadores. Crea el primero
+                                        con «Nuevo digitador».
                                     </td>
                                 </tr>
                             )}
                             {digitadores.map((digitador) => (
-                                <tr key={digitador.id} className="border-b last:border-0">
+                                <tr
+                                    key={digitador.id}
+                                    className="border-b last:border-0"
+                                >
                                     <td className="p-3">{digitador.name}</td>
-                                    <td className="p-3 text-muted-foreground">{digitador.email}</td>
-                                    <td className="p-3 tabular-nums">{digitador.created_at ?? '—'}</td>
+                                    <td className="p-3 text-muted-foreground">
+                                        {digitador.email}
+                                    </td>
+                                    <td className="p-3 tabular-nums">
+                                        {digitador.created_at ?? '—'}
+                                    </td>
                                     <td className="p-3">
-                                        <Badge variant={digitador.activo ? 'secondary' : 'outline'}>
-                                            {digitador.activo ? 'Activo' : 'Inactivo'}
+                                        <Badge
+                                            variant={
+                                                digitador.activo
+                                                    ? 'secondary'
+                                                    : 'outline'
+                                            }
+                                        >
+                                            {digitador.activo
+                                                ? 'Activo'
+                                                : 'Inactivo'}
                                         </Badge>
                                     </td>
                                     <td className="p-3 text-right whitespace-nowrap">
                                         <Form
-                                            {...DigitadorController.toggleActivo.form(digitador.id)}
+                                            {...DigitadorController.toggleActivo.form(
+                                                digitador.id,
+                                            )}
                                             options={{ preserveScroll: true }}
                                             className="inline"
                                         >
@@ -67,7 +94,9 @@ export default function DigitadoresIndex({ digitadores }: { digitadores: Digitad
                                                     size="sm"
                                                     disabled={processing}
                                                 >
-                                                    {digitador.activo ? 'Desactivar' : 'Activar'}
+                                                    {digitador.activo
+                                                        ? 'Desactivar'
+                                                        : 'Activar'}
                                                 </Button>
                                             )}
                                         </Form>

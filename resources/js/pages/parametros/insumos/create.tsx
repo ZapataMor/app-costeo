@@ -14,7 +14,10 @@ export default function InsumosCreate({
         <>
             <Head title="Nuevo insumo" />
             <div className="flex flex-col gap-4 p-4">
-                <Heading title="Nuevo insumo" description="Registra un medicamento, material o dispositivo con su costo unitario." />
+                <Heading
+                    title="Nuevo insumo"
+                    description="Registra un medicamento, material o dispositivo con su costo unitario."
+                />
                 <InsumoForm
                     action={InsumoController.store.form()}
                     categorias={categorias}

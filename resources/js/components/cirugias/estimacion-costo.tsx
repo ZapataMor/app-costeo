@@ -64,7 +64,11 @@ export function calcularEstimacion({
         );
         const minutos = Number(fila.minutos_participacion);
 
-        if (recurso === undefined || !Number.isFinite(minutos) || minutos <= 0) {
+        if (
+            recurso === undefined ||
+            !Number.isFinite(minutos) ||
+            minutos <= 0
+        ) {
             return suma;
         }
 
@@ -105,7 +109,11 @@ export function calcularEstimacion({
         const insumo = insumos.find((i) => String(i.id) === fila.insumo_id);
         const cantidad = Number(fila.cantidad);
 
-        if (insumo === undefined || !Number.isFinite(cantidad) || cantidad <= 0) {
+        if (
+            insumo === undefined ||
+            !Number.isFinite(cantidad) ||
+            cantidad <= 0
+        ) {
             return suma;
         }
 
@@ -116,7 +124,9 @@ export function calcularEstimacion({
     }, 0);
 
     const directo =
-        Math.round((recursoHumano + costoSala + costoEquipos + costoInsumos) * 100) / 100;
+        Math.round(
+            (recursoHumano + costoSala + costoEquipos + costoInsumos) * 100,
+        ) / 100;
     const indirecto =
         Math.round(directo * (parametros.factor_indirecto ?? 0) * 100) / 100;
 

@@ -14,7 +14,10 @@ import {
 } from '@/components/ui/select';
 import type { ProcedimientoParam } from '@/types/parametros';
 
-type FormAction = { action: string; method: 'get' | 'post' | 'put' | 'patch' | 'delete' };
+type FormAction = {
+    action: string;
+    method: 'get' | 'post' | 'put' | 'patch' | 'delete';
+};
 
 type Fase = {
     campo:
@@ -88,9 +91,12 @@ export function ProcedimientoForm({
     // como el resto— solo para poder mostrar el ciclo total mientras se
     // escribe: sin ese total, las cuatro casillas no dicen nada por sí solas.
     const [tiempos, setTiempos] = useState<Record<CampoFase, string>>(() => ({
-        minutos_prequirurgico: procedimiento?.minutos_prequirurgico?.toString() ?? '',
-        duracion_estimada_minutos: procedimiento?.duracion_estimada_minutos?.toString() ?? '',
-        minutos_recuperacion: procedimiento?.minutos_recuperacion?.toString() ?? '',
+        minutos_prequirurgico:
+            procedimiento?.minutos_prequirurgico?.toString() ?? '',
+        duracion_estimada_minutos:
+            procedimiento?.duracion_estimada_minutos?.toString() ?? '',
+        minutos_recuperacion:
+            procedimiento?.minutos_recuperacion?.toString() ?? '',
         minutos_recambio: procedimiento?.minutos_recambio?.toString() ?? '',
     }));
 
@@ -100,38 +106,75 @@ export function ProcedimientoForm({
     );
 
     const faltanFases = FASES.some(
-        ({ campo, requerido }) => ! requerido && tiempos[campo] === '',
+        ({ campo, requerido }) => !requerido && tiempos[campo] === '',
     );
 
     return (
-        <Form {...action} options={{ preserveScroll: true }} onSuccess={onSuccess} className="max-w-3xl space-y-6">
+        <Form
+            {...action}
+            options={{ preserveScroll: true }}
+            onSuccess={onSuccess}
+            className="max-w-3xl space-y-6"
+        >
             {({ processing, errors }) => (
                 <>
                     <div className="grid gap-4 sm:grid-cols-2">
                         <div className="grid gap-2">
-                            <Label htmlFor="codigo_cups">Código CUPS (6 dígitos)</Label>
-                            <Input id="codigo_cups" name="codigo_cups" defaultValue={procedimiento?.codigo_cups ?? ''} required maxLength={6} placeholder="p. ej. 740001" />
+                            <Label htmlFor="codigo_cups">
+                                Código CUPS (6 dígitos)
+                            </Label>
+                            <Input
+                                id="codigo_cups"
+                                name="codigo_cups"
+                                defaultValue={procedimiento?.codigo_cups ?? ''}
+                                required
+                                maxLength={6}
+                                placeholder="p. ej. 740001"
+                            />
                             <InputError message={errors.codigo_cups} />
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="nombre">Nombre</Label>
-                            <Input id="nombre" name="nombre" defaultValue={procedimiento?.nombre ?? ''} required placeholder="p. ej. Cesárea segmentaria" />
+                            <Input
+                                id="nombre"
+                                name="nombre"
+                                defaultValue={procedimiento?.nombre ?? ''}
+                                required
+                                placeholder="p. ej. Cesárea segmentaria"
+                            />
                             <InputError message={errors.nombre} />
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="especialidad">Especialidad</Label>
-                            <Input id="especialidad" name="especialidad" defaultValue={procedimiento?.especialidad ?? ''} required maxLength={120} placeholder="p. ej. Ginecobstetricia" />
+                            <Input
+                                id="especialidad"
+                                name="especialidad"
+                                defaultValue={procedimiento?.especialidad ?? ''}
+                                required
+                                maxLength={120}
+                                placeholder="p. ej. Ginecobstetricia"
+                            />
                             <InputError message={errors.especialidad} />
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="complejidad">Complejidad</Label>
-                            <Select name="complejidad" defaultValue={procedimiento?.complejidad ?? 'media'} required>
+                            <Select
+                                name="complejidad"
+                                defaultValue={
+                                    procedimiento?.complejidad ?? 'media'
+                                }
+                                required
+                            >
                                 <SelectTrigger id="complejidad">
                                     <SelectValue placeholder="Seleccione" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {complejidades.map((c) => (
-                                        <SelectItem key={c} value={c} className="capitalize">
+                                        <SelectItem
+                                            key={c}
+                                            value={c}
+                                            className="capitalize"
+                                        >
                                             {c}
                                         </SelectItem>
                                     ))}
@@ -140,27 +183,50 @@ export function ProcedimientoForm({
                             <InputError message={errors.complejidad} />
                         </div>
                         <div className="grid gap-2">
-                            <Label htmlFor="tarifa_soat">Tarifa SOAT de referencia (COP, opcional)</Label>
-                            <Input id="tarifa_soat" name="tarifa_soat" type="number" step="0.01" min="0" defaultValue={procedimiento?.tarifa_soat ?? ''} />
+                            <Label htmlFor="tarifa_soat">
+                                Tarifa SOAT de referencia (COP, opcional)
+                            </Label>
+                            <Input
+                                id="tarifa_soat"
+                                name="tarifa_soat"
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                defaultValue={procedimiento?.tarifa_soat ?? ''}
+                            />
                             <InputError message={errors.tarifa_soat} />
                         </div>
                     </div>
 
                     <fieldset className="grid gap-4 rounded-lg border p-4">
-                        <legend className="px-1 text-sm font-medium">Tiempos estándar del ciclo</legend>
+                        <legend className="px-1 text-sm font-medium">
+                            Tiempos estándar del ciclo
+                        </legend>
                         <p className="-mt-2 text-sm text-muted-foreground">
-                            Cuánto dura cada fase en condiciones normales. Se usan para prellenar el registro
-                            de cada cirugía y para comparar el estándar contra lo que realmente pasó.
+                            Cuánto dura cada fase en condiciones normales. Se
+                            usan para prellenar el registro de cada cirugía y
+                            para comparar el estándar contra lo que realmente
+                            pasó.
                         </p>
 
                         {FASES.map(({ campo, etiqueta, ayuda, requerido }) => (
-                            <div key={campo} className="grid gap-1.5 sm:grid-cols-[1fr_8rem] sm:items-baseline sm:gap-4">
+                            <div
+                                key={campo}
+                                className="grid gap-1.5 sm:grid-cols-[1fr_8rem] sm:items-baseline sm:gap-4"
+                            >
                                 <div>
                                     <Label htmlFor={campo}>
                                         {etiqueta}
-                                        {requerido && <span className="text-destructive"> *</span>}
+                                        {requerido && (
+                                            <span className="text-destructive">
+                                                {' '}
+                                                *
+                                            </span>
+                                        )}
                                     </Label>
-                                    <p className="text-xs text-muted-foreground">{ayuda}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                        {ayuda}
+                                    </p>
                                 </div>
                                 <div className="grid gap-1">
                                     <Input
@@ -168,11 +234,20 @@ export function ProcedimientoForm({
                                         name={campo}
                                         type="number"
                                         min={requerido ? 1 : 0}
-                                        max={campo === 'minutos_recuperacion' ? 10080 : 1440}
+                                        max={
+                                            campo === 'minutos_recuperacion'
+                                                ? 10080
+                                                : 1440
+                                        }
                                         required={requerido}
                                         placeholder="min"
                                         value={tiempos[campo]}
-                                        onChange={(e) => setTiempos((t) => ({ ...t, [campo]: e.target.value }))}
+                                        onChange={(e) =>
+                                            setTiempos((t) => ({
+                                                ...t,
+                                                [campo]: e.target.value,
+                                            }))
+                                        }
                                     />
                                     <InputError message={errors[campo]} />
                                 </div>
@@ -180,15 +255,21 @@ export function ProcedimientoForm({
                         ))}
 
                         <div className="flex flex-wrap items-baseline justify-between gap-2 border-t pt-3 text-sm">
-                            <span className="font-medium">Ciclo total estimado</span>
+                            <span className="font-medium">
+                                Ciclo total estimado
+                            </span>
                             <span className="tabular-nums">
-                                {total > 0 ? `${total} min · ${enHoras(total)}` : '—'}
+                                {total > 0
+                                    ? `${total} min · ${enHoras(total)}`
+                                    : '—'}
                             </span>
                         </div>
                         {faltanFases && (
                             <p className="text-xs text-muted-foreground">
-                                Puedes dejar en blanco las fases que aún no tengas medidas: el procedimiento se
-                                guarda igual y el ciclo total solo suma lo que esté diligenciado.
+                                Puedes dejar en blanco las fases que aún no
+                                tengas medidas: el procedimiento se guarda igual
+                                y el ciclo total solo suma lo que esté
+                                diligenciado.
                             </p>
                         )}
                     </fieldset>
@@ -203,7 +284,11 @@ export function ProcedimientoForm({
                     <div className="flex items-center gap-3">
                         <Button disabled={processing}>Guardar</Button>
                         {onCancelar ? (
-                            <Button type="button" variant="outline" onClick={onCancelar}>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={onCancelar}
+                            >
                                 Cancelar
                             </Button>
                         ) : (

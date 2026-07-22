@@ -81,6 +81,7 @@ class RegistrarCirugia
                     'cirugia_id' => $cirugia->id,
                     'recurso_humano_id' => $recurso->id,
                     'rol' => $miembro['rol'],
+                    'fase' => $miembro['fase'],
                     // Opcionales: solo documentan de dónde salieron los
                     // minutos cuando se capturó por horas de entrada/salida.
                     'hora_inicio' => $miembro['hora_inicio'] ?? null,
@@ -96,6 +97,7 @@ class RegistrarCirugia
                 ConsumoInsumo::create([
                     'cirugia_id' => $cirugia->id,
                     'insumo_id' => $insumo->id,
+                    'fase' => $consumo['fase'],
                     'cantidad' => $consumo['cantidad'],
                     'costo_unitario_registrado' => $insumo->costo_unitario,
                     'costo_total' => round((float) $consumo['cantidad'] * (float) $insumo->costo_unitario, 2),

@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Enums\EstadoCirugia;
+use App\Enums\FaseCiclo;
 use App\Enums\RolQuirurgico;
 use App\Enums\TipoCirugia;
 use App\Support\HospitalContext;
@@ -72,6 +73,9 @@ class StoreCirugiaRequest extends FormRequest
                 Rule::exists('recursos_humanos', 'id')->where('hospital_id', $hospitalId),
             ],
             'equipo.*.rol' => ['required', Rule::in(RolQuirurgico::values())],
+            // Fase a la que se atribuye la participación: el instrumentador
+            // que alista la sala y el que opera son dos líneas distintas.
+            'equipo.*.fase' => ['required', Rule::in(FaseCiclo::values())],
             // La participación se puede capturar por horas de entrada y
             // salida (como la cirugía) o directo en minutos; prepareForValidation
             // deriva los minutos cuando vienen las horas.
@@ -80,11 +84,14 @@ class StoreCirugiaRequest extends FormRequest
             'equipo.*.minutos_participacion' => ['required', 'integer', 'min:1', 'max:1440'],
 
             'consumos' => ['sometimes', 'array'],
+            // Sin `distinct`: el mismo insumo puede consumirse en más de una
+            // fase (gasas en preparación y en cirugía). Lo que no puede
+            // repetirse es la pareja insumo + fase, y eso se valida aparte.
             'consumos.*.insumo_id' => [
                 'required',
-                'distinct',
                 Rule::exists('insumos', 'id')->where('hospital_id', $hospitalId),
             ],
+            'consumos.*.fase' => ['required', Rule::in(FaseCiclo::values())],
             'consumos.*.cantidad' => ['required', 'numeric', 'gt:0'],
 
             'equipos_medicos' => ['sometimes', 'array'],
@@ -119,7 +126,60 @@ class StoreCirugiaRequest extends FormRequest
         $validator->after(function (Validator $validator): void {
             $this->validarSecuenciaDeFases($validator);
             $this->validarCicloCompletoParaRealizada($validator);
+            $this->validarLineasNoRepetidas($validator);
         });
+    }
+
+    /**
+     * Una misma pareja recurso+rol+fase, o insumo+fase, no puede aparecer dos
+     * veces: sería doble conteo, y además la base de datos lo rechaza con un
+     * error que el usuario no entendería.
+     */
+    protected function validarLineasNoRepetidas(Validator $validator): void
+    {
+        $this->reportarRepetidos(
+            $validator,
+            'equipo',
+            fn (array $fila): string => ($fila['recurso_humano_id'] ?? '').'|'.($fila['rol'] ?? '').'|'.($fila['fase'] ?? ''),
+            'Esta persona ya está registrada con ese rol en la misma fase. Suma los minutos en una sola línea.',
+        );
+
+        $this->reportarRepetidos(
+            $validator,
+            'consumos',
+            fn (array $fila): string => ($fila['insumo_id'] ?? '').'|'.($fila['fase'] ?? ''),
+            'Este insumo ya está registrado en la misma fase. Suma las cantidades en una sola línea.',
+        );
+    }
+
+    /**
+     * @param  callable(array<string, mixed>): string  $clave
+     */
+    protected function reportarRepetidos(Validator $validator, string $campo, callable $clave, string $mensaje): void
+    {
+        $filas = $this->input($campo);
+
+        if (! is_array($filas)) {
+            return;
+        }
+
+        $vistas = [];
+
+        foreach ($filas as $indice => $fila) {
+            if (! is_array($fila)) {
+                continue;
+            }
+
+            $actual = $clave($fila);
+
+            if (isset($vistas[$actual])) {
+                $validator->errors()->add("{$campo}.{$indice}.fase", $mensaje);
+
+                continue;
+            }
+
+            $vistas[$actual] = true;
+        }
     }
 
     protected function validarSecuenciaDeFases(Validator $validator): void

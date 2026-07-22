@@ -14,7 +14,10 @@ export default function RecursosHumanosCreate({
         <>
             <Head title="Nuevo recurso humano" />
             <div className="flex flex-col gap-4 p-4">
-                <Heading title="Nuevo recurso humano" description="Registra el personal quirúrgico y su estructura salarial." />
+                <Heading
+                    title="Nuevo recurso humano"
+                    description="Registra el personal quirúrgico y su estructura salarial."
+                />
                 <RecursoHumanoForm
                     action={RecursoHumanoController.store.form()}
                     roles={roles}

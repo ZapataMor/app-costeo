@@ -133,6 +133,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('procedimientos/{procedimiento}/cirugias/{cirugia}', [Costeo\ProcedimientoCosteoController::class, 'cirugia'])
                 ->name('procedimientos.cirugia');
 
+            // Costeo por persona: cuánto cuesta y cuánto gasto moviliza cada
+            // miembro del equipo quirúrgico, con su histórico de tiempos.
+            Route::get('personal', [Costeo\PersonalCosteoController::class, 'index'])
+                ->name('personal.index');
+            Route::get('personal/{personal}', [Costeo\PersonalCosteoController::class, 'show'])
+                ->name('personal.show');
+
             Route::get('componentes', [DashboardCosteoController::class, 'componentes'])->name('componentes');
             Route::get('outliers', [DashboardCosteoController::class, 'outliers'])->name('outliers');
             Route::get('rentabilidad', [DashboardCosteoController::class, 'rentabilidad'])->name('rentabilidad');

@@ -216,10 +216,10 @@ class DigitadorTest extends TestCase
             'estado' => 'realizada',
             'procedimientos' => [['id' => $procedimiento->id, 'es_principal' => true]],
             'equipo' => [
-                ['recurso_humano_id' => $cirujano->id, 'rol' => 'cirujano', 'minutos_participacion' => 90],
+                ['recurso_humano_id' => $cirujano->id, 'rol' => 'cirujano', 'fase' => 'quirurgica', 'minutos_participacion' => 90],
             ],
             'consumos' => [
-                ['insumo_id' => $insumo->id, 'cantidad' => 3],
+                ['insumo_id' => $insumo->id, 'fase' => 'quirurgica', 'cantidad' => 3],
             ],
         ])->assertRedirect('/cirugias');
 

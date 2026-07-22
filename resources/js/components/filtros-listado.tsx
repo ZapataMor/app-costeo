@@ -84,7 +84,11 @@ export function FiltrosListado({
                 <Select
                     key={filtro.clave}
                     // El valor vacío no es válido en Radix: se usa un centinela.
-                    value={estado[filtro.clave] === '' ? '__todos' : (estado[filtro.clave] ?? '__todos')}
+                    value={
+                        estado[filtro.clave] === ''
+                            ? '__todos'
+                            : (estado[filtro.clave] ?? '__todos')
+                    }
                     onValueChange={(v) =>
                         aplicar({
                             ...estado,

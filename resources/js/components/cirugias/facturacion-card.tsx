@@ -180,7 +180,11 @@ export function FacturacionCard({
                             </div>
                         </div>
                         <div className="flex items-center gap-3">
-                            <Button type="submit" size="sm" disabled={processing}>
+                            <Button
+                                type="submit"
+                                size="sm"
+                                disabled={processing}
+                            >
                                 Guardar facturación
                             </Button>
                             {facturacion !== null && (
@@ -197,10 +201,7 @@ export function FacturacionCard({
                     </form>
                 ) : (
                     <dl className="space-y-2 text-sm">
-                        <Fila
-                            termino="Facturado"
-                            valor={cop(facturado)}
-                        />
+                        <Fila termino="Facturado" valor={cop(facturado)} />
                         <Fila
                             termino="Glosado"
                             valor={cop(Number(facturacion?.valor_glosado ?? 0))}

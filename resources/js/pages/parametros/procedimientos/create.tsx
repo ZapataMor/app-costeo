@@ -14,7 +14,10 @@ export default function ProcedimientosCreate({
         <>
             <Head title="Nuevo procedimiento" />
             <div className="flex flex-col gap-4 p-4">
-                <Heading title="Nuevo procedimiento quirúrgico" description="Registra el protocolo con su código CUPS y duración estimada." />
+                <Heading
+                    title="Nuevo procedimiento quirúrgico"
+                    description="Registra el protocolo con su código CUPS y duración estimada."
+                />
                 <ProcedimientoForm
                     action={ProcedimientoQuirurgicoController.store.form()}
                     complejidades={complejidades}

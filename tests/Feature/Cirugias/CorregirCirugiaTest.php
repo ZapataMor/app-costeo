@@ -134,7 +134,7 @@ class CorregirCirugiaTest extends TestCase
             'estado' => EstadoCirugia::Realizada->value,
             'hora_fin' => '2026-07-15T09:00',
             'hora_salida_recuperacion' => '2026-07-15T11:00',
-            'consumos' => [['insumo_id' => $insumo->id, 'cantidad' => 2]],
+            'consumos' => [['insumo_id' => $insumo->id, 'fase' => 'quirurgica', 'cantidad' => 2]],
         ]);
 
         $this->actingAs($this->admin)->post('/cirugias', $datos)->assertRedirect();
@@ -145,7 +145,7 @@ class CorregirCirugiaTest extends TestCase
         $insumo->update(['costo_unitario' => 5000]);
 
         // La corrección solo cambia la cantidad.
-        $datos['consumos'] = [['insumo_id' => $insumo->id, 'cantidad' => 3]];
+        $datos['consumos'] = [['insumo_id' => $insumo->id, 'fase' => 'quirurgica', 'cantidad' => 3]];
 
         $this->actingAs($this->admin)
             ->put("/cirugias/{$cirugia->id}", $datos)
@@ -191,6 +191,7 @@ class CorregirCirugiaTest extends TestCase
             'equipo' => [[
                 'recurso_humano_id' => $uno->id,
                 'rol' => 'cirujano',
+                'fase' => 'quirurgica',
                 'minutos_participacion' => 60,
             ]],
         ]);
@@ -202,6 +203,7 @@ class CorregirCirugiaTest extends TestCase
         $datos['equipo'] = [[
             'recurso_humano_id' => $dos->id,
             'rol' => 'anestesiologo',
+            'fase' => 'quirurgica',
             'minutos_participacion' => 45,
         ]];
 
@@ -282,6 +284,7 @@ class CorregirCirugiaTest extends TestCase
             'equipo' => [[
                 'recurso_humano_id' => $recurso->id,
                 'rol' => 'cirujano',
+                'fase' => 'quirurgica',
                 'hora_inicio' => '2026-07-15T08:15',
                 'hora_fin' => '2026-07-15T09:45',
                 // Se manda un valor incoherente a propósito: manda el rango.
@@ -309,6 +312,7 @@ class CorregirCirugiaTest extends TestCase
             'equipo' => [[
                 'recurso_humano_id' => $recurso->id,
                 'rol' => 'cirujano',
+                'fase' => 'quirurgica',
                 'minutos_participacion' => 40,
             ]],
         ]);
@@ -332,6 +336,7 @@ class CorregirCirugiaTest extends TestCase
             'equipo' => [[
                 'recurso_humano_id' => $recurso->id,
                 'rol' => 'cirujano',
+                'fase' => 'quirurgica',
                 'hora_inicio' => '2026-07-15T09:00',
                 'hora_fin' => '2026-07-15T08:00',
                 'minutos_participacion' => 60,

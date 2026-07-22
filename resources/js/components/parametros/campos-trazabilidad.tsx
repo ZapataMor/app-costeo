@@ -36,27 +36,38 @@ export function CamposTrazabilidad({
                     placeholder="p. ej. Entrevista jefe de enfermería 2026-07"
                 />
                 <p className="text-xs text-muted-foreground">
-                    De dónde salió el dato (entrevista, contrato, factura, observación directa…).
+                    De dónde salió el dato (entrevista, contrato, factura,
+                    observación directa…).
                 </p>
                 <InputError message={errors.fuente} />
             </div>
 
             <div className="grid gap-2">
-                <Label htmlFor="nivel_confiabilidad">Nivel de confiabilidad</Label>
-                <Select name="nivel_confiabilidad" defaultValue={nivel ?? 'estimado'}>
+                <Label htmlFor="nivel_confiabilidad">
+                    Nivel de confiabilidad
+                </Label>
+                <Select
+                    name="nivel_confiabilidad"
+                    defaultValue={nivel ?? 'estimado'}
+                >
                     <SelectTrigger id="nivel_confiabilidad">
                         <SelectValue placeholder="Seleccione" />
                     </SelectTrigger>
                     <SelectContent>
                         {niveles.map((n) => (
-                            <SelectItem key={n} value={n} className="capitalize">
+                            <SelectItem
+                                key={n}
+                                value={n}
+                                className="capitalize"
+                            >
                                 {n}
                             </SelectItem>
                         ))}
                     </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">
-                    Medido: observado directamente. Estimado: informado por el personal. Supuesto: valor de trabajo.
+                    Medido: observado directamente. Estimado: informado por el
+                    personal. Supuesto: valor de trabajo.
                 </p>
                 <InputError message={errors.nivel_confiabilidad} />
             </div>

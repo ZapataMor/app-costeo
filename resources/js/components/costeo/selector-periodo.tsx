@@ -19,7 +19,11 @@ function haceMeses(meses: number): string {
 }
 
 const atajos = [
-    { etiqueta: 'Este mes', desde: () => hoy().slice(0, 7) + '-01', hasta: hoy },
+    {
+        etiqueta: 'Este mes',
+        desde: () => hoy().slice(0, 7) + '-01',
+        hasta: hoy,
+    },
     { etiqueta: '3 meses', desde: () => haceMeses(3), hasta: hoy },
     { etiqueta: '12 meses', desde: () => haceMeses(12), hasta: hoy },
 ];

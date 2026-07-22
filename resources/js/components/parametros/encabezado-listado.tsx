@@ -23,7 +23,12 @@ export function EncabezadoListado({
         <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="flex items-start gap-2">
                 {hrefAtras && (
-                    <Button asChild variant="ghost" size="icon" aria-label="Volver">
+                    <Button
+                        asChild
+                        variant="ghost"
+                        size="icon"
+                        aria-label="Volver"
+                    >
                         <Link href={hrefAtras} prefetch>
                             <ArrowLeft className="size-4" />
                         </Link>

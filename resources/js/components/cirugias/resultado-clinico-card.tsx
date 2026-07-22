@@ -188,7 +188,11 @@ export function ResultadoClinicoCard({
                         </div>
 
                         <div className="flex items-center gap-3">
-                            <Button type="submit" size="sm" disabled={processing}>
+                            <Button
+                                type="submit"
+                                size="sm"
+                                disabled={processing}
+                            >
                                 Guardar resultado
                             </Button>
                             {resultado !== null && (
