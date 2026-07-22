@@ -10,12 +10,17 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 
 /**
- * Usuarios de la instalación, uno por rol y hospital.
+ * Usuarios de la instalación: el super admin, y un administrador y varios
+ * digitadores por hospital.
  *
- * La contraseña NUNCA está escrita en el código. Se toma de la variable de
- * entorno SEED_USER_PASSWORD; si no está definida, se genera una aleatoria
- * por usuario y se imprime una sola vez en la consola. Cópiala en ese momento:
- * no queda guardada en ninguna parte.
+ * Varios digitadores por hospital no es adorno: es lo que permite ver en el
+ * explorador quién registró cada cirugía, que es la trazabilidad que pide el
+ * módulo de registro.
+ *
+ * La contraseña no está escrita en este archivo, sale de `config/seeding.php`:
+ * «password» fuera de producción, y en producción lo que diga
+ * SEED_USER_PASSWORD (o una aleatoria por usuario, impresa una sola vez, si
+ * esa variable no está definida).
  *
  * Idempotente: la clave es el correo. Si el usuario ya existe se actualizan
  * nombre, rol y hospital, pero NUNCA la contraseña — así reejecutar el seeder
@@ -50,6 +55,18 @@ class UsuarioSeeder extends Seeder
             'hospital_nit' => '800100200-1',
         ],
         [
+            'name' => 'Yamile Barros [SEMILLA]',
+            'email' => 'yamile.barros@sanrafael.test',
+            'role' => RolUsuario::Digitador,
+            'hospital_nit' => '800100200-1',
+        ],
+        [
+            'name' => 'Nelson Curvelo [SEMILLA]',
+            'email' => 'nelson.curvelo@sanrafael.test',
+            'role' => RolUsuario::Digitador,
+            'hospital_nit' => '800100200-1',
+        ],
+        [
             'name' => 'Admin Riohacha',
             'email' => 'admin@riohacha.test',
             'role' => RolUsuario::AdminHospital,
@@ -58,6 +75,12 @@ class UsuarioSeeder extends Seeder
         [
             'name' => 'Digitador Riohacha',
             'email' => 'digitador@riohacha.test',
+            'role' => RolUsuario::Digitador,
+            'hospital_nit' => '800300400-2',
+        ],
+        [
+            'name' => 'Marbel Choles [SEMILLA]',
+            'email' => 'marbel.choles@riohacha.test',
             'role' => RolUsuario::Digitador,
             'hospital_nit' => '800300400-2',
         ],
@@ -96,7 +119,7 @@ class UsuarioSeeder extends Seeder
                 $clave = $this->clave();
                 // El cast 'hashed' del modelo se encarga del Hash::make.
                 $usuario->password = $clave;
-                $generadas[] = [$datos['email'], $this->desdeConfig() ? '(SEED_USER_PASSWORD)' : $clave];
+                $generadas[] = [$datos['email'], $clave];
             }
 
             $usuario->save();
@@ -131,7 +154,11 @@ class UsuarioSeeder extends Seeder
             return;
         }
 
-        $this->advertir('Credenciales generadas — cópialas AHORA, no se vuelven a mostrar:');
+        $this->advertir(
+            $this->desdeConfig()
+                ? 'Usuarios creados con la contraseña de config/seeding.php:'
+                : 'Contraseñas generadas — cópialas AHORA, no se vuelven a mostrar:',
+        );
         $this->tabla(['Correo', 'Contraseña'], $generadas);
     }
 }

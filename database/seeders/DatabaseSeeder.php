@@ -26,6 +26,9 @@ class DatabaseSeeder extends Seeder
                 CatalogoQuirurgicoSeeder::class,
             ]);
 
+            // Ni pacientes, ni cirugías, ni costeo: en una instalación real
+            // esos los carga el hospital, no el seeder.
+
             return;
         }
 

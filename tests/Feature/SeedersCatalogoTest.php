@@ -83,16 +83,41 @@ class SeedersCatalogoTest extends TestCase
         ], 'Reejecutar los seeders duplicó registros.');
     }
 
-    public function test_el_seeder_de_usuarios_no_usa_una_contrasena_conocida(): void
+    public function test_el_seeder_de_usuarios_aplica_la_contrasena_configurada(): void
     {
+        config(['seeding.user_password' => 'password']);
+
         $this->sembrarTodo();
+
+        $this->assertGreaterThan(0, User::count());
+
+        foreach (User::all() as $usuario) {
+            $this->assertTrue(
+                Hash::check('password', $usuario->password),
+                "El usuario {$usuario->email} no quedó con la contraseña configurada.",
+            );
+        }
+    }
+
+    public function test_sin_contrasena_configurada_cada_usuario_recibe_una_aleatoria(): void
+    {
+        // Es el caso de producción sin SEED_USER_PASSWORD: nadie debe quedar
+        // con una contraseña adivinable, y no deben repetirse entre usuarios.
+        config(['seeding.user_password' => null]);
+
+        $this->sembrarTodo();
+
+        $hashes = [];
 
         foreach (User::all() as $usuario) {
             $this->assertFalse(
                 Hash::check('password', $usuario->password),
-                "El usuario {$usuario->email} quedó con la contraseña por defecto de la factory.",
+                "El usuario {$usuario->email} quedó con una contraseña adivinable.",
             );
+            $hashes[] = $usuario->password;
         }
+
+        $this->assertSame($hashes, array_unique($hashes), 'Dos usuarios comparten contraseña.');
     }
 
     public function test_reejecutar_el_seeder_de_usuarios_no_cambia_la_contrasena(): void

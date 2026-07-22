@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Enums\RolQuirurgico;
 use App\Models\Cirugia;
 use App\Models\ConsumoInsumo;
 use App\Models\Facturacion;
@@ -10,74 +9,61 @@ use App\Models\Hospital;
 use App\Models\Insumo;
 use App\Models\MiembroEquipoQuirurgico;
 use App\Models\Paciente;
+use App\Models\ProcedimientoQuirurgico;
+use App\Models\RecursoHumano;
 use App\Models\ResultadoClinico;
+use App\Models\SalaOperatoria;
+use App\Models\User;
+use App\Services\Costing\DetectorSobrecostos;
 use App\Services\Costing\TdabcCostingService;
 use App\Services\Indicators\KpiService;
 use App\Support\HospitalContext;
 use Database\Seeders\Concerns\InformaEnConsola;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Carbon;
 
 /**
- * Movimiento de ejemplo para revisión: cirugías, costeo, facturación y
- * resultados clínicos montados sobre el catálogo de CatalogoQuirurgicoSeeder.
+ * Instalación de demostración completa: encadena todos los módulos y les
+ * añade lo que solo tiene sentido en una demo.
+ *
+ *   HospitalSeeder → UsuarioSeeder → CatalogoQuirurgicoSeeder
+ *   → PacienteSeeder → CirugiaSeeder → CosteoSeeder
+ *   → facturación, resultados clínicos y la cesárea de referencia
  *
  * TODOS los registros son ficticios y están marcados con [SEMILLA]. No
  * corresponden a hospitales ni pacientes reales.
  *
- * Incluye la cirugía de referencia del caso de prueba TDABC: una cesárea
- * cuyo costo total debe dar exactamente $520.000 COP.
- *
  * NO ejecutar en producción: genera datos falsos que contaminan los
- * indicadores. Para una instalación real usa solo HospitalSeeder,
- * UsuarioSeeder y CatalogoQuirurgicoSeeder.
- *
- * @phpstan-import-type CatalogoSembrado from CatalogoQuirurgicoSeeder
+ * indicadores. Para una instalación real, DatabaseSeeder ya se encarga de
+ * saltarse este seeder y sembrar solo lo estructural.
  */
 class DemoSeeder extends Seeder
 {
     use InformaEnConsola;
 
     /**
-     * Cirugías aleatorias por procedimiento (código CUPS => cantidad).
-     *
-     * @var array<string, array<array-key, int>>
+     * Cirugías que se registran DESPUÉS del costeo y por tanto quedan sin
+     * costo, para que el KPI de completitud no dé un 100 % irreal.
      */
-    protected const VOLUMEN = [
-        '800100200-1' => ['740001' => 9, '780201' => 10, '741500' => 10, '744201' => 8],
-        '800300400-2' => ['740001' => 6],
-    ];
+    protected const SIN_COSTEAR_POR_HOSPITAL = 2;
 
-    public function run(): void
+    public function run(TdabcCostingService $motor, DetectorSobrecostos $detector): void
     {
-        $motor = app(TdabcCostingService::class);
-        $catalogoSeeder = new CatalogoQuirurgicoSeeder;
-
-        if ($this->consola !== null) {
-            $catalogoSeeder->setCommand($this->consola);
-        }
-
         $this->call([
             HospitalSeeder::class,
             UsuarioSeeder::class,
+            CatalogoQuirurgicoSeeder::class,
+            PacienteSeeder::class,
+            CirugiaSeeder::class,
         ]);
 
-        foreach (CatalogoQuirurgicoSeeder::CATALOGO_POR_NIT as $nit => $perfil) {
-            $hospital = Hospital::query()->where('nit', $nit)->firstOrFail();
-            $catalogo = $catalogoSeeder->sembrar($hospital, $perfil);
+        // La cesárea de referencia debe existir antes del costeo para que el
+        // motor la calcule igual que a las demás.
+        $this->sembrarCesareaDeReferencia($motor);
 
-            HospitalContext::set($hospital->id);
+        $this->call(CosteoSeeder::class);
 
-            try {
-                if ($perfil === 'principal') {
-                    $this->sembrarCesareaDeReferencia($hospital, $catalogo, $motor);
-                }
-
-                $this->sembrarMovimiento($hospital, $catalogo, $motor, self::VOLUMEN[$nit]);
-            } finally {
-                HospitalContext::clear();
-            }
-        }
+        $this->sembrarFacturacionYResultados();
+        $this->sembrarCirugiasSinCostear();
     }
 
     /**
@@ -93,216 +79,190 @@ class DemoSeeder extends Seeder
      *   ──────────────────────────────────────────
      *   TOTAL                              520.000
      *
-     * @param  CatalogoSembrado  $catalogo
+     * Va con participaciones e insumos escritos a mano, no con los aleatorios
+     * de CirugiaSeeder: es el caso que fija el resultado esperado del motor.
      */
-    protected function sembrarCesareaDeReferencia(
-        Hospital $hospital,
-        array $catalogo,
-        TdabcCostingService $motor,
-    ): void {
-        $paciente = Paciente::factory()->create([
-            'hospital_id' => $hospital->id,
-            'nombres' => 'María José',
-            'apellidos' => 'Uriana Gámez',
-            'sexo' => 'F',
-        ]);
+    protected function sembrarCesareaDeReferencia(TdabcCostingService $motor): void
+    {
+        $hospital = Hospital::query()->where('nit', '800100200-1')->first();
 
-        $cesarea = Cirugia::create([
-            'hospital_id' => $hospital->id,
-            'paciente_id' => $paciente->id,
-            'sala_operatoria_id' => $catalogo['salas'][0]->id,
-            'fecha' => '2026-06-10',
-            'hora_inicio' => '2026-06-10 08:00:00',
-            'hora_fin' => '2026-06-10 10:00:00',
-            'tipo' => 'programada',
-            'estado' => 'realizada',
-            'diagnostico_cie10' => 'O82',
-            'observaciones' => 'Cirugía de referencia del caso de prueba TDABC: costo total $520.000 [SEMILLA]',
-        ]);
-        $cesarea->procedimientos()->attach($catalogo['procedimientos']['740001']->id, ['es_principal' => true]);
+        if ($hospital === null) {
+            return;
+        }
 
-        $participaciones = [
-            ['cirujano', 90],
-            ['ayudante', 90],
-            ['anestesiologo', 120],
-            ['instrumentador', 120],
-            ['circulante', 120],
-        ];
-        foreach ($participaciones as [$rol, $minutos]) {
-            MiembroEquipoQuirurgico::create([
-                'cirugia_id' => $cesarea->id,
-                'recurso_humano_id' => $catalogo['personal'][$rol][0]->id,
-                'rol' => $rol,
-                'minutos_participacion' => $minutos,
+        $anterior = HospitalContext::id();
+        HospitalContext::set($hospital->id);
+
+        try {
+            $sala = SalaOperatoria::query()->where('nombre', 'Sala 1')->firstOrFail();
+            $procedimiento = ProcedimientoQuirurgico::query()->where('codigo_cups', '740001')->firstOrFail();
+
+            $paciente = Paciente::factory()->create([
+                'hospital_id' => $hospital->id,
+                'nombres' => 'María José',
+                'apellidos' => 'Uriana Gámez [SEMILLA]',
+                'sexo' => 'F',
             ]);
+
+            $cesarea = Cirugia::create([
+                'hospital_id' => $hospital->id,
+                'registrado_por' => User::query()
+                    ->where('hospital_id', $hospital->id)
+                    ->where('role', 'digitador')
+                    ->value('id'),
+                'paciente_id' => $paciente->id,
+                'sala_operatoria_id' => $sala->id,
+                'fecha' => '2026-06-10',
+                'hora_inicio' => '2026-06-10 08:00:00',
+                'hora_fin' => '2026-06-10 10:00:00',
+                'tipo' => 'programada',
+                'estado' => 'realizada',
+                'diagnostico_cie10' => 'O82',
+                'observaciones' => 'Cirugía de referencia del caso de prueba TDABC: costo total $520.000 [SEMILLA]',
+            ]);
+            $cesarea->procedimientos()->attach($procedimiento->id, ['es_principal' => true]);
+
+            $participaciones = [
+                ['cirujano', 'Dra. Carmen Epiayú [SEMILLA]', 90],
+                ['ayudante', 'Dr. Luis Pushaina [SEMILLA]', 90],
+                ['anestesiologo', 'Dr. Jorge Ipuana [SEMILLA]', 120],
+                ['instrumentador', 'Inst. Kelly Mengual [SEMILLA]', 120],
+                ['circulante', 'Aux. Yolima Arpushana [SEMILLA]', 120],
+            ];
+            foreach ($participaciones as [$rol, $nombre, $minutos]) {
+                MiembroEquipoQuirurgico::create([
+                    'cirugia_id' => $cesarea->id,
+                    'recurso_humano_id' => RecursoHumano::query()->where('nombre', $nombre)->firstOrFail()->id,
+                    'rol' => $rol,
+                    'minutos_participacion' => $minutos,
+                ]);
+            }
+
+            $consumos = [
+                ['MED-001', 2],   //  10.000
+                ['MED-002', 1],   //  25.000
+                ['MAT-001', 3],   //  45.000
+                ['MAT-002', 10],  //  20.000
+                ['MAT-003', 6],   //  18.000
+                ['MAT-004', 1],   //  32.000
+            ];
+            foreach ($consumos as [$codigo, $cantidad]) {
+                $insumo = Insumo::query()->where('codigo', $codigo)->firstOrFail();
+
+                ConsumoInsumo::create([
+                    'cirugia_id' => $cesarea->id,
+                    'insumo_id' => $insumo->id,
+                    'cantidad' => $cantidad,
+                    'costo_unitario_registrado' => $insumo->costo_unitario,
+                    'costo_total' => round($cantidad * (float) $insumo->costo_unitario, 2),
+                ]);
+            }
+
+            $motor->calcular($cesarea);
+
+            Facturacion::create([
+                'cirugia_id' => $cesarea->id,
+                'hospital_id' => $hospital->id,
+                'valor_facturado' => 637_500, // SOAT 850.000 − 25 %
+                'valor_glosado' => 0,
+                'valor_recaudado' => 637_500,
+                'tarifa_referencia_soat' => 850_000,
+                'fecha_facturacion' => '2026-06-15',
+            ]);
+
+            ResultadoClinico::create([
+                'cirugia_id' => $cesarea->id,
+                'hospital_id' => $hospital->id,
+                'dias_estancia' => 3,
+            ]);
+        } finally {
+            HospitalContext::set($anterior);
         }
-
-        $consumos = [
-            ['MED-001', 2],   //  10.000
-            ['MED-002', 1],   //  25.000
-            ['MAT-001', 3],   //  45.000
-            ['MAT-002', 10],  //  20.000
-            ['MAT-003', 6],   //  18.000
-            ['MAT-004', 1],   //  32.000
-        ];
-        foreach ($consumos as [$codigo, $cantidad]) {
-            $this->registrarConsumo($cesarea, $catalogo['insumos'][$codigo], $cantidad);
-        }
-
-        $motor->calcular($cesarea);
-
-        Facturacion::create([
-            'cirugia_id' => $cesarea->id,
-            'hospital_id' => $hospital->id,
-            'valor_facturado' => 637_500, // SOAT 850.000 − 25 %
-            'valor_glosado' => 0,
-            'valor_recaudado' => 637_500,
-            'tarifa_referencia_soat' => 850_000,
-            'fecha_facturacion' => '2026-06-15',
-        ]);
-
-        ResultadoClinico::create([
-            'cirugia_id' => $cesarea->id,
-            'hospital_id' => $hospital->id,
-            'dias_estancia' => 3,
-        ]);
     }
 
     /**
-     * Cirugías aleatorias para poblar los dashboards.
-     *
-     * @param  CatalogoSembrado  $catalogo
-     * @param  array<array-key, int>  $volumen
+     * Factura el 85 % de lo costeado y registra resultado clínico en el 80 %.
+     * Las brechas son deliberadas: un hospital real nunca tiene el 100 %, y
+     * los KPI de facturación y seguimiento deben poder mostrarlo.
      */
-    protected function sembrarMovimiento(
-        Hospital $hospital,
-        array $catalogo,
-        TdabcCostingService $motor,
-        array $volumen,
-    ): void {
-        foreach ($volumen as $clave => $cantidad) {
-            // PHP convierte a int las claves que son cadenas numéricas, y los
-            // códigos CUPS lo son; hay que devolverlas a string para poder
-            // compararlas.
-            $cups = (string) $clave;
+    protected function sembrarFacturacionYResultados(): void
+    {
+        foreach (Hospital::all() as $hospital) {
+            $anterior = HospitalContext::id();
+            HospitalContext::set($hospital->id);
 
-            for ($i = 0; $i < $cantidad; $i++) {
-                // Dos colecistectomías con consumo desbordado: outliers
-                // deliberados para que se disparen las alertas de sobrecosto.
-                $esOutlier = $cups === '741500' && $i < 2;
+            try {
+                $cirugias = Cirugia::query()
+                    ->has('costo')
+                    ->doesntHave('facturacion')
+                    ->with('procedimientos')
+                    ->get();
 
-                $this->crearCirugiaAleatoria($hospital, $motor, $catalogo, $cups, $esOutlier);
+                foreach ($cirugias as $cirugia) {
+                    if (random_int(1, 100) <= 85) {
+                        $this->facturar($hospital, $cirugia);
+                    }
+
+                    if (random_int(1, 100) <= 80 && ! $cirugia->resultadoClinico()->exists()) {
+                        ResultadoClinico::factory()->create([
+                            'cirugia_id' => $cirugia->id,
+                            'hospital_id' => $hospital->id,
+                        ]);
+                    }
+                }
+            } finally {
+                HospitalContext::set($anterior);
             }
         }
     }
 
-    /**
-     * @param  CatalogoSembrado  $catalogo
-     */
-    protected function crearCirugiaAleatoria(
-        Hospital $hospital,
-        TdabcCostingService $motor,
-        array $catalogo,
-        string $cups,
-        bool $esOutlier,
-    ): void {
-        $protocolo = $catalogo['protocolos'][$cups];
-        $procedimiento = $catalogo['procedimientos'][$cups];
-        $salas = $catalogo['salas'];
+    protected function facturar(Hospital $hospital, Cirugia $cirugia): void
+    {
+        $procedimiento = $cirugia->procedimientoPrincipal();
 
-        $inicio = Carbon::now()
-            ->subDays(random_int(7, 90))
-            ->setTime(random_int(7, 16), [0, 30][random_int(0, 1)], 0);
-        $duracion = (int) round($protocolo['duracion'] * random_int(80, 130) / 100);
+        if ($procedimiento === null || $procedimiento->tarifa_soat === null) {
+            return;
+        }
 
-        $paciente = Paciente::factory()->create(['hospital_id' => $hospital->id]);
+        $tarifaSoat = (float) $procedimiento->tarifa_soat;
+        $facturado = round($tarifaSoat * KpiService::FACTOR_REFERENCIA_SOAT * random_int(95, 115) / 100, 2);
+        $glosado = random_int(1, 100) <= 15 ? round($facturado * random_int(5, 20) / 100, 2) : 0.0;
+        $recaudado = round(($facturado - $glosado) * random_int(80, 100) / 100, 2);
 
-        $cirugia = Cirugia::create([
+        Facturacion::create([
+            'cirugia_id' => $cirugia->id,
             'hospital_id' => $hospital->id,
-            'paciente_id' => $paciente->id,
-            'sala_operatoria_id' => $salas[array_rand($salas)]->id,
-            'fecha' => $inicio->toDateString(),
-            'hora_inicio' => $inicio,
-            'hora_fin' => $inicio->copy()->addMinutes($duracion),
-            'tipo' => random_int(1, 100) <= 70 ? 'programada' : 'urgencia',
-            'estado' => 'realizada',
-            'diagnostico_cie10' => null,
+            'valor_facturado' => $facturado,
+            'valor_glosado' => $glosado,
+            'valor_recaudado' => $recaudado,
+            'tarifa_referencia_soat' => $tarifaSoat,
+            'fecha_facturacion' => $cirugia->fecha->copy()->addDays(random_int(3, 15))->toDateString(),
         ]);
-        $cirugia->procedimientos()->attach($procedimiento->id, ['es_principal' => true]);
-
-        // Equipo quirúrgico: cirujano y ayudante ~75 % de la duración,
-        // el resto de roles acompañan toda la cirugía.
-        foreach (RolQuirurgico::values() as $rol) {
-            $pool = $catalogo['personal'][$rol];
-            $minutosBase = in_array($rol, ['cirujano', 'ayudante'], true)
-                ? (int) round($duracion * 0.75)
-                : $duracion;
-
-            MiembroEquipoQuirurgico::create([
-                'cirugia_id' => $cirugia->id,
-                'recurso_humano_id' => $pool[array_rand($pool)]->id,
-                'rol' => $rol,
-                'minutos_participacion' => max(15, (int) round($minutosBase * random_int(90, 110) / 100)),
-            ]);
-        }
-
-        foreach ($protocolo['equipos'] as $codigo) {
-            $cirugia->equiposMedicos()->attach($catalogo['equipos'][$codigo]->id, [
-                'minutos_uso' => max(15, (int) round($duracion * random_int(60, 100) / 100)),
-            ]);
-        }
-
-        // Consumo de insumos (los outliers multiplican las cantidades ×5)
-        $factorOutlier = $esOutlier ? 5 : 1;
-        $seleccion = collect($protocolo['insumos'])
-            ->shuffle()
-            ->take(random_int(3, count($protocolo['insumos'])));
-
-        foreach ($seleccion as $codigo) {
-            $this->registrarConsumo($cirugia, $catalogo['insumos'][$codigo], random_int(1, 6) * $factorOutlier);
-        }
-
-        // 10 % de las cirugías quedan sin costear (KPI de completitud < 100 %)
-        $costeada = random_int(1, 100) <= 90;
-        if ($costeada) {
-            $motor->calcular($cirugia);
-        }
-
-        // 85 % facturadas
-        if ($costeada && random_int(1, 100) <= 85) {
-            $tarifaSoat = (float) $procedimiento->tarifa_soat;
-            $facturado = round($tarifaSoat * KpiService::FACTOR_REFERENCIA_SOAT * random_int(95, 115) / 100, 2);
-            $glosado = random_int(1, 100) <= 15 ? round($facturado * random_int(5, 20) / 100, 2) : 0.0;
-            $recaudado = round(($facturado - $glosado) * random_int(80, 100) / 100, 2);
-
-            Facturacion::create([
-                'cirugia_id' => $cirugia->id,
-                'hospital_id' => $hospital->id,
-                'valor_facturado' => $facturado,
-                'valor_glosado' => $glosado,
-                'valor_recaudado' => $recaudado,
-                'tarifa_referencia_soat' => $tarifaSoat,
-                'fecha_facturacion' => $inicio->copy()->addDays(random_int(3, 15))->toDateString(),
-            ]);
-        }
-
-        // 80 % con resultado clínico registrado
-        if (random_int(1, 100) <= 80) {
-            ResultadoClinico::factory()->create([
-                'cirugia_id' => $cirugia->id,
-                'hospital_id' => $hospital->id,
-            ]);
-        }
     }
 
-    protected function registrarConsumo(Cirugia $cirugia, Insumo $insumo, int $cantidad): void
+    /**
+     * Cirugías registradas después del costeo: quedan pendientes de costear,
+     * que es el estado normal de lo que se operó ayer.
+     */
+    protected function sembrarCirugiasSinCostear(): void
     {
-        ConsumoInsumo::create([
-            'cirugia_id' => $cirugia->id,
-            'insumo_id' => $insumo->id,
-            'cantidad' => $cantidad,
-            'costo_unitario_registrado' => $insumo->costo_unitario,
-            'costo_total' => round($cantidad * (float) $insumo->costo_unitario, 2),
-        ]);
+        $seeder = new CirugiaSeeder;
+
+        if ($this->consola !== null) {
+            $seeder->setCommand($this->consola);
+        }
+
+        foreach (CirugiaSeeder::VOLUMEN as $nit => $volumen) {
+            $hospital = Hospital::query()->where('nit', $nit)->first();
+
+            if ($hospital === null) {
+                continue;
+            }
+
+            // Un solo procedimiento, el primero del hospital, para no inflar
+            // el volumen: lo único que hace falta es que existan.
+            $cups = (string) array_key_first($volumen);
+            $seeder->sembrar($hospital, [$cups => self::SIN_COSTEAR_POR_HOSPITAL]);
+        }
     }
 }
