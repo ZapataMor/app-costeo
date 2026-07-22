@@ -1,4 +1,4 @@
-# Sistema de Costeo Quirúrgico (TDABC) — Capas 2 y 3
+# SICOPH — Sistema de costeo de procedimientos hospitalarios (TDABC) — Capas 2 y 3
 
 Aplicativo web del **Sistema de Gestión del Conocimiento para optimizar los costos del
 servicio de cirugía** en hospitales de mediana complejidad (tesis doctoral, arquitectura

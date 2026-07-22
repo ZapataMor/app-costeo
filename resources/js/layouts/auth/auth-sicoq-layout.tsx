@@ -354,7 +354,7 @@ export default function AuthSicoqLayout({
                 <div className="pointer-events-none absolute bottom-[34px] left-10">
                     <div className="mb-3 h-px w-[34px] bg-[#4C837C]" />
                     <div className="text-[10px] font-medium tracking-[3.5px] text-[#8D8F8E] uppercase">
-                        Costeo Quirúrgico · TDABC
+                        Costeo de procedimientos · TDABC
                     </div>
                     <div className="mt-1 text-[10px] tracking-[3.5px] text-[#D4CDCB]/55 uppercase">
                         Gestión hospitalaria · Colombia
@@ -426,11 +426,11 @@ export default function AuthSicoqLayout({
                             </svg>
                         </div>
                         <div className="font-serif text-[37px] leading-none font-bold tracking-[1px] text-[#161B2F]">
-                            SICOQ
+                            SICOPH
                         </div>
                     </div>
                     <div className="mt-[9px] mb-[25px] text-[13px] font-semibold tracking-[3.4px] text-[#5B687C] uppercase">
-                        Sistema de Costeo Quirúrgico · TDABC
+                        Sistema de costeo de procedimientos hospitalarios
                     </div>
 
                     <div
