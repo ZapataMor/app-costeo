@@ -246,7 +246,12 @@ export default function CirugiasIndex({
                                         {cirugia.puede_cerrarse && (
                                             <CerrarCirugiaModal
                                                 cirugiaId={cirugia.id}
+                                                paso={
+                                                    cirugia.paso_cierre ??
+                                                    'sala'
+                                                }
                                                 horaInicio={cirugia.hora_inicio}
+                                                horaFin={cirugia.hora_fin}
                                             />
                                         )}
                                         <Button

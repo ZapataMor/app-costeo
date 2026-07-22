@@ -97,6 +97,7 @@ class CirugiaWebTest extends TestCase
             'fecha' => '2026-07-01',
             'hora_inicio' => '2026-07-01 08:00:00',
             'hora_fin' => '2026-07-01 10:00:00', // 120 min → sala $80.000
+            'hora_salida_recuperacion' => '2026-07-01 12:00:00',
             'tipo' => 'programada',
             'estado' => 'realizada',
             'procedimientos' => [['id' => $procedimiento->id, 'es_principal' => true]],

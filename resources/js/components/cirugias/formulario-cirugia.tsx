@@ -1,5 +1,5 @@
 import { Link, useForm } from '@inertiajs/react';
-import { Plus, Trash2, TriangleAlert } from 'lucide-react';
+import { Plus, Trash2, TriangleAlert, Wand2 } from 'lucide-react';
 import { useMemo } from 'react';
 import { BuscadorSelect } from '@/components/buscador-select';
 import {
@@ -52,6 +52,21 @@ export type CatalogosCirugia = {
     parametrosTdabc: ParametrosTdabc;
 };
 
+/** Desplaza un `datetime-local` en minutos, conservando el formato del input. */
+function desplazar(momento: string, minutos: number): string {
+    if (momento === '') {
+        return '';
+    }
+
+    const fecha = new Date(momento);
+    fecha.setMinutes(fecha.getMinutes() + minutos);
+
+    // `toISOString` pasa a UTC; se compensa el offset para no correr la hora.
+    const local = new Date(fecha.getTime() - fecha.getTimezoneOffset() * 60000);
+
+    return local.toISOString().slice(0, 16);
+}
+
 /** Minutos entre dos `datetime-local`; null si falta alguno o el rango es inválido. */
 function minutosEntre(inicio: string, fin: string): number | null {
     if (inicio === '' || fin === '') {
@@ -69,8 +84,12 @@ const vacio: DatosCirugia = {
     paciente_id: '',
     sala_operatoria_id: '',
     fecha: '',
+    hora_ingreso_paciente: '',
     hora_inicio: '',
+    hora_incision: '',
+    hora_cierre: '',
     hora_fin: '',
+    hora_salida_recuperacion: '',
     tipo: 'programada',
     estado: 'en_proceso',
     diagnostico_cie10: '',
@@ -184,10 +203,81 @@ export function FormularioCirugia({
 
     const sinHoraFin = data.hora_fin === '';
     const sinEstadoRealizada = data.estado !== 'realizada';
-    const noContabilizable = sinHoraFin || sinEstadoRealizada;
+    // Marcar «realizada» afirma que el paciente ya egresó; el backend lo
+    // rechaza sin la salida de recuperación, así que se advierte antes.
+    const sinEgreso = data.hora_salida_recuperacion === '';
+    const noContabilizable = sinHoraFin || sinEstadoRealizada || sinEgreso;
 
     /** Duración real capturada, base para sugerir los tiempos de cada recurso. */
     const duracion = minutosEntre(data.hora_inicio, data.hora_fin);
+
+    /**
+     * Tiempo de sala (`duracion`) y tiempo quirúrgico neto son distintos: la
+     * diferencia es sala ocupada sin operar —inducción, posición, asepsia—,
+     * que es donde se ve la ineficiencia de quirófano.
+     */
+    const minutosPre = minutosEntre(data.hora_ingreso_paciente, data.hora_inicio);
+    const minutosNeto = minutosEntre(data.hora_incision, data.hora_cierre);
+    const minutosPost = minutosEntre(data.hora_fin, data.hora_salida_recuperacion);
+    const cicloTotal = minutosEntre(
+        data.hora_ingreso_paciente,
+        data.hora_salida_recuperacion,
+    );
+
+    /** Protocolo del procedimiento principal: fuente de los tiempos estándar. */
+    const protocolo = useMemo(() => {
+        const principal =
+            data.procedimientos.find((p) => p.es_principal) ??
+            data.procedimientos[0];
+
+        return procedimientos.find((p) => String(p.id) === principal?.id) ?? null;
+    }, [data.procedimientos, procedimientos]);
+
+    /**
+     * Rellena solo las marcas vacías a partir de los tiempos estándar del
+     * protocolo. No pisa lo ya capturado: el dato real siempre gana sobre el
+     * estándar, que aquí es apenas un punto de partida.
+     */
+    const sugerirDesdeProtocolo = () => {
+        if (protocolo === null) {
+            return;
+        }
+
+        const cambios: Partial<DatosCirugia> = {};
+
+        if (
+            data.hora_ingreso_paciente === '' &&
+            data.hora_inicio !== '' &&
+            protocolo.minutos_prequirurgico !== null
+        ) {
+            cambios.hora_ingreso_paciente = desplazar(
+                data.hora_inicio,
+                -protocolo.minutos_prequirurgico,
+            );
+        }
+
+        if (
+            data.hora_salida_recuperacion === '' &&
+            data.hora_fin !== '' &&
+            protocolo.minutos_recuperacion !== null
+        ) {
+            cambios.hora_salida_recuperacion = desplazar(
+                data.hora_fin,
+                protocolo.minutos_recuperacion,
+            );
+        }
+
+        setData((actual) => ({ ...actual, ...cambios }));
+    };
+
+    const puedeSugerir =
+        protocolo !== null &&
+        ((data.hora_ingreso_paciente === '' &&
+            data.hora_inicio !== '' &&
+            protocolo.minutos_prequirurgico !== null) ||
+            (data.hora_salida_recuperacion === '' &&
+                data.hora_fin !== '' &&
+                protocolo.minutos_recuperacion !== null));
 
     const estimacion = useMemo(
         () =>
@@ -350,29 +440,6 @@ export function FormularioCirugia({
                         />
                     </div>
                     <div className="grid gap-2">
-                        <Label htmlFor="hora_inicio">Hora de inicio</Label>
-                        <Input
-                            id="hora_inicio"
-                            type="datetime-local"
-                            value={data.hora_inicio}
-                            onChange={(e) =>
-                                setData('hora_inicio', e.target.value)
-                            }
-                            required
-                        />
-                        <InputError message={error('hora_inicio')} />
-                    </div>
-                    <div className="grid gap-2">
-                        <Label htmlFor="hora_fin">Hora de finalización</Label>
-                        <Input
-                            id="hora_fin"
-                            type="datetime-local"
-                            value={data.hora_fin}
-                            onChange={(e) => setData('hora_fin', e.target.value)}
-                        />
-                        <InputError message={error('hora_fin')} />
-                    </div>
-                    <div className="grid gap-2">
                         <Label htmlFor="diagnostico_cie10">
                             Diagnóstico CIE-10 (opcional)
                         </Label>
@@ -400,6 +467,181 @@ export function FormularioCirugia({
                         />
                         <InputError message={error('observaciones')} />
                     </div>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div>
+                            <CardTitle className="text-base">
+                                Tiempos del ciclo
+                            </CardTitle>
+                            <CardDescription>
+                                Solo la entrada a sala es obligatoria. Cada marca
+                                que agregues permite costear una fase más.
+                            </CardDescription>
+                        </div>
+                        {puedeSugerir && (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={sugerirDesdeProtocolo}
+                            >
+                                <Wand2 className="size-4" /> Sugerir del protocolo
+                            </Button>
+                        )}
+                    </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <section className="space-y-2">
+                        <h3 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                            Pre-quirúrgico
+                        </h3>
+                        <div className="grid gap-2 sm:max-w-sm">
+                            <Label htmlFor="hora_ingreso_paciente">
+                                Ingreso del paciente
+                            </Label>
+                            <Input
+                                id="hora_ingreso_paciente"
+                                type="datetime-local"
+                                value={data.hora_ingreso_paciente}
+                                onChange={(e) =>
+                                    setData(
+                                        'hora_ingreso_paciente',
+                                        e.target.value,
+                                    )
+                                }
+                            />
+                            <InputError
+                                message={error('hora_ingreso_paciente')}
+                            />
+                            {minutosPre !== null && (
+                                <p className="text-xs text-muted-foreground">
+                                    {minutosPre} min de preparación
+                                </p>
+                            )}
+                        </div>
+                    </section>
+
+                    <section className="space-y-2 border-t pt-4">
+                        <h3 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                            Quirúrgico
+                        </h3>
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            <div className="grid gap-2">
+                                <Label htmlFor="hora_inicio">
+                                    Entrada a sala
+                                </Label>
+                                <Input
+                                    id="hora_inicio"
+                                    type="datetime-local"
+                                    value={data.hora_inicio}
+                                    onChange={(e) =>
+                                        setData('hora_inicio', e.target.value)
+                                    }
+                                    required
+                                />
+                                <InputError message={error('hora_inicio')} />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="hora_fin">Salida de sala</Label>
+                                <Input
+                                    id="hora_fin"
+                                    type="datetime-local"
+                                    value={data.hora_fin}
+                                    onChange={(e) =>
+                                        setData('hora_fin', e.target.value)
+                                    }
+                                />
+                                <InputError message={error('hora_fin')} />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="hora_incision">
+                                    Incisión (opcional)
+                                </Label>
+                                <Input
+                                    id="hora_incision"
+                                    type="datetime-local"
+                                    value={data.hora_incision}
+                                    onChange={(e) =>
+                                        setData('hora_incision', e.target.value)
+                                    }
+                                />
+                                <InputError message={error('hora_incision')} />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="hora_cierre">
+                                    Cierre (opcional)
+                                </Label>
+                                <Input
+                                    id="hora_cierre"
+                                    type="datetime-local"
+                                    value={data.hora_cierre}
+                                    onChange={(e) =>
+                                        setData('hora_cierre', e.target.value)
+                                    }
+                                />
+                                <InputError message={error('hora_cierre')} />
+                            </div>
+                        </div>
+                        {duracion !== null && (
+                            <p className="text-xs text-muted-foreground">
+                                {duracion} min de sala
+                                {minutosNeto !== null && (
+                                    <>
+                                        {' · '}
+                                        {minutosNeto} min de tiempo quirúrgico
+                                        neto{' · '}
+                                        <span className="text-amber-700 dark:text-amber-500">
+                                            {duracion - minutosNeto} min de sala
+                                            sin operar
+                                        </span>
+                                    </>
+                                )}
+                            </p>
+                        )}
+                    </section>
+
+                    <section className="space-y-2 border-t pt-4">
+                        <h3 className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                            Post-quirúrgico
+                        </h3>
+                        <div className="grid gap-2 sm:max-w-sm">
+                            <Label htmlFor="hora_salida_recuperacion">
+                                Salida de recuperación
+                            </Label>
+                            <Input
+                                id="hora_salida_recuperacion"
+                                type="datetime-local"
+                                value={data.hora_salida_recuperacion}
+                                onChange={(e) =>
+                                    setData(
+                                        'hora_salida_recuperacion',
+                                        e.target.value,
+                                    )
+                                }
+                            />
+                            <InputError
+                                message={error('hora_salida_recuperacion')}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                                {minutosPost !== null
+                                    ? `${minutosPost} min de recuperación`
+                                    : 'Si el paciente sigue hospitalizado, déjalo vacío y complétalo al egreso desde el listado.'}
+                            </p>
+                        </div>
+                    </section>
+
+                    {cicloTotal !== null && (
+                        <div className="flex items-baseline justify-between gap-2 border-t pt-3 text-sm">
+                            <span className="font-medium">Ciclo completo</span>
+                            <span className="tabular-nums">
+                                {cicloTotal} min
+                            </span>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
 
@@ -830,6 +1072,14 @@ export function FormularioCirugia({
                                 Su estado es «{data.estado.replace('_', ' ')}»:
                                 solo los procedimientos realizados se costean y
                                 entran a los indicadores.
+                            </p>
+                        )}
+                        {sinEgreso && ! sinHoraFin && (
+                            <p>
+                                No tiene salida de recuperación: mientras el
+                                paciente siga en el hospital el ciclo no ha
+                                terminado, y darlo por realizado sería un dato
+                                que no ocurrió.
                             </p>
                         )}
                         <p>

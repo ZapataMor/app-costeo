@@ -140,6 +140,8 @@ class ValidacionesTest extends TestCase
             'fecha' => '2026-06-10',
             'hora_inicio' => '2026-06-10 08:00:00',
             'hora_fin' => '2026-06-10 09:00:00',
+            // El ciclo debe estar completo para poder marcarla realizada.
+            'hora_salida_recuperacion' => '2026-06-10 11:00:00',
             'tipo' => 'programada',
             'estado' => 'realizada', // sin marcarla realizada no se puede costear
             'diagnostico_cie10' => 'K35.8',

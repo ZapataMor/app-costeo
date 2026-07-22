@@ -10,7 +10,10 @@ export type CirugiaFila = {
     duracion_minutos: number | null;
     costo_total: string | null;
     puede_cerrarse: boolean;
+    /** Marca que falta para avanzar el cierre; null si el ciclo ya cerró. */
+    paso_cierre: 'sala' | 'ciclo' | null;
     hora_inicio: string;
+    hora_fin: string | null;
 };
 
 export type PaginadoCirugias = {
@@ -23,7 +26,15 @@ export type PaginadoCirugias = {
 
 export type CatalogoPaciente = { id: number; nombres: string; apellidos: string; tipo_documento: string; documento: string };
 export type CatalogoSala = { id: number; nombre: string; costo_hora: string };
-export type CatalogoProcedimiento = { id: number; codigo_cups: string; nombre: string; duracion_estimada_minutos: number };
+export type CatalogoProcedimiento = {
+    id: number;
+    codigo_cups: string;
+    nombre: string;
+    /** Tiempo de sala estándar. */
+    duracion_estimada_minutos: number;
+    minutos_prequirurgico: number | null;
+    minutos_recuperacion: number | null;
+};
 export type CatalogoRecurso = { id: number; nombre: string; rol: string; especialidad: string | null; costo_mensual: number };
 
 /** Parámetros TDABC del hospital activo: base de la estimación en vivo. */
@@ -51,8 +62,12 @@ export type DatosCirugia = {
     paciente_id: string;
     sala_operatoria_id: string;
     fecha: string;
+    hora_ingreso_paciente: string;
     hora_inicio: string;
+    hora_incision: string;
+    hora_cierre: string;
     hora_fin: string;
+    hora_salida_recuperacion: string;
     tipo: string;
     estado: string;
     diagnostico_cie10: string;
@@ -66,9 +81,17 @@ export type DatosCirugia = {
 export type CirugiaDetalle = {
     id: number;
     fecha: string | null;
+    hora_ingreso_paciente: string | null;
     hora_inicio: string | null;
+    hora_incision: string | null;
+    hora_cierre: string | null;
     hora_fin: string | null;
+    hora_salida_recuperacion: string | null;
     duracion_minutos: number | null;
+    minutos_prequirurgico: number | null;
+    minutos_quirurgico_neto: number | null;
+    minutos_recuperacion: number | null;
+    ciclo_total_minutos: number | null;
     tipo: string;
     estado: string;
     diagnostico_cie10: string | null;

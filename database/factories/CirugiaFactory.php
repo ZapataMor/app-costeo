@@ -23,14 +23,24 @@ class CirugiaFactory extends Factory
         $inicio = Carbon::instance(fake()->dateTimeBetween('-3 months', '-1 week'))
             ->setTime(fake()->numberBetween(7, 16), fake()->randomElement([0, 30]));
         $duracion = fake()->numberBetween(45, 240);
+        $fin = $inicio->copy()->addMinutes($duracion);
+
+        // Preparación y anestesia consumen los primeros minutos de sala; el
+        // tiempo quirúrgico neto siempre es menor que el tiempo de sala.
+        $preparacionEnSala = fake()->numberBetween(10, 25);
+        $educcion = fake()->numberBetween(5, 15);
 
         return [
             'hospital_id' => Hospital::factory(),
             'paciente_id' => Paciente::factory(),
             'sala_operatoria_id' => SalaOperatoria::factory(),
             'fecha' => $inicio->toDateString(),
+            'hora_ingreso_paciente' => $inicio->copy()->subMinutes(fake()->numberBetween(30, 120)),
             'hora_inicio' => $inicio,
-            'hora_fin' => $inicio->copy()->addMinutes($duracion),
+            'hora_incision' => $inicio->copy()->addMinutes($preparacionEnSala),
+            'hora_cierre' => $fin->copy()->subMinutes($educcion),
+            'hora_fin' => $fin,
+            'hora_salida_recuperacion' => $fin->copy()->addMinutes(fake()->numberBetween(45, 240)),
             'tipo' => fake()->randomElement(TipoCirugia::values()),
             'estado' => EstadoCirugia::Realizada->value,
             'diagnostico_cie10' => fake()->randomElement(['O82', 'K35.8', 'K80.2', 'K40.9', 'N20.0']),

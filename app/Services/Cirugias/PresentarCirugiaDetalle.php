@@ -31,9 +31,18 @@ class PresentarCirugiaDetalle
         return [
             'id' => $cirugia->id,
             'fecha' => $cirugia->fecha->toDateString(),
+            'hora_ingreso_paciente' => $cirugia->hora_ingreso_paciente?->format('Y-m-d H:i'),
             'hora_inicio' => $cirugia->hora_inicio->format('Y-m-d H:i'),
+            'hora_incision' => $cirugia->hora_incision?->format('Y-m-d H:i'),
+            'hora_cierre' => $cirugia->hora_cierre?->format('Y-m-d H:i'),
             'hora_fin' => $cirugia->hora_fin?->format('Y-m-d H:i'),
+            'hora_salida_recuperacion' => $cirugia->hora_salida_recuperacion?->format('Y-m-d H:i'),
+            // Tiempo de sala: sigue siendo la base del costo de quirófano.
             'duracion_minutos' => $cirugia->duracionMinutos(),
+            'minutos_prequirurgico' => $cirugia->minutosPrequirurgico(),
+            'minutos_quirurgico_neto' => $cirugia->minutosQuirurgicoNeto(),
+            'minutos_recuperacion' => $cirugia->minutosRecuperacion(),
+            'ciclo_total_minutos' => $cirugia->cicloTotalMinutos(),
             'tipo' => $cirugia->tipo,
             'estado' => $cirugia->estado,
             'diagnostico_cie10' => $cirugia->diagnostico_cie10,

@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Enums\EstadoCirugia;
 use App\Models\Concerns\Auditable;
 use App\Models\Concerns\BelongsToHospital;
+use Carbon\CarbonInterface;
 use Database\Factories\CirugiaFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -22,8 +24,12 @@ use Illuminate\Support\Carbon;
  * @property int $paciente_id
  * @property int|null $sala_operatoria_id
  * @property Carbon $fecha
+ * @property Carbon|null $hora_ingreso_paciente
  * @property Carbon $hora_inicio
+ * @property Carbon|null $hora_incision
+ * @property Carbon|null $hora_cierre
  * @property Carbon|null $hora_fin
+ * @property Carbon|null $hora_salida_recuperacion
  * @property string $tipo
  * @property string $estado
  * @property string|null $diagnostico_cie10
@@ -44,8 +50,12 @@ class Cirugia extends Model
         'paciente_id',
         'sala_operatoria_id',
         'fecha',
+        'hora_ingreso_paciente',
         'hora_inicio',
+        'hora_incision',
+        'hora_cierre',
         'hora_fin',
+        'hora_salida_recuperacion',
         'tipo',
         'estado',
         'diagnostico_cie10',
@@ -59,8 +69,12 @@ class Cirugia extends Model
     {
         return [
             'fecha' => 'date',
+            'hora_ingreso_paciente' => 'datetime',
             'hora_inicio' => 'datetime',
+            'hora_incision' => 'datetime',
+            'hora_cierre' => 'datetime',
             'hora_fin' => 'datetime',
+            'hora_salida_recuperacion' => 'datetime',
             'minutos_disponibles_mes_registrado' => 'integer',
             'factor_indirecto_registrado' => 'float',
             'costo_hora_sala_registrado' => 'decimal:2',
@@ -75,6 +89,66 @@ class Cirugia extends Model
         }
 
         return (int) $this->hora_inicio->diffInMinutes($this->hora_fin);
+    }
+
+    /** Preparación: del ingreso del paciente a su entrada a sala. */
+    public function minutosPrequirurgico(): ?int
+    {
+        return $this->minutosEntre($this->hora_ingreso_paciente, $this->hora_inicio);
+    }
+
+    /**
+     * Tiempo quirúrgico neto: de incisión a cierre. La diferencia contra
+     * `duracionMinutos()` es sala ocupada sin operar —inducción, posición,
+     * asepsia, educción—, que es donde se esconde la ineficiencia de
+     * quirófano.
+     */
+    public function minutosQuirurgicoNeto(): ?int
+    {
+        return $this->minutosEntre($this->hora_incision, $this->hora_cierre);
+    }
+
+    /** Recuperación: de la salida de sala al egreso de URPA. */
+    public function minutosRecuperacion(): ?int
+    {
+        return $this->minutosEntre($this->hora_fin, $this->hora_salida_recuperacion);
+    }
+
+    /**
+     * Ciclo completo, del ingreso del paciente a su egreso. Nulo mientras
+     * falte cualquiera de los dos extremos: un ciclo a medias no es un dato,
+     * es una estimación disfrazada.
+     */
+    public function cicloTotalMinutos(): ?int
+    {
+        return $this->minutosEntre($this->hora_ingreso_paciente, $this->hora_salida_recuperacion);
+    }
+
+    /**
+     * Qué marca falta para avanzar el cierre: la salida de sala o el egreso
+     * de recuperación. Null cuando el ciclo ya está completo o el registro
+     * se canceló.
+     */
+    public function pasoDeCierre(): ?string
+    {
+        if ($this->estado === EstadoCirugia::Cancelada->value) {
+            return null;
+        }
+
+        if ($this->hora_fin === null) {
+            return 'sala';
+        }
+
+        return $this->estado === EstadoCirugia::Realizada->value ? null : 'ciclo';
+    }
+
+    protected function minutosEntre(?CarbonInterface $desde, ?CarbonInterface $hasta): ?int
+    {
+        if ($desde === null || $hasta === null) {
+            return null;
+        }
+
+        return (int) $desde->diffInMinutes($hasta);
     }
 
     /** @return BelongsTo<Paciente, $this> */

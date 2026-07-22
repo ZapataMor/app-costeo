@@ -66,7 +66,12 @@ class CorregirCirugiaTest extends TestCase
         ];
     }
 
-    public function test_un_procedimiento_abierto_se_cierra_y_se_costea(): void
+    /**
+     * El cierre sigue el ciclo real en dos pasos. Costear al salir de sala
+     * daría por terminado un procedimiento cuyo paciente sigue internado, así
+     * que el costo solo se calcula cuando se registra el egreso.
+     */
+    public function test_un_procedimiento_abierto_se_cierra_en_dos_pasos_y_se_costea(): void
     {
         $cirugia = Cirugia::factory()->create([
             'hospital_id' => $this->hospital->id,
@@ -74,16 +79,29 @@ class CorregirCirugiaTest extends TestCase
             'fecha' => '2026-07-15',
             'hora_inicio' => '2026-07-15 08:00:00',
             'hora_fin' => null,
+            'hora_salida_recuperacion' => null,
         ]);
 
+        // Paso 1: sale de sala. Queda en recuperación, todavía sin costear.
         $this->actingAs($this->admin)
             ->patch("/cirugias/{$cirugia->id}/cerrar", ['hora_fin' => '2026-07-15T09:30'])
             ->assertRedirect();
 
         $cirugia->refresh();
 
-        $this->assertSame(EstadoCirugia::Realizada->value, $cirugia->estado);
+        $this->assertSame(EstadoCirugia::EnRecuperacion->value, $cirugia->estado);
         $this->assertSame(90, $cirugia->duracionMinutos());
+        $this->assertNull($cirugia->costo);
+
+        // Paso 2: egresa de recuperación. Ahora sí se cierra y se costea.
+        $this->actingAs($this->admin)
+            ->patch("/cirugias/{$cirugia->id}/cerrar", ['hora_salida_recuperacion' => '2026-07-15T11:00'])
+            ->assertRedirect();
+
+        $cirugia->refresh();
+
+        $this->assertSame(EstadoCirugia::Realizada->value, $cirugia->estado);
+        $this->assertSame(90, $cirugia->minutosRecuperacion());
         $this->assertNotNull($cirugia->costo);
     }
 
@@ -115,6 +133,7 @@ class CorregirCirugiaTest extends TestCase
         $datos = $this->datosBase([
             'estado' => EstadoCirugia::Realizada->value,
             'hora_fin' => '2026-07-15T09:00',
+            'hora_salida_recuperacion' => '2026-07-15T11:00',
             'consumos' => [['insumo_id' => $insumo->id, 'cantidad' => 2]],
         ]);
 
@@ -143,6 +162,7 @@ class CorregirCirugiaTest extends TestCase
         $datos = $this->datosBase([
             'estado' => EstadoCirugia::Realizada->value,
             'hora_fin' => '2026-07-15T09:00',
+            'hora_salida_recuperacion' => '2026-07-15T11:00',
         ]);
 
         $this->actingAs($this->admin)->post('/cirugias', $datos)->assertRedirect();
@@ -215,8 +235,13 @@ class CorregirCirugiaTest extends TestCase
         ]);
 
         $this->actingAs($this->admin)->get("/cirugias/{$cirugia->id}/edit")->assertOk();
+
+        // El cierre son dos pasos: salir de sala y, al egreso, cerrar el ciclo.
         $this->actingAs($this->admin)
             ->patch("/cirugias/{$cirugia->id}/cerrar", ['hora_fin' => '2026-07-15T09:00'])
+            ->assertRedirect();
+        $this->actingAs($this->admin)
+            ->patch("/cirugias/{$cirugia->id}/cerrar", ['hora_salida_recuperacion' => '2026-07-15T11:00'])
             ->assertRedirect();
 
         $this->assertSame(EstadoCirugia::Realizada->value, $cirugia->refresh()->estado);
@@ -231,6 +256,7 @@ class CorregirCirugiaTest extends TestCase
         $datos = $this->datosBase([
             'estado' => EstadoCirugia::Realizada->value,
             'hora_fin' => '2026-07-15T09:00',
+            'hora_salida_recuperacion' => '2026-07-15T11:00',
         ]);
 
         $this->actingAs($this->admin)->post('/cirugias', $datos)->assertRedirect();

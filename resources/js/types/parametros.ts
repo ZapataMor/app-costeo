@@ -66,7 +66,11 @@ export type ProcedimientoParam = Trazable & {
     nombre: string;
     especialidad: string;
     complejidad: string;
+    /** Tiempo de sala estándar: la fase quirúrgica del ciclo. */
     duracion_estimada_minutos: number;
+    minutos_prequirurgico: number | null;
+    minutos_recuperacion: number | null;
+    minutos_recambio: number | null;
     tarifa_soat: string | null;
 };
 

@@ -14,33 +14,60 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 /**
- * Cierre rápido de un procedimiento abierto: pide solo la hora de
- * finalización, lo marca como realizado y dispara el costeo.
+ * Cierre de un procedimiento abierto, en los dos pasos que tiene el ciclo:
  *
- * Es la salida al flujo real de quirófano —se registra mientras la cirugía
- * ocurre y se completa al terminar—, que antes dejaba el registro varado
- * fuera de los indicadores.
+ *   sala  → se registra la salida de quirófano; queda «en recuperación».
+ *   ciclo → se registra el egreso de recuperación; queda «realizada» y se costea.
+ *
+ * El paso lo decide el servidor a partir de lo que el registro ya tiene; aquí
+ * solo se pide la marca que corresponde. Separarlos evita el dato falso de dar
+ * por terminado el ciclo mientras el paciente sigue en el hospital.
  */
+const PASOS = {
+    sala: {
+        titulo: 'Registrar salida de sala',
+        etiqueta: 'Hora de salida de sala',
+        campo: 'hora_fin',
+        boton: 'Registrar salida',
+        nota: 'Quedará «en recuperación». Se costeará cuando registres el egreso del paciente.',
+    },
+    ciclo: {
+        titulo: 'Cerrar el ciclo',
+        etiqueta: 'Hora de egreso de recuperación',
+        campo: 'hora_salida_recuperacion',
+        boton: 'Cerrar y costear',
+        nota: 'Quedará «realizada» y se costeará automáticamente.',
+    },
+} as const;
+
 export function CerrarCirugiaModal({
     cirugiaId,
+    paso,
     horaInicio,
+    horaFin,
 }: {
     cirugiaId: number;
+    paso: 'sala' | 'ciclo';
     horaInicio: string;
+    horaFin: string | null;
 }) {
     const [abierto, setAbierto] = useState(false);
-    const [horaFin, setHoraFin] = useState('');
+    const [valor, setValor] = useState('');
     const [error, setError] = useState<string>();
     const [guardando, setGuardando] = useState(false);
 
-    const cerrar = () => {
+    const config = PASOS[paso];
+    // La marca nueva no puede ser anterior a la que la precede en el ciclo.
+    const minimo = paso === 'sala' ? horaInicio : (horaFin ?? horaInicio);
+
+    const enviar = () => {
         router.patch(
             `/cirugias/${cirugiaId}/cerrar`,
-            { hora_fin: horaFin },
+            { [config.campo]: valor },
             {
                 preserveScroll: true,
                 onStart: () => setGuardando(true),
-                onError: (errores) => setError(errores.hora_fin),
+                onError: (errores) => setError(errores[config.campo]),
                 onSuccess: () => {
                     setError(undefined);
                     setAbierto(false);
@@ -56,10 +83,11 @@ export function CerrarCirugiaModal({
                 type="button"
                 variant="ghost"
                 size="icon"
-                aria-label="Completar y cerrar"
-                title="Completar y cerrar"
+                aria-label={config.titulo}
+                title={config.titulo}
                 onClick={() => {
-                    setHoraFin('');
+                    setValor('');
+                    setError(undefined);
                     setAbierto(true);
                 }}
             >
@@ -69,24 +97,23 @@ export function CerrarCirugiaModal({
             <Dialog open={abierto} onOpenChange={setAbierto}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Completar y cerrar</DialogTitle>
+                        <DialogTitle>{config.titulo}</DialogTitle>
                         <DialogDescription>
-                            Quedará en estado «realizada» y se costeará
-                            automáticamente. Empezó el{' '}
-                            {horaInicio.replace('T', ' a las ')}.
+                            {paso === 'sala'
+                                ? `Entró a sala el ${horaInicio.replace('T', ' a las ')}.`
+                                : `Salió de sala el ${(horaFin ?? horaInicio).replace('T', ' a las ')}.`}{' '}
+                            {config.nota}
                         </DialogDescription>
                     </DialogHeader>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="hora_fin_cierre">
-                            Hora de finalización
-                        </Label>
+                        <Label htmlFor="marca_cierre">{config.etiqueta}</Label>
                         <Input
-                            id="hora_fin_cierre"
+                            id="marca_cierre"
                             type="datetime-local"
-                            value={horaFin}
-                            min={horaInicio}
-                            onChange={(e) => setHoraFin(e.target.value)}
+                            value={valor}
+                            min={minimo}
+                            onChange={(e) => setValor(e.target.value)}
                         />
                         <InputError message={error} />
                     </div>
@@ -94,10 +121,10 @@ export function CerrarCirugiaModal({
                     <div className="flex items-center gap-3">
                         <Button
                             type="button"
-                            onClick={cerrar}
-                            disabled={guardando || horaFin === ''}
+                            onClick={enviar}
+                            disabled={guardando || valor === ''}
                         >
-                            Cerrar y costear
+                            {config.boton}
                         </Button>
                         <Button
                             type="button"

@@ -10,6 +10,7 @@ use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 use Throwable;
 
 class StoreCirugiaRequest extends FormRequest
@@ -34,12 +35,23 @@ class StoreCirugiaRequest extends FormRequest
                 Rule::exists('salas_operatorias', 'id')->where('hospital_id', $hospitalId),
             ],
             'fecha' => ['required', 'date'],
+            // Fase pre-quirúrgica: el paciente ya está en el hospital pero la
+            // sala todavía no se ocupa.
+            'hora_ingreso_paciente' => ['nullable', 'date'],
             // La hora de inicio debe caer en el mismo día de la fecha: los
             // indicadores mensuales filtran por fecha pero suman minutos de
             // las horas, y un desfase distorsionaría la utilización de salas.
             'hora_inicio' => ['required', 'date', $this->reglaHoraInicioCoincideConFecha()],
+            // Incisión y cierre acotan el tiempo quirúrgico neto dentro del
+            // tiempo de sala; ambas opcionales, pero si viene una debe venir
+            // la otra (ver validaciones adicionales más abajo).
+            'hora_incision' => ['nullable', 'date'],
+            'hora_cierre' => ['nullable', 'date'],
             // Consistencia temporal: la cirugía debe terminar después de empezar
             'hora_fin' => ['nullable', 'date', 'after:hora_inicio'],
+            // Fase post-quirúrgica: egreso de recuperación. Es lo que cierra
+            // el ciclo y habilita el estado «realizada».
+            'hora_salida_recuperacion' => ['nullable', 'date'],
             'tipo' => ['required', Rule::in(TipoCirugia::values())],
             'estado' => ['sometimes', Rule::in(EstadoCirugia::values())],
             // CIE-10: letra + 2 dígitos + subcategoría opcional (p. ej. O82, K35.8)
@@ -94,6 +106,115 @@ class StoreCirugiaRequest extends FormRequest
             'equipo.*.hora_fin.after' => 'La salida debe ser posterior a la entrada.',
             'equipo.*.minutos_participacion.required' => 'Indique los minutos, o las horas de entrada y salida.',
         ];
+    }
+
+    /**
+     * Las marcas de fase forman una sola línea de tiempo, y el estado
+     * «realizada» afirma que el ciclo terminó. Ambas cosas se validan aquí y
+     * no con reglas `after:` sueltas, porque casi todas las marcas son
+     * opcionales: comparar contra un campo ausente daría falsos errores.
+     */
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            $this->validarSecuenciaDeFases($validator);
+            $this->validarCicloCompletoParaRealizada($validator);
+        });
+    }
+
+    protected function validarSecuenciaDeFases(Validator $validator): void
+    {
+        // Incisión y cierre son un par: una sola de las dos no acota nada.
+        $incision = $this->fecha('hora_incision');
+        $cierre = $this->fecha('hora_cierre');
+
+        if ($incision !== null && $cierre === null) {
+            $validator->errors()->add('hora_cierre', 'Indique también la hora de cierre: sin ella no hay tiempo quirúrgico que medir.');
+        }
+
+        if ($cierre !== null && $incision === null) {
+            $validator->errors()->add('hora_incision', 'Indique también la hora de incisión: sin ella no hay tiempo quirúrgico que medir.');
+        }
+
+        $secuencia = [
+            'hora_ingreso_paciente' => 'el ingreso del paciente',
+            'hora_inicio' => 'la entrada a sala',
+            'hora_incision' => 'la incisión',
+            'hora_cierre' => 'el cierre',
+            'hora_fin' => 'la salida de sala',
+            'hora_salida_recuperacion' => 'la salida de recuperación',
+        ];
+
+        $previoEtiqueta = null;
+        $previoValor = null;
+
+        foreach ($secuencia as $campo => $etiqueta) {
+            $valor = $this->fecha($campo);
+
+            if ($valor === null) {
+                continue;
+            }
+
+            if ($previoValor !== null && $valor->lessThan($previoValor)) {
+                $validator->errors()->add(
+                    $campo,
+                    ucfirst($etiqueta)." no puede ser anterior a {$previoEtiqueta} (".
+                        $previoValor->format('d/m/Y H:i').').',
+                );
+            }
+
+            // Avanza solo con marcas válidas para que un dato ya reportado no
+            // encadene un segundo error sobre la marca siguiente.
+            if ($previoValor === null || ! $valor->lessThan($previoValor)) {
+                $previoEtiqueta = $etiqueta;
+                $previoValor = $valor;
+            }
+        }
+    }
+
+    /**
+     * Marcar «realizada» es afirmar que el paciente ya egresó. Sin la salida
+     * de recuperación esa afirmación sería un dato inventado, y el costo del
+     * ciclo quedaría incompleto sin que nadie lo note. Para el intermedio
+     * existe «en recuperación».
+     */
+    protected function validarCicloCompletoParaRealizada(Validator $validator): void
+    {
+        $estado = $this->input('estado');
+
+        if ($estado === EstadoCirugia::Realizada->value) {
+            if ($this->fecha('hora_fin') === null) {
+                $validator->errors()->add('hora_fin', 'Una cirugía realizada necesita hora de salida de sala.');
+            }
+
+            if ($this->fecha('hora_salida_recuperacion') === null) {
+                $validator->errors()->add(
+                    'hora_salida_recuperacion',
+                    'Una cirugía realizada necesita la salida de recuperación. Si el paciente sigue en el hospital, '.
+                        'use el estado «en recuperación» y complete el dato al egreso.',
+                );
+            }
+        }
+
+        if ($estado === EstadoCirugia::EnRecuperacion->value && $this->fecha('hora_fin') === null) {
+            $validator->errors()->add('hora_fin', 'Para pasar a recuperación, el paciente ya salió de sala: indique la hora.');
+        }
+    }
+
+    /** Lee una marca de tiempo del request; null si falta o no es fecha. */
+    protected function fecha(string $campo): ?Carbon
+    {
+        $valor = $this->input($campo);
+
+        if (! is_string($valor) || $valor === '') {
+            return null;
+        }
+
+        try {
+            return Carbon::parse($valor);
+        } catch (Throwable) {
+            return null;
+        }
     }
 
     /**

@@ -89,9 +89,11 @@ class CirugiaController extends Controller
                 'costo_total' => $cirugia->costo?->costo_total,
                 // Un procedimiento abierto se cierra desde el listado sin
                 // volver a pasar por el formulario completo.
-                'puede_cerrarse' => $cirugia->hora_fin === null
-                    || $cirugia->estado !== EstadoCirugia::Realizada->value,
+                'puede_cerrarse' => $cirugia->pasoDeCierre() !== null,
+                // Qué marca pide el modal: la salida de sala o el egreso.
+                'paso_cierre' => $cirugia->pasoDeCierre(),
                 'hora_inicio' => $cirugia->hora_inicio->format('Y-m-d\TH:i'),
+                'hora_fin' => $cirugia->hora_fin?->format('Y-m-d\TH:i'),
             ]);
 
         return Inertia::render('cirugias/index', [
@@ -177,8 +179,12 @@ class CirugiaController extends Controller
                 'sala_operatoria_id' => (string) ($cirugia->sala_operatoria_id ?? ''),
                 'fecha' => $cirugia->fecha->toDateString(),
                 // El input datetime-local no acepta segundos ni zona horaria.
+                'hora_ingreso_paciente' => $cirugia->hora_ingreso_paciente?->format('Y-m-d\TH:i') ?? '',
                 'hora_inicio' => $cirugia->hora_inicio->format('Y-m-d\TH:i'),
+                'hora_incision' => $cirugia->hora_incision?->format('Y-m-d\TH:i') ?? '',
+                'hora_cierre' => $cirugia->hora_cierre?->format('Y-m-d\TH:i') ?? '',
                 'hora_fin' => $cirugia->hora_fin?->format('Y-m-d\TH:i') ?? '',
+                'hora_salida_recuperacion' => $cirugia->hora_salida_recuperacion?->format('Y-m-d\TH:i') ?? '',
                 'tipo' => $cirugia->tipo,
                 'estado' => $cirugia->estado,
                 'diagnostico_cie10' => $cirugia->diagnostico_cie10 ?? '',
@@ -231,17 +237,36 @@ class CirugiaController extends Controller
     }
 
     /**
-     * Cierre rápido desde el listado: registra la hora de finalización, deja
-     * el procedimiento en «realizada» y lo costea. Es la salida al caso más
-     * común —capturar en caliente y completar al terminar— sin volver a
-     * abrir el formulario completo.
+     * Cierre desde el listado, en los dos pasos del ciclo real:
+     *
+     *   1. sala  → sale de quirófano y queda «en recuperación». Todavía no se
+     *              costea: el ciclo no ha terminado.
+     *   2. ciclo → egresa de recuperación, queda «realizada» y se costea.
+     *
+     * Partirlo evita el dato falso de dar por terminado un procedimiento
+     * mientras el paciente sigue en el hospital, sin dejar el registro varado:
+     * «en recuperación» es visible y accionable en la bandeja de pendientes.
      */
     public function cerrar(CerrarCirugiaRequest $request, Cirugia $cirugia, TdabcCostingService $motor): RedirectResponse
     {
         Gate::authorize('corregir-cirugia', $cirugia);
 
+        if ($request->paso() === 'sala') {
+            $cirugia->update([
+                'hora_fin' => $request->date('hora_fin'),
+                'estado' => EstadoCirugia::EnRecuperacion->value,
+            ]);
+
+            Inertia::flash('toast', [
+                'type' => 'success',
+                'message' => 'Salida de sala registrada. Queda en recuperación: se costeará al registrar el egreso.',
+            ]);
+
+            return back();
+        }
+
         $cirugia->update([
-            'hora_fin' => $request->date('hora_fin'),
+            'hora_salida_recuperacion' => $request->date('hora_salida_recuperacion'),
             'estado' => EstadoCirugia::Realizada->value,
         ]);
 
@@ -249,7 +274,7 @@ class CirugiaController extends Controller
 
         Inertia::flash('toast', [
             'type' => 'success',
-            'message' => 'Procedimiento cerrado y costeado.',
+            'message' => 'Ciclo completo: procedimiento cerrado y costeado.',
         ]);
 
         return back();
@@ -319,9 +344,10 @@ class CirugiaController extends Controller
                 'procedimiento_principal' => $cirugia->procedimientoPrincipal()?->only(['codigo_cups', 'nombre']),
                 'estado' => $cirugia->estado,
                 'duracion_minutos' => $cirugia->duracionMinutos(),
-                'puede_cerrarse' => $cirugia->hora_fin === null
-                    || $cirugia->estado !== EstadoCirugia::Realizada->value,
+                'puede_cerrarse' => $cirugia->pasoDeCierre() !== null,
+                'paso_cierre' => $cirugia->pasoDeCierre(),
                 'hora_inicio' => $cirugia->hora_inicio->format('Y-m-d\TH:i'),
+                'hora_fin' => $cirugia->hora_fin?->format('Y-m-d\TH:i'),
             ])
             ->all();
     }
@@ -372,7 +398,12 @@ class CirugiaController extends Controller
                 ]),
             'salas' => SalaOperatoria::where('activa', true)->orderBy('nombre')->get(['id', 'nombre', 'costo_hora']),
             'procedimientos' => ProcedimientoQuirurgico::orderBy('nombre')
-                ->get(['id', 'codigo_cups', 'nombre', 'duracion_estimada_minutos']),
+                // Los tiempos estándar del protocolo prellenan las marcas de
+                // fase en el formulario: el digitador corrige la excepción.
+                ->get([
+                    'id', 'codigo_cups', 'nombre', 'duracion_estimada_minutos',
+                    'minutos_prequirurgico', 'minutos_recuperacion',
+                ]),
             // costo_mensual permite estimar el costo TDABC en vivo dentro del
             // formulario, con la misma fórmula del motor de costeo.
             'recursos' => RecursoHumano::where('activo', true)->orderBy('nombre')

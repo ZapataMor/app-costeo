@@ -19,7 +19,10 @@ type RegistroPropio = {
     estado: string;
     duracion_minutos: number | null;
     puede_cerrarse: boolean;
+    /** Marca que falta para avanzar el cierre; null si el ciclo ya cerró. */
+    paso_cierre: 'sala' | 'ciclo' | null;
     hora_inicio: string;
+    hora_fin: string | null;
 };
 
 /**
@@ -142,8 +145,15 @@ export default function CirugiasInicio({ mios }: { mios: RegistroPropio[] }) {
                                                             cirugiaId={
                                                                 registro.id
                                                             }
+                                                            paso={
+                                                                registro.paso_cierre ??
+                                                                'sala'
+                                                            }
                                                             horaInicio={
                                                                 registro.hora_inicio
+                                                            }
+                                                            horaFin={
+                                                                registro.hora_fin
                                                             }
                                                         />
                                                     )}

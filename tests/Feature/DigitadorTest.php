@@ -106,6 +106,12 @@ class DigitadorTest extends TestCase
         $this->actingAs($this->digitador)
             ->patch("/cirugias/{$suyo->id}/cerrar", ['hora_fin' => '2026-07-15T09:30'])
             ->assertRedirect();
+        $this->assertSame('en_recuperacion', $suyo->refresh()->estado);
+
+        // El digitador también cierra el ciclo cuando el paciente egresa.
+        $this->actingAs($this->digitador)
+            ->patch("/cirugias/{$suyo->id}/cerrar", ['hora_salida_recuperacion' => '2026-07-15T11:00'])
+            ->assertRedirect();
         $this->assertSame('realizada', $suyo->refresh()->estado);
 
         // Lo capturado por otra persona queda fuera de su alcance.
@@ -205,6 +211,7 @@ class DigitadorTest extends TestCase
             'fecha' => '2026-07-01',
             'hora_inicio' => '2026-07-01 08:00:00',
             'hora_fin' => '2026-07-01 10:00:00',
+            'hora_salida_recuperacion' => '2026-07-01 12:00:00',
             'tipo' => 'programada',
             'estado' => 'realizada',
             'procedimientos' => [['id' => $procedimiento->id, 'es_principal' => true]],

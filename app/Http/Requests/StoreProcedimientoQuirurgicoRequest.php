@@ -32,7 +32,13 @@ class StoreProcedimientoQuirurgicoRequest extends FormRequest
             'nombre' => ['required', 'string', 'max:255'],
             'especialidad' => ['required', 'string', 'max:120'],
             'complejidad' => ['required', Rule::in(NivelComplejidad::values())],
+            // Tiempo de sala: el único obligatorio, porque es el que se costea.
             'duracion_estimada_minutos' => ['required', 'integer', 'min:1', 'max:1440'],
+            // Fases restantes del ciclo: opcionales mientras el hospital las
+            // levanta. Admiten 0 (un ambulatorio puede no tener recambio).
+            'minutos_prequirurgico' => ['nullable', 'integer', 'min:0', 'max:1440'],
+            'minutos_recuperacion' => ['nullable', 'integer', 'min:0', 'max:10080'],
+            'minutos_recambio' => ['nullable', 'integer', 'min:0', 'max:1440'],
             'tarifa_soat' => ['nullable', 'numeric', 'min:0'],
         ];
     }
