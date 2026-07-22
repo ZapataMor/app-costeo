@@ -11,12 +11,16 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\CerrarCirugiaRequest;
 use App\Http\Requests\StoreCirugiaRequest;
 use App\Http\Requests\UpdateCirugiaRequest;
+use App\Models\AlertaSobrecosto;
 use App\Models\Cirugia;
 use App\Models\CostoCirugia;
 use App\Models\EquipoMedico;
 use App\Models\Hospital;
 use App\Models\Insumo;
 use App\Models\Paciente;
+use App\Models\PlantillaEquipo;
+use App\Models\PlantillaInsumo;
+use App\Models\PlantillaPersonal;
 use App\Models\ProcedimientoQuirurgico;
 use App\Models\RecursoHumano;
 use App\Models\SalaOperatoria;
@@ -275,10 +279,10 @@ class CirugiaController extends Controller
 
         $this->sincronizarCosto($cirugia, $motor);
 
-        Inertia::flash('toast', [
-            'type' => 'success',
-            'message' => 'Ciclo completo: procedimiento cerrado y costeado.',
-        ]);
+        Inertia::flash('toast', $this->toastCosteo(
+            $cirugia,
+            'Ciclo completo: procedimiento cerrado y costeado.',
+        ));
 
         return back();
     }
@@ -312,7 +316,7 @@ class CirugiaController extends Controller
 
         $motor->calcular($cirugia);
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => 'Costo TDABC calculado.']);
+        Inertia::flash('toast', $this->toastCosteo($cirugia, 'Costo TDABC calculado.'));
 
         // Vuelve a la página que pidió el cálculo (detalle de registro o
         // detalle del módulo Costeo); sin referencia, al detalle de registro.
@@ -368,6 +372,12 @@ class CirugiaController extends Controller
                 ->where('cirugia_id', $cirugia->id)
                 ->delete();
 
+            // Sin costo no hay sobrecosto: dejar viva la alerta mandaría a
+            // revisar un exceso que ya no existe en ningún indicador.
+            AlertaSobrecosto::withoutGlobalScope(HospitalScope::class)
+                ->where('cirugia_id', $cirugia->id)
+                ->delete();
+
             return;
         }
 
@@ -376,6 +386,39 @@ class CirugiaController extends Controller
         } catch (\Throwable $e) {
             report($e);
         }
+    }
+
+    /**
+     * Avisa del sobrecosto en el momento en que se detecta.
+     *
+     * La bandeja de alertas espera a que alguien entre a mirarla; este toast
+     * es lo que hace que la revisión ocurra cuando el equipo todavía recuerda
+     * qué pasó en ese quirófano, que es la única ventana en que la causa se
+     * puede averiguar de verdad. Por eso desplaza al mensaje de éxito en vez
+     * de sumarse: enterrar la alerta bajo un «listo» sería no avisar.
+     *
+     * @return array{type: string, message: string}
+     */
+    protected function toastCosteo(Cirugia $cirugia, string $exito): array
+    {
+        $alerta = AlertaSobrecosto::withoutGlobalScope(HospitalScope::class)
+            ->where('cirugia_id', $cirugia->id)
+            ->pendientes()
+            ->first();
+
+        if ($alerta === null) {
+            return ['type' => 'success', 'message' => $exito];
+        }
+
+        return [
+            'type' => 'warning',
+            'message' => sprintf(
+                'Sobrecosto detectado: %s%% sobre lo habitual de este procedimiento, '.
+                'principalmente en %s. Queda pendiente de revisión en Costeo → Alertas.',
+                number_format((float) $alerta->exceso_pct * 100, 0, ',', '.'),
+                mb_strtolower($alerta->componente_dominante->etiqueta()),
+            ),
+        ];
     }
 
     /**
@@ -403,9 +446,44 @@ class CirugiaController extends Controller
             'procedimientos' => ProcedimientoQuirurgico::orderBy('nombre')
                 // Los tiempos estándar del protocolo prellenan las marcas de
                 // fase en el formulario: el digitador corrige la excepción.
+                ->with(ProcedimientoQuirurgico::RELACIONES_PLANTILLA)
                 ->get([
                     'id', 'codigo_cups', 'nombre', 'duracion_estimada_minutos',
                     'minutos_prequirurgico', 'minutos_recuperacion',
+                ])
+                ->map(fn (ProcedimientoQuirurgico $procedimiento): array => [
+                    ...$procedimiento->only([
+                        'id', 'codigo_cups', 'nombre', 'duracion_estimada_minutos',
+                        'minutos_prequirurgico', 'minutos_recuperacion',
+                    ]),
+                    // La plantilla del protocolo: con ella nace prellenado el
+                    // registro, y contra ella se compara lo que de verdad se
+                    // usó. Las líneas se envían como texto porque así entran
+                    // directo a los campos del formulario.
+                    'plantilla' => [
+                        'insumos' => $procedimiento->plantillaInsumos
+                            ->map(fn (PlantillaInsumo $fila): array => [
+                                'insumo_id' => (string) $fila->insumo_id,
+                                'fase' => $fila->fase->value,
+                                'cantidad' => rtrim(rtrim((string) $fila->cantidad, '0'), '.'),
+                                'opcional' => $fila->opcional,
+                            ])->values(),
+                        'personal' => $procedimiento->plantillaPersonal
+                            ->map(fn (PlantillaPersonal $fila): array => [
+                                'rol' => $fila->rol,
+                                'fase' => $fila->fase->value,
+                                'cantidad' => $fila->cantidad,
+                                'recurso_humano_id' => (string) ($fila->recurso_humano_id ?? ''),
+                                'minutos' => (string) ($fila->minutos ?? ''),
+                                'opcional' => $fila->opcional,
+                            ])->values(),
+                        'equipos' => $procedimiento->plantillaEquipos
+                            ->map(fn (PlantillaEquipo $fila): array => [
+                                'equipo_medico_id' => (string) $fila->equipo_medico_id,
+                                'minutos_uso' => (string) ($fila->minutos_uso ?? ''),
+                                'opcional' => $fila->opcional,
+                            ])->values(),
+                    ],
                 ]),
             // costo_mensual permite estimar el costo TDABC en vivo dentro del
             // formulario, con la misma fórmula del motor de costeo.

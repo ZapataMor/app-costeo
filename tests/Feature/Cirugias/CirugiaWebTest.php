@@ -3,9 +3,13 @@
 namespace Tests\Feature\Cirugias;
 
 use App\Models\Cirugia;
+use App\Models\EquipoMedico;
 use App\Models\Hospital;
 use App\Models\Insumo;
 use App\Models\Paciente;
+use App\Models\PlantillaEquipo;
+use App\Models\PlantillaInsumo;
+use App\Models\PlantillaPersonal;
 use App\Models\ProcedimientoQuirurgico;
 use App\Models\RecursoHumano;
 use App\Models\SalaOperatoria;
@@ -62,6 +66,49 @@ class CirugiaWebTest extends TestCase
                 ->has('pacientes', 1)
                 ->has('salas', 1)
                 ->has('insumos', 1));
+    }
+
+    /**
+     * El formulario necesita la plantilla del protocolo para nacer prellenado.
+     * Si no viajara con el catálogo, el registro volvería a empezar en blanco
+     * y todo lo preorganizado no serviría de nada.
+     */
+    public function test_el_formulario_recibe_la_plantilla_de_cada_procedimiento(): void
+    {
+        HospitalContext::set($this->hospitalA->id);
+
+        $procedimiento = ProcedimientoQuirurgico::factory()->create(['hospital_id' => $this->hospitalA->id]);
+        $insumo = Insumo::factory()->create(['hospital_id' => $this->hospitalA->id, 'activo' => true]);
+        $equipo = EquipoMedico::factory()->create(['hospital_id' => $this->hospitalA->id, 'activo' => true]);
+
+        PlantillaInsumo::create([
+            'procedimiento_quirurgico_id' => $procedimiento->id,
+            'insumo_id' => $insumo->id,
+            'fase' => 'pre',
+            'cantidad' => 2,
+        ]);
+        PlantillaPersonal::create([
+            'procedimiento_quirurgico_id' => $procedimiento->id,
+            'rol' => 'cirujano',
+            'fase' => 'quirurgica',
+            'cantidad' => 2,
+        ]);
+        PlantillaEquipo::create([
+            'procedimiento_quirurgico_id' => $procedimiento->id,
+            'equipo_medico_id' => $equipo->id,
+        ]);
+
+        $this->actingAs($this->adminA)
+            ->get('/cirugias/create')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('cirugias/create')
+                ->has('procedimientos.0.plantilla.insumos', 1)
+                ->where('procedimientos.0.plantilla.insumos.0.fase', 'pre')
+                ->where('procedimientos.0.plantilla.insumos.0.cantidad', '2')
+                ->where('procedimientos.0.plantilla.personal.0.cantidad', 2)
+                // Sin minutos: el equipo se usa todo el tiempo de sala.
+                ->where('procedimientos.0.plantilla.equipos.0.minutos_uso', ''));
     }
 
     public function test_registra_una_cirugia_completa_y_calcula_su_costo_desde_parametros_capa_1(): void

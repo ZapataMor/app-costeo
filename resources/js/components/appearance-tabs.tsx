@@ -28,7 +28,15 @@ export default function AppearanceToggleTab({
             {tabs.map(({ value, icon: Icon, label }) => (
                 <button
                     key={value}
-                    onClick={() => updateAppearance(value)}
+                    onClick={(event) => {
+                        const caja =
+                            event.currentTarget.getBoundingClientRect();
+
+                        updateAppearance(value, {
+                            x: caja.left + caja.width / 2,
+                            y: caja.top + caja.height / 2,
+                        });
+                    }}
                     className={cn(
                         'flex items-center rounded-md px-3.5 py-1.5 transition-colors',
                         appearance === value

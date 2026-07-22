@@ -72,6 +72,10 @@ export type ProcedimientoParam = Trazable & {
     minutos_recuperacion: number | null;
     minutos_recambio: number | null;
     tarifa_soat: string | null;
+    /** Líneas de la plantilla del protocolo; solo vienen en el listado. */
+    plantilla_insumos_count?: number;
+    plantilla_personal_count?: number;
+    plantilla_equipos_count?: number;
 };
 
 export type HospitalConfig = {

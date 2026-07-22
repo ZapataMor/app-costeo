@@ -300,6 +300,6 @@ class DigitadorTest extends TestCase
     public function test_la_pagina_de_inicio_redirige_al_digitador_a_su_modulo(): void
     {
         $this->actingAs($this->digitador)->get('/')->assertRedirect('/cirugias');
-        $this->actingAs($this->admin)->get('/')->assertRedirect('/dashboard');
+        $this->actingAs($this->admin)->get('/')->assertRedirect('/parametros');
     }
 }

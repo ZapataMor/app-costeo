@@ -1,4 +1,4 @@
-import { Head } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import ProcedimientoQuirurgicoController from '@/actions/App/Http/Controllers/Parametros/ProcedimientoQuirurgicoController';
 import Heading from '@/components/heading';
 import { ProcedimientoForm } from '@/components/parametros/forms/procedimiento-form';
@@ -21,6 +21,16 @@ export default function ProcedimientosEdit({
                     title="Editar procedimiento quirúrgico"
                     description={procedimiento.nombre}
                 />
+                <p className="text-sm text-muted-foreground">
+                    ¿Buscas lo que este procedimiento usa siempre?{' '}
+                    <Link
+                        href={`/parametros/procedimientos/${procedimiento.id}/plantilla`}
+                        className="underline underline-offset-4"
+                    >
+                        Editar su plantilla
+                    </Link>
+                    .
+                </p>
                 <ProcedimientoForm
                     action={ProcedimientoQuirurgicoController.update.form(
                         procedimiento.id,

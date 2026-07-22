@@ -3,10 +3,13 @@ import { useSyncExternalStore } from 'react';
 export type ResolvedAppearance = 'light' | 'dark';
 export type Appearance = ResolvedAppearance | 'system';
 
+/** Punto de la pantalla desde el que se expande la onda al cambiar de tema. */
+export type OrigenOnda = { x: number; y: number };
+
 export type UseAppearanceReturn = {
     readonly appearance: Appearance;
     readonly resolvedAppearance: ResolvedAppearance;
-    readonly updateAppearance: (mode: Appearance) => void;
+    readonly updateAppearance: (mode: Appearance, origen?: OrigenOnda) => void;
 };
 
 const listeners = new Set<() => void>();
@@ -50,6 +53,24 @@ const applyTheme = (appearance: Appearance): void => {
 
     document.documentElement.classList.toggle('dark', isDark);
     document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+};
+
+/**
+ * La onda solo se anima si el navegador soporta View Transitions y el usuario
+ * no pidio reducir el movimiento; en cualquier otro caso el cambio es directo.
+ */
+const soportaOnda = (): boolean => {
+    if (typeof document === 'undefined' || !document.startViewTransition) {
+        return false;
+    }
+
+    // Con la pestana oculta el navegador aborta la transicion; no vale la pena
+    // animar algo que nadie esta viendo.
+    if (document.visibilityState !== 'visible') {
+        return false;
+    }
+
+    return !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 };
 
 const subscribe = (callback: () => void) => {
@@ -98,17 +119,48 @@ export function useAppearance(): UseAppearanceReturn {
         ? 'dark'
         : 'light';
 
-    const updateAppearance = (mode: Appearance): void => {
-        currentAppearance = mode;
+    const updateAppearance = (mode: Appearance, origen?: OrigenOnda): void => {
+        const aplicar = (): void => {
+            currentAppearance = mode;
 
-        // Store in localStorage for client-side persistence...
-        localStorage.setItem('appearance', mode);
+            // Store in localStorage for client-side persistence...
+            localStorage.setItem('appearance', mode);
 
-        // Store in cookie for SSR...
-        setCookie('appearance', mode);
+            // Store in cookie for SSR...
+            setCookie('appearance', mode);
 
-        applyTheme(mode);
-        notify();
+            applyTheme(mode);
+            notify();
+        };
+
+        if (!origen || !soportaOnda()) {
+            aplicar();
+
+            return;
+        }
+
+        // El radio necesario para que el circulo cubra la esquina mas lejana.
+        const radio = Math.hypot(
+            Math.max(origen.x, window.innerWidth - origen.x),
+            Math.max(origen.y, window.innerHeight - origen.y),
+        );
+
+        const raiz = document.documentElement;
+        raiz.style.setProperty('--onda-x', `${origen.x}px`);
+        raiz.style.setProperty('--onda-y', `${origen.y}px`);
+        raiz.style.setProperty('--onda-r', `${radio}px`);
+        raiz.dataset.ondaTema = 'activa';
+
+        const transicion = document.startViewTransition(aplicar);
+
+        // Si la transicion se aborta (pestana oculta, otra transicion en curso)
+        // el tema ya se aplico igual: solo hay que limpiar la marca sin dejar
+        // una promesa rechazada suelta.
+        transicion.finished
+            .catch(() => undefined)
+            .finally(() => {
+                delete raiz.dataset.ondaTema;
+            });
     };
 
     return { appearance, resolvedAppearance, updateAppearance } as const;

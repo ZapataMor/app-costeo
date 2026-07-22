@@ -2,7 +2,9 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\AlertaSobrecosto;
 use App\Models\Hospital;
+use App\Models\Scopes\HospitalScope;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -47,6 +49,11 @@ class HandleInertiaRequests extends Middleware
                 'activo' => fn (): ?array => $this->hospitalActivo($request),
                 'disponibles' => fn (): array => $this->hospitalesDisponibles($request),
             ],
+            // Contador de sobrecostos sin revisar. Va en las props compartidas
+            // —y no en la vista de alertas— justamente para que se vea desde
+            // cualquier pantalla: una alerta que solo existe dentro de su
+            // propia página nadie la descubre.
+            'alertasPendientes' => fn (): int => $this->alertasPendientes($request),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }
@@ -59,6 +66,43 @@ class HandleInertiaRequests extends Middleware
      */
     protected function hospitalActivo(Request $request): ?array
     {
+        $hospitalId = $this->hospitalActivoId($request);
+
+        if ($hospitalId === null) {
+            return null;
+        }
+
+        return Hospital::query()->find($hospitalId)?->only(['id', 'nombre']);
+    }
+
+    /**
+     * Sobrecostos detectados y todavía sin causa en el hospital activo.
+     *
+     * El digitador queda fuera: no tiene acceso al módulo de costeo, y un
+     * contador que no puede abrir solo sería ansiedad.
+     */
+    protected function alertasPendientes(Request $request): int
+    {
+        /** @var User|null $user */
+        $user = $request->user();
+        $hospitalId = $this->hospitalActivoId($request);
+
+        if ($user === null || $user->isDigitador() || $hospitalId === null) {
+            return 0;
+        }
+
+        // Filtro explícito en vez del scope global: las props compartidas se
+        // resuelven al renderizar la respuesta y no todas las rutas pasan por
+        // `hospital.contexto`, así que aquí el contexto puede no estar puesto.
+        return AlertaSobrecosto::withoutGlobalScope(HospitalScope::class)
+            ->where('hospital_id', $hospitalId)
+            ->pendientes()
+            ->count();
+    }
+
+    /** Id del hospital activo, con la misma regla por rol que el switcher. */
+    protected function hospitalActivoId(Request $request): ?int
+    {
         /** @var User|null $user */
         $user = $request->user();
 
@@ -70,11 +114,7 @@ class HandleInertiaRequests extends Middleware
             ? $request->session()->get(SetHospitalContext::SESSION_KEY)
             : $user->hospital_id;
 
-        if ($hospitalId === null) {
-            return null;
-        }
-
-        return Hospital::query()->find($hospitalId)?->only(['id', 'nombre']);
+        return $hospitalId !== null ? (int) $hospitalId : null;
     }
 
     /**

@@ -267,3 +267,76 @@ export type PaginadoHistorialPersona = {
     from: number | null;
     to: number | null;
 };
+
+// ── Alertas de sobrecosto (Costeo → Alertas) ────────────────────────────
+
+/** Una línea del desglose: cuánto costó ese componente frente a lo habitual. */
+export type AtribucionComponente = {
+    componente: string;
+    etiqueta: string;
+    costo: number;
+    esperado: number;
+    exceso: number;
+    /** Fracción del exceso total que aporta este componente (0–1). */
+    aporte_pct: number;
+};
+
+export type AlertaSobrecosto = {
+    id: number;
+    cirugia_id: number;
+    fecha: string | null;
+    procedimiento: {
+        id: number | null;
+        codigo_cups: string | null;
+        nombre: string | null;
+    };
+    costo_total: number;
+    costo_esperado: number;
+    exceso: number;
+    exceso_pct: number;
+    z: number | null;
+    criterios: string[];
+    n_baseline: number;
+    atribucion: AtribucionComponente[];
+    componente_dominante: string;
+    componente_dominante_etiqueta: string;
+    causas_sugeridas: string[];
+    estado: 'pendiente' | 'revisada' | 'descartada';
+    estado_etiqueta: string;
+    causa: string | null;
+    causa_etiqueta: string | null;
+    causa_evitable: boolean | null;
+    causa_detalle: string | null;
+    revisor: string | null;
+    revisado_en: string | null;
+    detectado_en: string;
+};
+
+export type CausaCatalogo = {
+    valor: string;
+    etiqueta: string;
+    /** Si el sobrecosto era gestionable: separa la pérdida recuperable. */
+    evitable: boolean;
+};
+
+export type ResumenAlertas = {
+    pendientes: number;
+    revisadas: number;
+    exceso_total: number;
+    exceso_evitable: number;
+    por_causa: {
+        causa: string;
+        etiqueta: string;
+        evitable: boolean;
+        n: number;
+        exceso: number;
+    }[];
+};
+
+export type PaginadoAlertas = {
+    data: AlertaSobrecosto[];
+    links: LinkPaginacion[];
+    total: number;
+    from: number | null;
+    to: number | null;
+};

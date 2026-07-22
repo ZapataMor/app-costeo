@@ -11,6 +11,9 @@ use App\Models\Hospital;
 use App\Models\Insumo;
 use App\Models\MiembroEquipoQuirurgico;
 use App\Models\Paciente;
+use App\Models\PlantillaEquipo;
+use App\Models\PlantillaInsumo;
+use App\Models\PlantillaPersonal;
 use App\Models\ProcedimientoQuirurgico;
 use App\Models\RecursoHumano;
 use App\Models\ResultadoClinico;
@@ -318,19 +321,25 @@ class DemoSeeder extends Seeder
         ]);
 
         // ── Cirugías aleatorias para poblar los dashboards ───────────────
-        $plantillas = [
+        $perfiles = [
             ['procedimiento' => $cesarea, 'duracion' => 120, 'equipos' => [], 'insumos' => [$oxitocina, $bupivacaina, $sutura, $compresas, $guantes, $campos, $cefazolina], 'n' => 9],
             ['procedimiento' => $apendicectomia, 'duracion' => 90, 'equipos' => [$electro], 'insumos' => [$cefazolina, $bisturi, $sutura, $gasas, $guantes, $campos], 'n' => 10],
             ['procedimiento' => $colecistectomia, 'duracion' => 120, 'equipos' => [$laparoscopio, $electro, $monitor], 'insumos' => [$cefazolina, $clips, $sutura, $gasas, $guantes, $campos, $sondaFoley], 'n' => 10],
             ['procedimiento' => $herniorrafia, 'duracion' => 90, 'equipos' => [$electro], 'insumos' => [$cefazolina, $malla, $sutura, $gasas, $guantes, $bisturi], 'n' => 8],
         ];
 
-        foreach ($plantillas as $plantilla) {
-            for ($i = 0; $i < $plantilla['n']; $i++) {
-                // Dos colecistectomías con consumo desbordado: outliers deliberados
-                $esOutlier = $plantilla['procedimiento']->is($colecistectomia) && $i < 2;
+        // Plantillas: cada protocolo queda preorganizado con lo que usa
+        // siempre, que es como llega el registro al digitador.
+        foreach ($perfiles as $perfil) {
+            $this->sembrarPlantilla($perfil['procedimiento'], $perfil['insumos'], $perfil['equipos']);
+        }
 
-                $this->crearCirugiaAleatoria($hospital, $motor, $plantilla, $salas, $equipos, $esOutlier);
+        foreach ($perfiles as $perfil) {
+            for ($i = 0; $i < $perfil['n']; $i++) {
+                // Dos colecistectomías con consumo desbordado: outliers deliberados
+                $esOutlier = $perfil['procedimiento']->is($colecistectomia) && $i < 2;
+
+                $this->crearCirugiaAleatoria($hospital, $motor, $perfil, $salas, $equipos, $esOutlier);
             }
         }
     }
@@ -369,22 +378,60 @@ class DemoSeeder extends Seeder
             $this->crearInsumo($hospital, 'MAT-003', 'Campos quirúrgicos [SEMILLA]', 'material', 30_000, 'paquete'),
         ];
 
-        $plantilla = ['procedimiento' => $cesarea, 'duracion' => 110, 'equipos' => [], 'insumos' => $insumos, 'n' => 6];
+        $perfil = ['procedimiento' => $cesarea, 'duracion' => 110, 'equipos' => [], 'insumos' => $insumos, 'n' => 6];
 
-        for ($i = 0; $i < $plantilla['n']; $i++) {
-            $this->crearCirugiaAleatoria($hospital, $motor, $plantilla, [$sala], $equipos, false);
+        for ($i = 0; $i < $perfil['n']; $i++) {
+            $this->crearCirugiaAleatoria($hospital, $motor, $perfil, [$sala], $equipos, false);
         }
     }
 
     /**
-     * @param  array{procedimiento: ProcedimientoQuirurgico, duracion: int, equipos: list<EquipoMedico>, insumos: list<Insumo>}  $plantilla
+     * Deja el protocolo preorganizado: lo que consume siempre, el equipo que
+     * lo hace y los aparatos que usa. Con esto el registro de una cirugía
+     * nace lleno y el digitador solo marca la excepción.
+     *
+     * @param  list<Insumo>  $insumos
+     * @param  list<EquipoMedico>  $equipos
+     */
+    protected function sembrarPlantilla(ProcedimientoQuirurgico $procedimiento, array $insumos, array $equipos): void
+    {
+        foreach ($insumos as $insumo) {
+            PlantillaInsumo::create([
+                'procedimiento_quirurgico_id' => $procedimiento->id,
+                'insumo_id' => $insumo->id,
+                // La profilaxis antibiótica se pone antes de entrar a sala.
+                'fase' => $insumo->codigo === 'MED-003' ? 'pre' : 'quirurgica',
+                'cantidad' => 1,
+            ]);
+        }
+
+        foreach ($equipos as $equipo) {
+            PlantillaEquipo::create([
+                'procedimiento_quirurgico_id' => $procedimiento->id,
+                'equipo_medico_id' => $equipo->id,
+            ]);
+        }
+
+        // El equipo quirúrgico mínimo de cualquiera de estos procedimientos.
+        foreach (['cirujano', 'ayudante', 'anestesiologo', 'instrumentador', 'circulante'] as $rol) {
+            PlantillaPersonal::create([
+                'procedimiento_quirurgico_id' => $procedimiento->id,
+                'rol' => $rol,
+                'fase' => 'quirurgica',
+                'cantidad' => 1,
+            ]);
+        }
+    }
+
+    /**
+     * @param  array{procedimiento: ProcedimientoQuirurgico, duracion: int, equipos: list<EquipoMedico>, insumos: list<Insumo>}  $perfil
      * @param  list<SalaOperatoria>  $salas
      * @param  array<string, list<RecursoHumano>>  $equipos
      */
     protected function crearCirugiaAleatoria(
         Hospital $hospital,
         TdabcCostingService $motor,
-        array $plantilla,
+        array $perfil,
         array $salas,
         array $equipos,
         bool $esOutlier,
@@ -392,7 +439,7 @@ class DemoSeeder extends Seeder
         $inicio = Carbon::now()
             ->subDays(random_int(7, 90))
             ->setTime(random_int(7, 16), [0, 30][random_int(0, 1)], 0);
-        $duracion = (int) round($plantilla['duracion'] * random_int(80, 130) / 100);
+        $duracion = (int) round($perfil['duracion'] * random_int(80, 130) / 100);
 
         $paciente = Paciente::factory()->create(['hospital_id' => $hospital->id]);
 
@@ -407,7 +454,7 @@ class DemoSeeder extends Seeder
             'estado' => 'realizada',
             'diagnostico_cie10' => null,
         ]);
-        $cirugia->procedimientos()->attach($plantilla['procedimiento']->id, ['es_principal' => true]);
+        $cirugia->procedimientos()->attach($perfil['procedimiento']->id, ['es_principal' => true]);
 
         // Equipo quirúrgico: cirujano y ayudante ~75 % de la duración,
         // el resto de roles acompañan toda la cirugía.
@@ -425,8 +472,8 @@ class DemoSeeder extends Seeder
             ]);
         }
 
-        // Equipos médicos de la plantilla
-        foreach ($plantilla['equipos'] as $equipoMedico) {
+        // Equipos médicos del perfil
+        foreach ($perfil['equipos'] as $equipoMedico) {
             $cirugia->equiposMedicos()->attach($equipoMedico->id, [
                 'minutos_uso' => max(15, (int) round($duracion * random_int(60, 100) / 100)),
             ]);
@@ -434,7 +481,7 @@ class DemoSeeder extends Seeder
 
         // Consumo de insumos (los outliers multiplican las cantidades ×5)
         $factorOutlier = $esOutlier ? 5 : 1;
-        $seleccion = collect($plantilla['insumos'])->shuffle()->take(random_int(3, count($plantilla['insumos'])));
+        $seleccion = collect($perfil['insumos'])->shuffle()->take(random_int(3, count($perfil['insumos'])));
         foreach ($seleccion as $insumo) {
             $this->registrarConsumo($cirugia, $insumo, random_int(1, 6) * $factorOutlier);
         }
@@ -447,7 +494,7 @@ class DemoSeeder extends Seeder
 
         // 85 % facturadas
         if ($costeada && random_int(1, 100) <= 85) {
-            $tarifaSoat = (float) $plantilla['procedimiento']->tarifa_soat;
+            $tarifaSoat = (float) $perfil['procedimiento']->tarifa_soat;
             $facturado = round($tarifaSoat * KpiService::FACTOR_REFERENCIA_SOAT * random_int(95, 115) / 100, 2);
             $glosado = random_int(1, 100) <= 15 ? round($facturado * random_int(5, 20) / 100, 2) : 0.0;
             $recaudado = round(($facturado - $glosado) * random_int(80, 100) / 100, 2);

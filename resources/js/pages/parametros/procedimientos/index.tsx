@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { Pencil } from 'lucide-react';
+import { ClipboardList, Pencil } from 'lucide-react';
 import ProcedimientoQuirurgicoController from '@/actions/App/Http/Controllers/Parametros/ProcedimientoQuirurgicoController';
 import { FiltrosListado } from '@/components/filtros-listado';
 import { ConfirmarEliminacion } from '@/components/parametros/confirmar-eliminacion';
@@ -12,6 +12,15 @@ import { Button } from '@/components/ui/button';
 import { opcionesDesdeValores } from '@/lib/filtros';
 import { cop } from '@/lib/formato';
 import type { Paginado, ProcedimientoParam } from '@/types/parametros';
+
+/** Cuántas líneas tiene preorganizadas el protocolo, entre las tres listas. */
+function lineasPlantilla(proc: ProcedimientoParam): number {
+    return (
+        (proc.plantilla_insumos_count ?? 0) +
+        (proc.plantilla_personal_count ?? 0) +
+        (proc.plantilla_equipos_count ?? 0)
+    );
+}
 
 export default function ProcedimientosIndex({
     procedimientos,
@@ -88,6 +97,7 @@ export default function ProcedimientosIndex({
                                 <th className="p-3 font-medium">
                                     Confiabilidad
                                 </th>
+                                <th className="p-3 font-medium">Plantilla</th>
                                 <th className="p-3 font-medium">Fuente</th>
                                 <th className="p-3 text-right font-medium">
                                     Acciones
@@ -98,7 +108,7 @@ export default function ProcedimientosIndex({
                             {procedimientos.data.length === 0 && (
                                 <tr>
                                     <td
-                                        colSpan={9}
+                                        colSpan={10}
                                         className="p-6 text-center text-muted-foreground"
                                     >
                                         No hay procedimientos registrados.
@@ -130,6 +140,17 @@ export default function ProcedimientosIndex({
                                         <NivelConfiabilidadBadge
                                             nivel={proc.nivel_confiabilidad}
                                         />
+                                    </td>
+                                    <td className="p-3">
+                                        <Link
+                                            href={`/parametros/procedimientos/${proc.id}/plantilla`}
+                                            className="inline-flex items-center gap-1.5 text-xs whitespace-nowrap underline-offset-4 hover:underline"
+                                        >
+                                            <ClipboardList className="size-3.5" />
+                                            {lineasPlantilla(proc) === 0
+                                                ? 'Sin preorganizar'
+                                                : `${lineasPlantilla(proc)} líneas`}
+                                        </Link>
                                     </td>
                                     <td
                                         className="max-w-48 truncate p-3 text-muted-foreground"

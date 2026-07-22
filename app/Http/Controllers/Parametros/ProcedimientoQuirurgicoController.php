@@ -29,7 +29,13 @@ class ProcedimientoQuirurgicoController extends Controller
         );
 
         return Inertia::render('parametros/procedimientos/index', [
-            'procedimientos' => $procedimientos->orderBy('nombre')->paginate(15)->withQueryString(),
+            // Los conteos de plantilla dicen de un vistazo qué protocolos ya
+            // están preorganizados y cuáles se siguen capturando a mano.
+            'procedimientos' => $procedimientos
+                ->withCount(ProcedimientoQuirurgico::RELACIONES_PLANTILLA)
+                ->orderBy('nombre')
+                ->paginate(15)
+                ->withQueryString(),
             'filtros' => $this->filtrosActivos($request, ['complejidad', 'especialidad']),
             'especialidades' => ProcedimientoQuirurgico::query()
                 ->distinct()

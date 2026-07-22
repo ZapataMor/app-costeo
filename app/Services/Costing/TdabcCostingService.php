@@ -27,6 +27,14 @@ use InvalidArgumentException;
  */
 class TdabcCostingService
 {
+    public function __construct(
+        // Toda cirugía costeada pasa por el detector aquí y no en los
+        // controladores: el costeo se dispara desde el registro, el cierre,
+        // la corrección y la API, y engancharlo en cada punto garantizaba que
+        // tarde o temprano uno se quedara sin alertar.
+        protected DetectorSobrecostos $detector,
+    ) {}
+
     public function calcular(Cirugia $cirugia): CostoCirugia
     {
         if ($cirugia->estado !== EstadoCirugia::Realizada->value) {
@@ -164,7 +172,7 @@ class TdabcCostingService
         $costoIndirecto = round($costoDirecto * $factorIndirecto, 2);
         $costoTotal = round($costoDirecto + $costoIndirecto, 2);
 
-        return CostoCirugia::withoutGlobalScope(HospitalScope::class)->updateOrCreate(
+        $costo = CostoCirugia::withoutGlobalScope(HospitalScope::class)->updateOrCreate(
             ['cirugia_id' => $cirugia->id],
             [
                 'hospital_id' => $cirugia->hospital_id,
@@ -179,5 +187,10 @@ class TdabcCostingService
                 'calculado_en' => now(),
             ],
         );
+
+        $costo->setRelation('cirugia', $cirugia);
+        $this->detector->evaluar($costo);
+
+        return $costo;
     }
 }

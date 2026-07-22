@@ -1,5 +1,12 @@
 import { Link, useForm } from '@inertiajs/react';
-import { Check, Plus, Trash2, TriangleAlert, Wand2 } from 'lucide-react';
+import {
+    Check,
+    ClipboardList,
+    Plus,
+    Trash2,
+    TriangleAlert,
+    Wand2,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { BuscadorSelect } from '@/components/buscador-select';
 import {
@@ -9,6 +16,7 @@ import {
 import { NuevoPacienteModal } from '@/components/cirugias/nuevo-paciente-modal';
 import InputError from '@/components/input-error';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
     Card,
@@ -35,9 +43,13 @@ import type {
     CatalogoProcedimiento,
     CatalogoRecurso,
     CatalogoSala,
+    ConsumoFila,
     DatosCirugia,
+    EquipoMedicoFila,
     FaseCiclo,
+    MiembroFila,
     ParametrosTdabc,
+    PlantillaProcedimiento,
 } from '@/types/cirugias';
 
 export type CatalogosCirugia = {
@@ -100,6 +112,12 @@ const vacio: DatosCirugia = {
     equipo: [],
     consumos: [],
     equipos_medicos: [],
+};
+
+const PLANTILLA_VACIA: PlantillaProcedimiento = {
+    insumos: [],
+    personal: [],
+    equipos: [],
 };
 
 type ClavePaso = 'paciente' | 'pre' | 'quirurgica' | 'post';
@@ -317,6 +335,230 @@ export function FormularioCirugia({
         );
     }, [data.procedimientos, procedimientos]);
 
+    /**
+     * Plantilla del protocolo: lo que este procedimiento usa siempre. Es la
+     * que hace que el registro no empiece en blanco.
+     */
+    const plantilla = protocolo?.plantilla ?? PLANTILLA_VACIA;
+
+    /**
+     * Convierte una línea de personal de la plantilla en las filas del
+     * formulario que implica: una por persona pedida.
+     *
+     * La persona fija solo se asigna a la primera —dos filas con la misma
+     * persona, rol y fase son la misma participación contada dos veces, y el
+     * backend las rechaza—; las demás quedan a la espera de nombre, que es
+     * exactamente el estado real: «faltan dos ayudantes por identificar».
+     */
+    const expandirPersonal = (
+        fila: PlantillaProcedimiento['personal'][number],
+    ): MiembroFila[] => {
+        // Si la persona fija ya está capturada en esa fase con ese rol, las
+        // filas nuevas van sin nombre: repetirla sería contarla dos veces.
+        const yaEsta =
+            fila.recurso_humano_id !== '' &&
+            data.equipo.some(
+                (m) =>
+                    m.recurso_humano_id === fila.recurso_humano_id &&
+                    m.rol === fila.rol &&
+                    m.fase === fila.fase,
+            );
+
+        return Array.from({ length: Math.max(1, fila.cantidad) }, (_, i) => ({
+            recurso_humano_id: i === 0 && !yaEsta ? fila.recurso_humano_id : '',
+            rol: fila.rol,
+            fase: fila.fase,
+            // Con minutos fijados por la plantilla no se ponen horas: el
+            // backend deriva los minutos de las horas cuando ambas vienen, y
+            // ganaría el rango de sala sobre el estándar del protocolo.
+            hora_inicio:
+                fila.minutos === '' && fila.fase === 'quirurgica'
+                    ? data.hora_inicio
+                    : '',
+            hora_fin:
+                fila.minutos === '' && fila.fase === 'quirurgica'
+                    ? data.hora_fin
+                    : '',
+            minutos_participacion:
+                fila.minutos !== ''
+                    ? fila.minutos
+                    : fila.fase === 'quirurgica'
+                      ? String(duracion ?? '')
+                      : '',
+        }));
+    };
+
+    /** Una línea de la plantilla ya está puesta en el formulario. */
+    const yaEstaElInsumo = (insumoId: string, fase: FaseCiclo): boolean =>
+        data.consumos.some((c) => c.insumo_id === insumoId && c.fase === fase);
+
+    const cuantosDelRol = (rol: string, fase: FaseCiclo): number =>
+        data.equipo.filter((m) => m.rol === rol && m.fase === fase).length;
+
+    const yaEstaElEquipo = (equipoId: string): boolean =>
+        data.equipos_medicos.some((e) => e.id === equipoId);
+
+    /**
+     * Lo que la plantilla pide y todavía no está capturado, por fase. Es la
+     * lista de verificación del digitador: mientras quede algo aquí, o falta
+     * registrarlo o hubo una desviación que vale la pena mirar.
+     *
+     * Los opcionales cuentan como faltantes —se ofrecen para agregarlos de un
+     * clic— pero nunca se prellenan solos.
+     */
+    const insumosFaltantes = (fase: FaseCiclo) =>
+        plantilla.insumos.filter(
+            (fila) => fila.fase === fase && !yaEstaElInsumo(fila.insumo_id, fase),
+        );
+
+    const personalFaltante = (fase: FaseCiclo) =>
+        plantilla.personal
+            .filter((fila) => fila.fase === fase)
+            .map((fila) => ({
+                fila,
+                faltan: Math.max(
+                    0,
+                    fila.cantidad - cuantosDelRol(fila.rol, fase),
+                ),
+            }))
+            .filter(({ faltan }) => faltan > 0);
+
+    const equiposFaltantes = () =>
+        plantilla.equipos.filter(
+            (fila) => !yaEstaElEquipo(fila.equipo_medico_id),
+        );
+
+    /** Fuera de la plantilla: se usó algo que el protocolo no contempla. */
+    const insumoEsExtra = (fila: ConsumoFila): boolean =>
+        plantilla.insumos.length > 0 &&
+        !plantilla.insumos.some(
+            (p) => p.insumo_id === fila.insumo_id && p.fase === fila.fase,
+        );
+
+    const miembroEsExtra = (fila: MiembroFila): boolean =>
+        plantilla.personal.length > 0 &&
+        !plantilla.personal.some(
+            (p) => p.rol === fila.rol && p.fase === fila.fase,
+        );
+
+    const equipoEsExtra = (fila: EquipoMedicoFila): boolean =>
+        plantilla.equipos.length > 0 &&
+        !plantilla.equipos.some((p) => p.equipo_medico_id === fila.id);
+
+    /**
+     * Pone todo lo que falta de la plantilla, sin tocar lo ya capturado: el
+     * dato real siempre gana sobre el estándar. Deja fuera los opcionales,
+     * que se agregan uno a uno desde su chip.
+     */
+    const aplicarPlantilla = (
+        origen: PlantillaProcedimiento = plantilla,
+    ) => {
+        const consumos: ConsumoFila[] = origen.insumos
+            .filter(
+                (fila) => !fila.opcional && !yaEstaElInsumo(fila.insumo_id, fila.fase),
+            )
+            .map((fila) => ({
+                insumo_id: fila.insumo_id,
+                fase: fila.fase,
+                cantidad: fila.cantidad,
+            }));
+
+        const equipo: MiembroFila[] = origen.personal
+            .filter((fila) => !fila.opcional)
+            .flatMap((fila) => {
+                const faltan =
+                    fila.cantidad - cuantosDelRol(fila.rol, fila.fase);
+
+                return faltan > 0 ? expandirPersonal(fila).slice(0, faltan) : [];
+            });
+
+        const equiposMedicos: EquipoMedicoFila[] = origen.equipos
+            .filter(
+                (fila) => !fila.opcional && !yaEstaElEquipo(fila.equipo_medico_id),
+            )
+            .map((fila) => ({
+                id: fila.equipo_medico_id,
+                minutos_uso:
+                    fila.minutos_uso !== ''
+                        ? fila.minutos_uso
+                        : String(duracion ?? ''),
+            }));
+
+        setData((actual) => ({
+            ...actual,
+            consumos: [...actual.consumos, ...consumos],
+            equipo: [...actual.equipo, ...equipo],
+            equipos_medicos: [...actual.equipos_medicos, ...equiposMedicos],
+        }));
+    };
+
+    /**
+     * Elegir el procedimiento trae su plantilla puesta. Solo al registrar y
+     * solo desde el principal: al corregir, el registro ya tiene lo que de
+     * verdad se usó y volcarle el estándar encima sería reintroducir lo que
+     * alguien quitó a propósito. Ahí queda el botón «Traer la plantilla».
+     */
+    const elegirProcedimiento = (indice: number, id: string) => {
+        actualizarFila('procedimientos', indice, { id });
+
+        const elegido = procedimientos.find((p) => String(p.id) === id);
+        const esPrincipal =
+            data.procedimientos[indice]?.es_principal ||
+            data.procedimientos.length === 1;
+
+        if (!esCorreccion && esPrincipal && elegido) {
+            aplicarPlantilla(elegido.plantilla);
+        }
+    };
+
+    /** Tamaño de la plantilla del protocolo elegido. */
+    const lineasDePlantilla =
+        plantilla.insumos.length +
+        plantilla.personal.length +
+        plantilla.equipos.length;
+
+    /** Cuántas líneas obligatorias de la plantilla siguen sin capturarse. */
+    const pendientesDePlantilla =
+        plantilla.insumos.filter(
+            (f) => !f.opcional && !yaEstaElInsumo(f.insumo_id, f.fase),
+        ).length +
+        plantilla.personal
+            .filter((f) => !f.opcional)
+            .reduce(
+                (suma, f) =>
+                    suma + Math.max(0, f.cantidad - cuantosDelRol(f.rol, f.fase)),
+                0,
+            ) +
+        plantilla.equipos.filter(
+            (f) => !f.opcional && !yaEstaElEquipo(f.equipo_medico_id),
+        ).length;
+
+    /**
+     * Completa con los tiempos de sala al equipo quirúrgico que quedó sin
+     * minutos —lo típico cuando la plantilla se aplicó antes de conocer las
+     * horas—. Sin esto, prellenar el personal obligaría a teclear la misma
+     * hora tantas veces como personas hay en el quirófano.
+     */
+    const aplicarTiemposDeSala = () => {
+        setData('equipo', data.equipo.map((fila) =>
+            fila.fase === 'quirurgica' && fila.minutos_participacion === ''
+                ? {
+                      ...fila,
+                      hora_inicio: data.hora_inicio,
+                      hora_fin: data.hora_fin,
+                      minutos_participacion: String(duracion ?? ''),
+                  }
+                : fila,
+        ));
+    };
+
+    const faltanTiemposDeSala =
+        duracion !== null &&
+        data.equipo.some(
+            (fila) =>
+                fila.fase === 'quirurgica' && fila.minutos_participacion === '',
+        );
+
     const estimacion = useMemo(
         () =>
             calcularEstimacion({
@@ -457,6 +699,57 @@ export function FormularioCirugia({
         data.hora_salida_recuperacion === '' &&
         data.hora_fin !== '' &&
         protocolo.minutos_recuperacion !== null;
+
+    const nombreInsumo = (id: string): string =>
+        insumos.find((i) => String(i.id) === id)?.nombre ?? 'Insumo';
+
+    const nombreEquipo = (id: string): string =>
+        equiposMedicos.find((e) => String(e.id) === id)?.nombre ?? 'Equipo';
+
+    /**
+     * Lo que la plantilla pide y todavía no está: un clic lo agrega. Es la
+     * otra mitad de preorganizar —quitar lo que no se usó es un botón, y
+     * volver a ponerlo también, sin buscar de nuevo en todo el catálogo—.
+     */
+    const chipsFaltantes = (
+        titulo: string,
+        chips: { clave: string; etiqueta: string; opcional: boolean }[],
+        onAgregar: (clave: string) => void,
+    ) =>
+        chips.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5 border-t pt-3">
+                <span className="text-xs text-muted-foreground">{titulo}</span>
+                {chips.map(({ clave, etiqueta, opcional }) => (
+                    <Button
+                        key={clave}
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={() => onAgregar(clave)}
+                    >
+                        <Plus className="size-3" />
+                        {etiqueta}
+                        {opcional && (
+                            <span className="text-muted-foreground">
+                                (opcional)
+                            </span>
+                        )}
+                    </Button>
+                ))}
+            </div>
+        );
+
+    /** Marca la línea que el protocolo no contempla: es la desviación. */
+    const marcaExtra = (esExtra: boolean) =>
+        esExtra && (
+            <Badge
+                variant="outline"
+                className="border-amber-400/70 text-amber-700 dark:text-amber-500"
+            >
+                Fuera de plantilla
+            </Badge>
+        );
 
     /** Personal que participó en una fase, con sus minutos. */
     const tarjetaPersonal = (fase: FaseCiclo, descripcion: string) => (
@@ -604,6 +897,7 @@ export function FormularioCirugia({
                         >
                             <Trash2 className="size-4 text-destructive" />
                         </Button>
+                        {marcaExtra(miembroEsExtra(fila))}
                         <InputError message={error(`equipo.${indice}.fase`)} />
                     </div>
                 ))}
@@ -637,6 +931,50 @@ export function FormularioCirugia({
                 >
                     <Plus className="size-4" /> Agregar persona
                 </Button>
+
+                {fase === 'quirurgica' && faltanTiemposDeSala && (
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="ml-2"
+                        onClick={aplicarTiemposDeSala}
+                    >
+                        <Wand2 className="size-4" /> Usar los tiempos de sala
+                    </Button>
+                )}
+
+                {chipsFaltantes(
+                    'De la plantilla falta:',
+                    personalFaltante(fase).map(({ fila, faltan }) => ({
+                        clave: `${fila.rol}|${fila.fase}|${fila.recurso_humano_id}`,
+                        etiqueta:
+                            faltan > 1 ? `${faltan} × ${fila.rol}` : fila.rol,
+                        opcional: fila.opcional,
+                    })),
+                    (clave) => {
+                        const linea = plantilla.personal.find(
+                            (p) =>
+                                `${p.rol}|${p.fase}|${p.recurso_humano_id}` ===
+                                clave,
+                        );
+
+                        if (linea === undefined) {
+                            return;
+                        }
+
+                        const faltan =
+                            linea.cantidad - cuantosDelRol(linea.rol, linea.fase);
+
+                        setData('equipo', [
+                            ...data.equipo,
+                            ...expandirPersonal(linea).slice(
+                                0,
+                                Math.max(1, faltan),
+                            ),
+                        ]);
+                    },
+                )}
             </CardContent>
         </Card>
     );
@@ -696,6 +1034,7 @@ export function FormularioCirugia({
                         >
                             <Trash2 className="size-4 text-destructive" />
                         </Button>
+                        {marcaExtra(insumoEsExtra(fila))}
                         <InputError
                             message={error(`consumos.${indice}.fase`)}
                         />
@@ -714,6 +1053,29 @@ export function FormularioCirugia({
                 >
                     <Plus className="size-4" /> Agregar insumo
                 </Button>
+
+                {chipsFaltantes(
+                    'De la plantilla falta:',
+                    insumosFaltantes(fase).map((fila) => ({
+                        clave: fila.insumo_id,
+                        etiqueta: `${nombreInsumo(fila.insumo_id)} × ${fila.cantidad}`,
+                        opcional: fila.opcional,
+                    })),
+                    (insumoId) => {
+                        const linea = plantilla.insumos.find(
+                            (p) => p.insumo_id === insumoId && p.fase === fase,
+                        );
+
+                        setData('consumos', [
+                            ...data.consumos,
+                            {
+                                insumo_id: insumoId,
+                                fase,
+                                cantidad: linea?.cantidad ?? '',
+                            },
+                        ]);
+                    },
+                )}
             </CardContent>
         </Card>
     );
@@ -920,11 +1282,7 @@ export function FormularioCirugia({
                                             opciones={opcionesProcedimientos}
                                             valor={fila.id}
                                             onCambio={(v) =>
-                                                actualizarFila(
-                                                    'procedimientos',
-                                                    i,
-                                                    { id: v },
-                                                )
+                                                elegirProcedimiento(i, v)
                                             }
                                             placeholder="Seleccione procedimiento"
                                             placeholderBusqueda="Buscar por nombre o código CUPS…"
@@ -981,6 +1339,43 @@ export function FormularioCirugia({
                                 <Plus className="size-4" /> Agregar
                                 procedimiento
                             </Button>
+
+                            {/* Qué trae preorganizado el protocolo elegido:
+                                el digitador ve de entrada que no parte de
+                                cero, y desde dónde ajustar la excepción. */}
+                            {protocolo !== null && (
+                                <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-muted/40 p-3 text-sm">
+                                    {lineasDePlantilla === 0 ? (
+                                        <p className="text-muted-foreground">
+                                            «{protocolo.nombre}» no tiene
+                                            plantilla: habrá que capturar
+                                            insumos, personal y equipos a mano.
+                                        </p>
+                                    ) : (
+                                        <p className="text-muted-foreground">
+                                            El protocolo trae{' '}
+                                            <span className="font-medium text-foreground">
+                                                {lineasDePlantilla} líneas
+                                            </span>{' '}
+                                            preorganizadas.
+                                            {pendientesDePlantilla > 0
+                                                ? ` Faltan ${pendientesDePlantilla} por poner en este registro.`
+                                                : ' Ya están todas puestas: quita lo que no se use y agrega lo demás.'}
+                                        </p>
+                                    )}
+                                    {pendientesDePlantilla > 0 && (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => aplicarPlantilla()}
+                                        >
+                                            <ClipboardList className="size-4" />{' '}
+                                            Traer la plantilla
+                                        </Button>
+                                    )}
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 </>
@@ -1238,6 +1633,7 @@ export function FormularioCirugia({
                                     >
                                         <Trash2 className="size-4 text-destructive" />
                                     </Button>
+                                    {marcaExtra(equipoEsExtra(fila))}
                                 </div>
                             ))}
                             <Button
@@ -1256,6 +1652,33 @@ export function FormularioCirugia({
                             >
                                 <Plus className="size-4" /> Agregar equipo
                             </Button>
+
+                            {chipsFaltantes(
+                                'De la plantilla falta:',
+                                equiposFaltantes().map((fila) => ({
+                                    clave: fila.equipo_medico_id,
+                                    etiqueta: nombreEquipo(
+                                        fila.equipo_medico_id,
+                                    ),
+                                    opcional: fila.opcional,
+                                })),
+                                (equipoId) => {
+                                    const linea = plantilla.equipos.find(
+                                        (p) => p.equipo_medico_id === equipoId,
+                                    );
+
+                                    setData('equipos_medicos', [
+                                        ...data.equipos_medicos,
+                                        {
+                                            id: equipoId,
+                                            minutos_uso:
+                                                linea?.minutos_uso !== ''
+                                                    ? (linea?.minutos_uso ?? '')
+                                                    : String(duracion ?? ''),
+                                        },
+                                    ]);
+                                },
+                            )}
                         </CardContent>
                     </Card>
                 </>

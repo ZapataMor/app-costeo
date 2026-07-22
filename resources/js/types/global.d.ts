@@ -13,6 +13,8 @@ declare module '@inertiajs/core' {
             name: string;
             auth: Auth;
             hospital: HospitalCompartido;
+            /** Sobrecostos detectados y todavía sin causa en el hospital activo. */
+            alertasPendientes: number;
             sidebarOpen: boolean;
             [key: string]: unknown;
         };

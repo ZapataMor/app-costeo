@@ -9,6 +9,7 @@ use Database\Factories\ProcedimientoQuirurgicoFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\Pivot;
 
 /**
@@ -75,6 +76,36 @@ class ProcedimientoQuirurgico extends Model
             + ($this->minutos_recuperacion ?? 0)
             + ($this->minutos_recambio ?? 0);
     }
+
+    /**
+     * Plantilla del protocolo: los insumos que este procedimiento consume
+     * siempre. Prellenan el registro de cada cirugía.
+     *
+     * @return HasMany<PlantillaInsumo, $this>
+     */
+    public function plantillaInsumos(): HasMany
+    {
+        return $this->hasMany(PlantillaInsumo::class, 'procedimiento_quirurgico_id');
+    }
+
+    /** @return HasMany<PlantillaPersonal, $this> */
+    public function plantillaPersonal(): HasMany
+    {
+        return $this->hasMany(PlantillaPersonal::class, 'procedimiento_quirurgico_id');
+    }
+
+    /** @return HasMany<PlantillaEquipo, $this> */
+    public function plantillaEquipos(): HasMany
+    {
+        return $this->hasMany(PlantillaEquipo::class, 'procedimiento_quirurgico_id');
+    }
+
+    /** Relaciones de plantilla que hay que cargar para prellenar el registro. */
+    public const RELACIONES_PLANTILLA = [
+        'plantillaInsumos',
+        'plantillaPersonal',
+        'plantillaEquipos',
+    ];
 
     /** @return BelongsToMany<Cirugia, $this> */
     public function cirugias(): BelongsToMany

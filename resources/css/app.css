@@ -732,3 +732,33 @@ body.sicoq-authenticated.sicoq-select-open[data-scroll-locked] {
         padding: 4px 0 20px;
     }
 }
+
+/* Onda de cambio de tema: el tema nuevo se revela con un circulo que crece
+   desde el boton pulsado (ver useAppearance). Solo aplica a la transicion
+   marcada con data-onda-tema para no afectar otras view transitions. */
+html[data-onda-tema]::view-transition-old(root),
+html[data-onda-tema]::view-transition-new(root) {
+    animation: none;
+    mix-blend-mode: normal;
+}
+
+html[data-onda-tema]::view-transition-old(root) {
+    z-index: 0;
+}
+
+html[data-onda-tema]::view-transition-new(root) {
+    z-index: 1;
+    animation: onda-tema 600ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes onda-tema {
+    from {
+        clip-path: circle(0 at var(--onda-x, 50%) var(--onda-y, 50%));
+    }
+
+    to {
+        clip-path: circle(
+            var(--onda-r, 150vmax) at var(--onda-x, 50%) var(--onda-y, 50%)
+        );
+    }
+}

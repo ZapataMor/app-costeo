@@ -11,4 +11,6 @@ export type NavItem = {
     href: NonNullable<InertiaLinkProps['href']>;
     icon?: LucideIcon | null;
     isActive?: boolean;
+    /** Contador al costado (p. ej. alertas de sobrecosto sin revisar). */
+    badge?: number;
 };

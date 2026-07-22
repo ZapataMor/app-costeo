@@ -23,17 +23,27 @@ Route::get('/', function () {
         return redirect()->route('login');
     }
 
-    // El digitador entra directo a su único módulo (registro de procedimientos).
-    return auth()->user()->isDigitador()
-        ? redirect()->route('cirugias.index')
-        : redirect()->route('dashboard');
+    // El digitador entra directo a su único módulo (registro de procedimientos)
+    // y el admin_hospital a Parámetros; el dashboard es solo del super_admin.
+    $user = auth()->user();
+
+    if ($user->isDigitador()) {
+        return redirect()->route('cirugias.index');
+    }
+
+    return $user->isSuperAdmin()
+        ? redirect()->route('dashboard')
+        : redirect()->route('parametros.index');
 })->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     // ── Gestión y análisis: super_admin y admin_hospital ────────────────
     // El digitador queda excluido de todo esto (solo registra procedimientos).
     Route::middleware('rol:super_admin,admin_hospital')->group(function () {
-        Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+        // El dashboard es la vista consolidada multi-hospital: solo el
+        // super_admin lo usa, los demás roles entran por Parámetros.
+        Route::get('dashboard', [DashboardController::class, 'index'])
+            ->middleware('rol:super_admin')->name('dashboard');
 
         // Switcher de hospital del super_admin
         Route::post('hospital-activo', [HospitalActivoController::class, 'store'])->name('hospital-activo.store');
@@ -66,6 +76,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::resource('salas-operatorias', Parametros\SalaOperatoriaController::class)
                 ->except('show')->parameters(['salas-operatorias' => 'salaOperatoria']);
             Route::resource('procedimientos', Parametros\ProcedimientoQuirurgicoController::class)->except('show');
+
+            // Plantilla del protocolo: lo que el procedimiento usa siempre y
+            // con lo que nacerá prellenado cada registro suyo.
+            Route::get('procedimientos/{procedimiento}/plantilla', [Parametros\PlantillaProcedimientoController::class, 'edit'])
+                ->name('procedimientos.plantilla.edit');
+            Route::put('procedimientos/{procedimiento}/plantilla', [Parametros\PlantillaProcedimientoController::class, 'update'])
+                ->name('procedimientos.plantilla.update');
         });
 
     // ── Registro de procedimientos (Capa 2) ─────────────────────────────
@@ -139,6 +156,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 ->name('personal.index');
             Route::get('personal/{personal}', [Costeo\PersonalCosteoController::class, 'show'])
                 ->name('personal.show');
+
+            // Bandeja de sobrecostos: el outlier con estado y con causa, que
+            // es lo que cierra el ciclo entre detectar y corregir.
+            Route::get('alertas', [Costeo\AlertaSobrecostoController::class, 'index'])
+                ->name('alertas.index');
+            Route::patch('alertas/{alerta}', [Costeo\AlertaSobrecostoController::class, 'revisar'])
+                ->name('alertas.revisar');
 
             Route::get('componentes', [DashboardCosteoController::class, 'componentes'])->name('componentes');
             Route::get('outliers', [DashboardCosteoController::class, 'outliers'])->name('outliers');

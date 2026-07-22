@@ -40,6 +40,39 @@ export type CatalogoProcedimiento = {
     duracion_estimada_minutos: number;
     minutos_prequirurgico: number | null;
     minutos_recuperacion: number | null;
+    /** Lo que este procedimiento usa siempre; prellena el registro. */
+    plantilla: PlantillaProcedimiento;
+};
+
+/** Líneas estándar del protocolo. En texto: van directo a los inputs. */
+export type PlantillaInsumoFila = {
+    insumo_id: string;
+    fase: FaseCiclo;
+    cantidad: string;
+    /** Se sugiere pero no se prellena: solo se usa en algunos casos. */
+    opcional: boolean;
+};
+export type PlantillaPersonalFila = {
+    rol: string;
+    fase: FaseCiclo;
+    /** Cuántas personas de ese rol hacen falta. */
+    cantidad: number;
+    /** Persona fija, si siempre es la misma; vacío = la define el turno. */
+    recurso_humano_id: string;
+    /** Vacío = lo que dure la fase. */
+    minutos: string;
+    opcional: boolean;
+};
+export type PlantillaEquipoFila = {
+    equipo_medico_id: string;
+    /** Vacío = todo el tiempo de sala. */
+    minutos_uso: string;
+    opcional: boolean;
+};
+export type PlantillaProcedimiento = {
+    insumos: PlantillaInsumoFila[];
+    personal: PlantillaPersonalFila[];
+    equipos: PlantillaEquipoFila[];
 };
 export type CatalogoRecurso = {
     id: number;

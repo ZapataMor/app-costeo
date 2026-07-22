@@ -35,6 +35,14 @@ export function NavMain({
                             <Link href={item.href} prefetch>
                                 {item.icon && <item.icon />}
                                 <span>{item.title}</span>
+                                {/* Colapsado el sidebar solo se ve el ícono:
+                                    el contador se oculta con él para no dejar
+                                    un número flotando sin a qué referirse. */}
+                                {item.badge ? (
+                                    <span className="ml-auto rounded-full bg-[#9E3B3B] px-1.5 py-0.5 text-[11px] leading-none font-medium text-white group-data-[collapsible=icon]:hidden">
+                                        {item.badge}
+                                    </span>
+                                ) : null}
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>

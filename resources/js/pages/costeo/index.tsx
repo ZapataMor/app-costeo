@@ -1,6 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import {
     AlertTriangle,
+    BellRing,
     ChartColumnBig,
     ClipboardList,
     TrendingUp,
@@ -35,6 +36,13 @@ const etiquetasChequeos: Record<string, string> = {
 };
 
 const paneles = [
+    {
+        titulo: 'Alertas de sobrecosto',
+        descripcion:
+            'Cirugías que se salieron del rango de su procedimiento, con el exceso ya desglosado y pendiente de causa.',
+        href: '/costeo/alertas',
+        icono: BellRing,
+    },
     {
         titulo: 'Procedimientos',
         descripcion:

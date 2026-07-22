@@ -30,7 +30,15 @@ export function AppSidebarHeader({
                         dark ? 'Activar modo claro' : 'Activar modo oscuro'
                     }
                     title={dark ? 'Activar modo claro' : 'Activar modo oscuro'}
-                    onClick={() => updateAppearance(dark ? 'light' : 'dark')}
+                    onClick={(event) => {
+                        const caja =
+                            event.currentTarget.getBoundingClientRect();
+
+                        updateAppearance(dark ? 'light' : 'dark', {
+                            x: caja.left + caja.width / 2,
+                            y: caja.top + caja.height / 2,
+                        });
+                    }}
                 >
                     {dark ? (
                         <Sun className="size-[17px]" />
