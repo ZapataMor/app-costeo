@@ -22,7 +22,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { ETIQUETA_FASE } from '@/lib/fases';
-import { cop } from '@/lib/formato';
+import { cop, etiqueta } from '@/lib/formato';
 import type {
     CatalogoEquipoMedico,
     CatalogoInsumo,
@@ -290,7 +290,7 @@ export function PlantillaProcedimientoForm({
                         {data.insumos.length > 0 && (
                             <p className="text-sm text-muted-foreground">
                                 Insumos fijos a precios de hoy:{' '}
-                                <span className="font-medium tabular-nums text-foreground">
+                                <span className="font-medium text-foreground tabular-nums">
                                     {cop(costoInsumos)}
                                 </span>
                             </p>
@@ -331,17 +331,16 @@ export function PlantillaProcedimientoForm({
                                         )
                                     }
                                 >
-                                    <SelectTrigger className="w-44">
+                                    <SelectTrigger
+                                        className="w-44"
+                                        aria-label="Rol quirúrgico"
+                                    >
                                         <SelectValue placeholder="Rol" />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {rolesQuirurgicos.map((rol) => (
-                                            <SelectItem
-                                                key={rol}
-                                                value={rol}
-                                                className="capitalize"
-                                            >
-                                                {rol}
+                                            <SelectItem key={rol} value={rol}>
+                                                {etiqueta(rol)}
                                             </SelectItem>
                                         ))}
                                     </SelectContent>

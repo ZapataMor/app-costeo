@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { opcionesDesdeValores } from '@/lib/filtros';
-import { cop } from '@/lib/formato';
+import { cop, etiqueta, fecha as formatearFecha } from '@/lib/formato';
 import type { PaginadoCirugias } from '@/types/cirugias';
 
 /**
@@ -78,11 +78,14 @@ export default function CirugiasIndex({
 
     return (
         <>
-            <Head title="Procedimientos" />
+            {/* Se llamaba «Procedimientos», igual que el catálogo CUPS de
+                Parámetros y que el explorador de Costeo: tres módulos
+                distintos con el mismo nombre. */}
+            <Head title="Cirugías realizadas" />
             <div className="flex flex-col gap-4 p-4">
                 <EncabezadoListado
-                    titulo="Procedimientos"
-                    descripcion="Registro de procedimientos clínicos que consumen los parámetros de Capa 1 y alimentan el costeo TDABC."
+                    titulo="Cirugías realizadas"
+                    descripcion="Cada procedimiento registrado, con su equipo, insumos y tiempos. Es lo que alimenta el costeo TDABC."
                     hrefNuevo={CirugiaController.create.url()}
                     textoNuevo="Registrar procedimiento"
                 />
@@ -91,8 +94,8 @@ export default function CirugiasIndex({
                     <div className="flex flex-wrap items-center gap-3 rounded-lg border border-amber-300/70 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
                         <span>
                             {totalPendientes === 1
-                                ? 'Hay 1 procedimiento sin completar: no entra a los indicadores hasta que se cierre.'
-                                : `Hay ${totalPendientes} procedimientos sin completar: no entran a los indicadores hasta que se cierren.`}
+                                ? 'Hay 1 procedimiento sin completar: no entra a los indicadores hasta que se cierre o se costee.'
+                                : `Hay ${totalPendientes} procedimientos sin completar: no entran a los indicadores hasta que se cierren o se costeen.`}
                         </span>
                         <Button asChild variant="outline" size="sm">
                             <Link href="/cirugias?pendientes=1">
@@ -186,8 +189,8 @@ export default function CirugiasIndex({
                                     key={cirugia.id}
                                     className="border-b last:border-0"
                                 >
-                                    <td className="p-3 tabular-nums">
-                                        {cirugia.fecha ?? '—'}
+                                    <td className="p-3 whitespace-nowrap tabular-nums">
+                                        {formatearFecha(cirugia.fecha)}
                                     </td>
                                     <td className="p-3">
                                         {cirugia.paciente
@@ -214,21 +217,21 @@ export default function CirugiasIndex({
                                             '—'
                                         )}
                                     </td>
-                                    <td className="p-3 capitalize">
-                                        {cirugia.tipo}
+                                    <td className="p-3">
+                                        {etiqueta(cirugia.tipo)}
                                     </td>
                                     <td className="p-3">
-                                        <span className="capitalize">
-                                            {cirugia.estado.replace('_', ' ')}
-                                        </span>
-                                        {(cirugia.estado !== 'realizada' ||
-                                            cirugia.duracion_minutos ===
-                                                null) && (
+                                        <span>{etiqueta(cirugia.estado)}</span>
+                                        {/* La insignia decía solo «No
+                                            contabilizada» y había que adivinar
+                                            qué faltaba: ahora lleva el motivo. */}
+                                        {cirugia.motivo_pendiente && (
                                             <Badge
                                                 variant="outline"
-                                                className="ml-2 border-amber-300/70 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-400"
+                                                className="ml-2 border-amber-300/70 bg-amber-50 font-normal text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-400"
+                                                title="No entra a los indicadores hasta completarse"
                                             >
-                                                No contabilizada
+                                                {cirugia.motivo_pendiente}
                                             </Badge>
                                         )}
                                     </td>
@@ -309,5 +312,5 @@ export default function CirugiasIndex({
 }
 
 CirugiasIndex.layout = {
-    breadcrumbs: [{ title: 'Procedimientos', href: '/cirugias' }],
+    breadcrumbs: [{ title: 'Cirugías realizadas', href: '/cirugias' }],
 };

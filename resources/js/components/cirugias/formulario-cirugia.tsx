@@ -35,6 +35,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { etiqueta } from '@/lib/formato';
 import { cn } from '@/lib/utils';
 import type {
     CatalogoEquipoMedico,
@@ -94,10 +95,17 @@ function minutosEntre(inicio: string, fin: string): number | null {
     return minutos > 0 ? minutos : null;
 }
 
+/** Hoy en `Y-m-d`, en la zona del navegador. */
+function hoy(): string {
+    return new Date().toLocaleDateString('en-CA');
+}
+
+// Casi siempre se registra el mismo día en que se operó: teclear la fecha
+// era el primer paso obligatorio de un formulario que ya es largo.
 const vacio: DatosCirugia = {
     paciente_id: '',
     sala_operatoria_id: '',
-    fecha: '',
+    fecha: hoy(),
     hora_ingreso_paciente: '',
     hora_inicio: '',
     hora_incision: '',
@@ -302,6 +310,17 @@ export function FormularioCirugia({
     const sinEgreso = data.hora_salida_recuperacion === '';
     const noContabilizable = sinHoraFin || sinEstadoRealizada || sinEgreso;
 
+    /**
+     * Con lo mínimo para guardar ya capturado. Sirve para no advertir sobre
+     * un formulario vacío: al abrirlo, «no se contabilizará» y un costo
+     * estimado en $0 son ciertos pero se leen como un reproche antes de que
+     * el usuario haya escrito nada.
+     */
+    const listoParaGuardar =
+        data.paciente_id !== '' &&
+        data.procedimientos.some((fila) => fila.id !== '') &&
+        data.hora_inicio !== '';
+
     /** Duración real capturada, base para sugerir los tiempos de cada recurso. */
     const duracion = minutosEntre(data.hora_inicio, data.hora_fin);
 
@@ -408,7 +427,8 @@ export function FormularioCirugia({
      */
     const insumosFaltantes = (fase: FaseCiclo) =>
         plantilla.insumos.filter(
-            (fila) => fila.fase === fase && !yaEstaElInsumo(fila.insumo_id, fase),
+            (fila) =>
+                fila.fase === fase && !yaEstaElInsumo(fila.insumo_id, fase),
         );
 
     const personalFaltante = (fase: FaseCiclo) =>
@@ -450,12 +470,12 @@ export function FormularioCirugia({
      * dato real siempre gana sobre el estándar. Deja fuera los opcionales,
      * que se agregan uno a uno desde su chip.
      */
-    const aplicarPlantilla = (
-        origen: PlantillaProcedimiento = plantilla,
-    ) => {
+    const aplicarPlantilla = (origen: PlantillaProcedimiento = plantilla) => {
         const consumos: ConsumoFila[] = origen.insumos
             .filter(
-                (fila) => !fila.opcional && !yaEstaElInsumo(fila.insumo_id, fila.fase),
+                (fila) =>
+                    !fila.opcional &&
+                    !yaEstaElInsumo(fila.insumo_id, fila.fase),
             )
             .map((fila) => ({
                 insumo_id: fila.insumo_id,
@@ -469,12 +489,15 @@ export function FormularioCirugia({
                 const faltan =
                     fila.cantidad - cuantosDelRol(fila.rol, fila.fase);
 
-                return faltan > 0 ? expandirPersonal(fila).slice(0, faltan) : [];
+                return faltan > 0
+                    ? expandirPersonal(fila).slice(0, faltan)
+                    : [];
             });
 
         const equiposMedicos: EquipoMedicoFila[] = origen.equipos
             .filter(
-                (fila) => !fila.opcional && !yaEstaElEquipo(fila.equipo_medico_id),
+                (fila) =>
+                    !fila.opcional && !yaEstaElEquipo(fila.equipo_medico_id),
             )
             .map((fila) => ({
                 id: fila.equipo_medico_id,
@@ -526,7 +549,8 @@ export function FormularioCirugia({
             .filter((f) => !f.opcional)
             .reduce(
                 (suma, f) =>
-                    suma + Math.max(0, f.cantidad - cuantosDelRol(f.rol, f.fase)),
+                    suma +
+                    Math.max(0, f.cantidad - cuantosDelRol(f.rol, f.fase)),
                 0,
             ) +
         plantilla.equipos.filter(
@@ -540,16 +564,19 @@ export function FormularioCirugia({
      * hora tantas veces como personas hay en el quirófano.
      */
     const aplicarTiemposDeSala = () => {
-        setData('equipo', data.equipo.map((fila) =>
-            fila.fase === 'quirurgica' && fila.minutos_participacion === ''
-                ? {
-                      ...fila,
-                      hora_inicio: data.hora_inicio,
-                      hora_fin: data.hora_fin,
-                      minutos_participacion: String(duracion ?? ''),
-                  }
-                : fila,
-        ));
+        setData(
+            'equipo',
+            data.equipo.map((fila) =>
+                fila.fase === 'quirurgica' && fila.minutos_participacion === ''
+                    ? {
+                          ...fila,
+                          hora_inicio: data.hora_inicio,
+                          hora_fin: data.hora_fin,
+                          minutos_participacion: String(duracion ?? ''),
+                      }
+                    : fila,
+            ),
+        );
     };
 
     const faltanTiemposDeSala =
@@ -779,6 +806,7 @@ export function FormularioCirugia({
                                 }}
                                 placeholder="Seleccione persona"
                                 placeholderBusqueda="Buscar por nombre o especialidad…"
+                                etiquetaAccesible="Persona del equipo"
                             />
                             <InputError
                                 message={error(
@@ -793,17 +821,13 @@ export function FormularioCirugia({
                                     actualizarFila('equipo', indice, { rol: v })
                                 }
                             >
-                                <SelectTrigger>
+                                <SelectTrigger aria-label="Rol quirúrgico">
                                     <SelectValue placeholder="Rol" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {rolesQuirurgicos.map((rol) => (
-                                        <SelectItem
-                                            key={rol}
-                                            value={rol}
-                                            className="capitalize"
-                                        >
-                                            {rol}
+                                        <SelectItem key={rol} value={rol}>
+                                            {etiqueta(rol)}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
@@ -964,7 +988,8 @@ export function FormularioCirugia({
                         }
 
                         const faltan =
-                            linea.cantidad - cuantosDelRol(linea.rol, linea.fase);
+                            linea.cantidad -
+                            cuantosDelRol(linea.rol, linea.fase);
 
                         setData('equipo', [
                             ...data.equipo,
@@ -1003,6 +1028,7 @@ export function FormularioCirugia({
                                 }
                                 placeholder="Seleccione insumo"
                                 placeholderBusqueda="Buscar por nombre o código…"
+                                etiquetaAccesible="Insumo"
                             />
                             <InputError
                                 message={error(`consumos.${indice}.insumo_id`)}
@@ -1084,128 +1110,149 @@ export function FormularioCirugia({
     const esUltimo = pasoActual === pasos.length - 1;
 
     return (
-        <form onSubmit={enviar} className="max-w-4xl space-y-4">
-            {/* Navegación por etapas: el ciclo que vive el paciente. */}
-            <ol className="flex flex-wrap items-center gap-1 rounded-lg border p-1.5">
-                {pasos.map((paso, i) => (
-                    <li key={paso.clave} className="flex-1">
-                        <button
-                            type="button"
-                            onClick={() => setPasoActual(i)}
-                            aria-current={i === pasoActual ? 'step' : undefined}
-                            className={cn(
-                                'flex w-full items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-sm whitespace-nowrap transition-colors',
-                                i === pasoActual
-                                    ? 'bg-primary text-primary-foreground'
-                                    : 'text-muted-foreground hover:bg-muted',
-                            )}
-                        >
-                            <span
+        <form
+            onSubmit={enviar}
+            className="grid max-w-6xl gap-4 lg:grid-cols-[minmax(0,1fr)_290px] lg:items-start"
+        >
+            <div className="min-w-0 space-y-4">
+                {/* Navegación por etapas: el ciclo que vive el paciente. */}
+                <ol className="flex flex-wrap items-center gap-1 rounded-lg border p-1.5">
+                    {pasos.map((paso, i) => (
+                        <li key={paso.clave} className="flex-1">
+                            <button
+                                type="button"
+                                onClick={() => setPasoActual(i)}
+                                aria-current={
+                                    i === pasoActual ? 'step' : undefined
+                                }
                                 className={cn(
-                                    'flex size-5 shrink-0 items-center justify-center rounded-full border text-xs',
-                                    i === pasoActual && 'border-current',
+                                    'flex w-full items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-sm whitespace-nowrap transition-colors',
+                                    i === pasoActual
+                                        ? 'bg-primary text-primary-foreground'
+                                        : 'text-muted-foreground hover:bg-muted',
                                 )}
                             >
-                                {i < pasoActual ? (
-                                    <Check className="size-3" />
-                                ) : (
-                                    i + 1
-                                )}
-                            </span>
-                            {paso.titulo}
-                        </button>
-                    </li>
-                ))}
-            </ol>
+                                <span
+                                    className={cn(
+                                        'flex size-5 shrink-0 items-center justify-center rounded-full border text-xs',
+                                        i === pasoActual && 'border-current',
+                                    )}
+                                >
+                                    {i < pasoActual ? (
+                                        <Check className="size-3" />
+                                    ) : (
+                                        i + 1
+                                    )}
+                                </span>
+                                {paso.titulo}
+                            </button>
+                        </li>
+                    ))}
+                </ol>
 
-            {clavePaso === 'paciente' && (
-                <>
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-base">
-                                Datos generales
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="grid gap-4 sm:grid-cols-2">
-                            <div className="grid gap-2">
-                                <div className="flex items-center justify-between gap-2">
-                                    <Label>Paciente</Label>
-                                    <NuevoPacienteModal
-                                        regimenes={regimenes}
-                                        onCreado={(id) =>
-                                            setData('paciente_id', id)
+                {clavePaso === 'paciente' && (
+                    <>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-base">
+                                    Datos generales
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="grid gap-4 sm:grid-cols-2">
+                                <div className="grid gap-2">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <Label>Paciente</Label>
+                                        <NuevoPacienteModal
+                                            regimenes={regimenes}
+                                            onCreado={(id) =>
+                                                setData('paciente_id', id)
+                                            }
+                                        />
+                                    </div>
+                                    <BuscadorSelect
+                                        opciones={opcionesPacientes}
+                                        valor={data.paciente_id}
+                                        onCambio={(v) =>
+                                            setData('paciente_id', v)
                                         }
+                                        placeholder="Seleccione paciente"
+                                        placeholderBusqueda="Buscar por documento, nombre o apellido…"
+                                        sinResultados="Ningún paciente coincide. Use «Nuevo paciente»."
+                                        etiquetaAccesible="Paciente"
+                                    />
+                                    <InputError
+                                        message={error('paciente_id')}
                                     />
                                 </div>
-                                <BuscadorSelect
-                                    opciones={opcionesPacientes}
-                                    valor={data.paciente_id}
-                                    onCambio={(v) => setData('paciente_id', v)}
-                                    placeholder="Seleccione paciente"
-                                    placeholderBusqueda="Buscar por documento, nombre o apellido…"
-                                    sinResultados="Ningún paciente coincide. Use «Nuevo paciente»."
-                                />
-                                <InputError message={error('paciente_id')} />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label>Sala operatoria (opcional)</Label>
-                                <BuscadorSelect
-                                    opciones={opcionesSalas}
-                                    valor={data.sala_operatoria_id}
-                                    onCambio={(v) =>
-                                        setData('sala_operatoria_id', v)
-                                    }
-                                    placeholder="Sin sala"
-                                    placeholderBusqueda="Buscar sala…"
-                                />
-                                <InputError
-                                    message={error('sala_operatoria_id')}
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="fecha">Fecha</Label>
-                                <Input
-                                    id="fecha"
-                                    type="date"
-                                    value={data.fecha}
-                                    onChange={(e) =>
-                                        setData('fecha', e.target.value)
-                                    }
-                                    required
-                                />
-                                <InputError message={error('fecha')} />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label>Tipo / Estado</Label>
-                                <div className="flex gap-2">
+                                <div className="grid gap-2">
+                                    <Label>Sala operatoria (opcional)</Label>
+                                    <BuscadorSelect
+                                        opciones={opcionesSalas}
+                                        valor={data.sala_operatoria_id}
+                                        onCambio={(v) =>
+                                            setData('sala_operatoria_id', v)
+                                        }
+                                        placeholder="Sin sala"
+                                        placeholderBusqueda="Buscar sala…"
+                                        etiquetaAccesible="Sala operatoria"
+                                    />
+                                    <InputError
+                                        message={error('sala_operatoria_id')}
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="fecha">Fecha</Label>
+                                    <Input
+                                        id="fecha"
+                                        type="date"
+                                        value={data.fecha}
+                                        onChange={(e) =>
+                                            setData('fecha', e.target.value)
+                                        }
+                                        required
+                                    />
+                                    <InputError message={error('fecha')} />
+                                </div>
+                                {/* Tipo y estado compartían un único rótulo
+                                «Tipo / Estado» sobre dos desplegables: son
+                                dos decisiones distintas y ninguno de los dos
+                                tenía nombre accesible. */}
+                                <div className="grid gap-2">
+                                    <Label htmlFor="tipo">Tipo</Label>
                                     <Select
                                         value={data.tipo}
                                         onValueChange={(v) =>
                                             setData('tipo', v)
                                         }
                                     >
-                                        <SelectTrigger>
+                                        <SelectTrigger
+                                            id="tipo"
+                                            aria-label="Tipo"
+                                        >
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
                                             {tipos.map((t) => (
-                                                <SelectItem
-                                                    key={t}
-                                                    value={t}
-                                                    className="capitalize"
-                                                >
-                                                    {t}
+                                                <SelectItem key={t} value={t}>
+                                                    {etiqueta(t)}
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>
+                                    <InputError message={error('tipo')} />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="estado">Estado</Label>
                                     <Select
                                         value={data.estado}
                                         onValueChange={(v) =>
                                             setData('estado', v)
                                         }
                                     >
-                                        <SelectTrigger>
+                                        <SelectTrigger
+                                            id="estado"
+                                            aria-label="Estado"
+                                        >
                                             <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -1213,629 +1260,835 @@ export function FormularioCirugia({
                                                 <SelectItem
                                                     key={est}
                                                     value={est}
-                                                    className="capitalize"
                                                 >
-                                                    {est.replace('_', ' ')}
+                                                    {etiqueta(est)}
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>
+                                    <InputError message={error('estado')} />
                                 </div>
-                                <InputError
-                                    message={error('tipo') ?? error('estado')}
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="diagnostico_cie10">
-                                    Diagnóstico CIE-10 (opcional)
-                                </Label>
-                                <Input
-                                    id="diagnostico_cie10"
-                                    value={data.diagnostico_cie10}
-                                    onChange={(e) =>
-                                        setData(
-                                            'diagnostico_cie10',
-                                            e.target.value,
-                                        )
-                                    }
-                                    placeholder="p. ej. O82 o K35.8"
-                                    maxLength={8}
-                                />
-                                <InputError
-                                    message={error('diagnostico_cie10')}
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="observaciones">
-                                    Observaciones (opcional)
-                                </Label>
-                                <Input
-                                    id="observaciones"
-                                    value={data.observaciones}
-                                    onChange={(e) =>
-                                        setData('observaciones', e.target.value)
-                                    }
-                                />
-                                <InputError message={error('observaciones')} />
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-base">
-                                Procedimientos
-                            </CardTitle>
-                            <CardDescription>
-                                Al menos uno; marca cuál es el principal.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                            <InputError message={error('procedimientos')} />
-                            {data.procedimientos.map((fila, i) => (
-                                <div
-                                    key={i}
-                                    className="flex flex-wrap items-center gap-2"
-                                >
-                                    <div className="min-w-64 flex-1">
-                                        <BuscadorSelect
-                                            opciones={opcionesProcedimientos}
-                                            valor={fila.id}
-                                            onCambio={(v) =>
-                                                elegirProcedimiento(i, v)
-                                            }
-                                            placeholder="Seleccione procedimiento"
-                                            placeholderBusqueda="Buscar por nombre o código CUPS…"
-                                        />
-                                        <InputError
-                                            message={error(
-                                                `procedimientos.${i}.id`,
-                                            )}
-                                        />
-                                    </div>
-                                    <label className="flex items-center gap-1.5 text-sm">
-                                        <Checkbox
-                                            checked={fila.es_principal}
-                                            onCheckedChange={(v) =>
-                                                setData(
-                                                    'procedimientos',
-                                                    data.procedimientos.map(
-                                                        (p, j) => ({
-                                                            ...p,
-                                                            es_principal:
-                                                                j === i &&
-                                                                v === true,
-                                                        }),
-                                                    ),
-                                                )
-                                            }
-                                        />
-                                        Principal
-                                    </label>
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon"
-                                        aria-label="Quitar"
-                                        onClick={() =>
-                                            quitarFila('procedimientos', i)
+                                <div className="grid gap-2">
+                                    <Label htmlFor="diagnostico_cie10">
+                                        Diagnóstico CIE-10 (opcional)
+                                    </Label>
+                                    <Input
+                                        id="diagnostico_cie10"
+                                        value={data.diagnostico_cie10}
+                                        onChange={(e) =>
+                                            setData(
+                                                'diagnostico_cie10',
+                                                e.target.value,
+                                            )
                                         }
-                                    >
-                                        <Trash2 className="size-4 text-destructive" />
-                                    </Button>
+                                        placeholder="p. ej. O82 o K35.8"
+                                        maxLength={8}
+                                    />
+                                    <InputError
+                                        message={error('diagnostico_cie10')}
+                                    />
                                 </div>
-                            ))}
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() =>
-                                    setData('procedimientos', [
-                                        ...data.procedimientos,
-                                        { id: '', es_principal: false },
-                                    ])
-                                }
-                            >
-                                <Plus className="size-4" /> Agregar
-                                procedimiento
-                            </Button>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="observaciones">
+                                        Observaciones (opcional)
+                                    </Label>
+                                    <Input
+                                        id="observaciones"
+                                        value={data.observaciones}
+                                        onChange={(e) =>
+                                            setData(
+                                                'observaciones',
+                                                e.target.value,
+                                            )
+                                        }
+                                    />
+                                    <InputError
+                                        message={error('observaciones')}
+                                    />
+                                </div>
+                            </CardContent>
+                        </Card>
 
-                            {/* Qué trae preorganizado el protocolo elegido:
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-base">
+                                    Procedimientos
+                                </CardTitle>
+                                <CardDescription>
+                                    Al menos uno; marca cuál es el principal.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                                <InputError message={error('procedimientos')} />
+                                {data.procedimientos.map((fila, i) => (
+                                    <div
+                                        key={i}
+                                        className="flex flex-wrap items-center gap-2"
+                                    >
+                                        <div className="min-w-64 flex-1">
+                                            <BuscadorSelect
+                                                opciones={
+                                                    opcionesProcedimientos
+                                                }
+                                                valor={fila.id}
+                                                onCambio={(v) =>
+                                                    elegirProcedimiento(i, v)
+                                                }
+                                                placeholder="Seleccione procedimiento"
+                                                placeholderBusqueda="Buscar por nombre o código CUPS…"
+                                                etiquetaAccesible={`Procedimiento ${i + 1}`}
+                                            />
+                                            <InputError
+                                                message={error(
+                                                    `procedimientos.${i}.id`,
+                                                )}
+                                            />
+                                        </div>
+                                        <label className="flex items-center gap-1.5 text-sm">
+                                            <Checkbox
+                                                checked={fila.es_principal}
+                                                onCheckedChange={(v) =>
+                                                    setData(
+                                                        'procedimientos',
+                                                        data.procedimientos.map(
+                                                            (p, j) => ({
+                                                                ...p,
+                                                                es_principal:
+                                                                    j === i &&
+                                                                    v === true,
+                                                            }),
+                                                        ),
+                                                    )
+                                                }
+                                            />
+                                            Principal
+                                        </label>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            aria-label="Quitar"
+                                            onClick={() =>
+                                                quitarFila('procedimientos', i)
+                                            }
+                                        >
+                                            <Trash2 className="size-4 text-destructive" />
+                                        </Button>
+                                    </div>
+                                ))}
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() =>
+                                        setData('procedimientos', [
+                                            ...data.procedimientos,
+                                            { id: '', es_principal: false },
+                                        ])
+                                    }
+                                >
+                                    <Plus className="size-4" /> Agregar
+                                    procedimiento
+                                </Button>
+
+                                {/* Qué trae preorganizado el protocolo elegido:
                                 el digitador ve de entrada que no parte de
                                 cero, y desde dónde ajustar la excepción. */}
-                            {protocolo !== null && (
-                                <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-muted/40 p-3 text-sm">
-                                    {lineasDePlantilla === 0 ? (
-                                        <p className="text-muted-foreground">
-                                            «{protocolo.nombre}» no tiene
-                                            plantilla: habrá que capturar
-                                            insumos, personal y equipos a mano.
-                                        </p>
-                                    ) : (
-                                        <p className="text-muted-foreground">
-                                            El protocolo trae{' '}
-                                            <span className="font-medium text-foreground">
-                                                {lineasDePlantilla} líneas
-                                            </span>{' '}
-                                            preorganizadas.
-                                            {pendientesDePlantilla > 0
-                                                ? ` Faltan ${pendientesDePlantilla} por poner en este registro.`
-                                                : ' Ya están todas puestas: quita lo que no se use y agrega lo demás.'}
-                                        </p>
-                                    )}
-                                    {pendientesDePlantilla > 0 && (
+                                {protocolo !== null && (
+                                    <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-muted/40 p-3 text-sm">
+                                        {lineasDePlantilla === 0 ? (
+                                            <p className="text-muted-foreground">
+                                                «{protocolo.nombre}» no tiene
+                                                plantilla: habrá que capturar
+                                                insumos, personal y equipos a
+                                                mano.
+                                            </p>
+                                        ) : (
+                                            <p className="text-muted-foreground">
+                                                El protocolo trae{' '}
+                                                <span className="font-medium text-foreground">
+                                                    {lineasDePlantilla} líneas
+                                                </span>{' '}
+                                                preorganizadas.
+                                                {pendientesDePlantilla > 0
+                                                    ? ` Faltan ${pendientesDePlantilla} por poner en este registro.`
+                                                    : ' Ya están todas puestas: quita lo que no se use y agrega lo demás.'}
+                                            </p>
+                                        )}
+                                        {pendientesDePlantilla > 0 && (
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() =>
+                                                    aplicarPlantilla()
+                                                }
+                                            >
+                                                <ClipboardList className="size-4" />{' '}
+                                                Traer la plantilla
+                                            </Button>
+                                        )}
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </>
+                )}
+
+                {clavePaso === 'pre' && (
+                    <>
+                        <Card>
+                            <CardHeader>
+                                <div className="flex flex-wrap items-start justify-between gap-2">
+                                    <div>
+                                        <CardTitle className="text-base">
+                                            Preparación del paciente
+                                        </CardTitle>
+                                        <CardDescription>
+                                            Desde que ingresa hasta que entra a
+                                            sala. La sala todavía no se ocupa.
+                                        </CardDescription>
+                                    </div>
+                                    {puedeSugerirPre && (
                                         <Button
                                             type="button"
                                             variant="outline"
                                             size="sm"
-                                            onClick={() => aplicarPlantilla()}
+                                            onClick={sugerirDesdeProtocolo}
                                         >
-                                            <ClipboardList className="size-4" />{' '}
-                                            Traer la plantilla
+                                            <Wand2 className="size-4" /> Sugerir
+                                            del protocolo
                                         </Button>
                                     )}
                                 </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                </>
-            )}
-
-            {clavePaso === 'pre' && (
-                <>
-                    <Card>
-                        <CardHeader>
-                            <div className="flex flex-wrap items-start justify-between gap-2">
-                                <div>
-                                    <CardTitle className="text-base">
-                                        Preparación del paciente
-                                    </CardTitle>
-                                    <CardDescription>
-                                        Desde que ingresa hasta que entra a
-                                        sala. La sala todavía no se ocupa.
-                                    </CardDescription>
-                                </div>
-                                {puedeSugerirPre && (
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={sugerirDesdeProtocolo}
-                                    >
-                                        <Wand2 className="size-4" /> Sugerir del
-                                        protocolo
-                                    </Button>
-                                )}
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid gap-2 sm:max-w-sm">
-                                <Label htmlFor="hora_ingreso_paciente">
-                                    Ingreso del paciente
-                                </Label>
-                                <Input
-                                    id="hora_ingreso_paciente"
-                                    type="datetime-local"
-                                    value={data.hora_ingreso_paciente}
-                                    onChange={(e) =>
-                                        setData(
-                                            'hora_ingreso_paciente',
-                                            e.target.value,
-                                        )
-                                    }
-                                />
-                                <InputError
-                                    message={error('hora_ingreso_paciente')}
-                                />
-                                {minutosPre !== null && (
-                                    <p className="text-xs text-muted-foreground">
-                                        {minutosPre} min de preparación
-                                    </p>
-                                )}
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {tarjetaPersonal(
-                        'pre',
-                        'Quien prepara al paciente y alista la sala: enfermería, instrumentador, camillero.',
-                    )}
-                    {tarjetaInsumos(
-                        'pre',
-                        'Lo que se consume antes de entrar: bata, gorro, vía, antiséptico, profilaxis.',
-                    )}
-                </>
-            )}
-
-            {clavePaso === 'quirurgica' && (
-                <>
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-base">
-                                Tiempos de sala
-                            </CardTitle>
-                            <CardDescription>
-                                Solo la entrada a sala es obligatoria. Incisión
-                                y cierre permiten separar el tiempo operando del
-                                tiempo de sala.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                            <div className="grid gap-4 sm:grid-cols-2">
-                                <div className="grid gap-2">
-                                    <Label htmlFor="hora_inicio">
-                                        Entrada a sala
+                            </CardHeader>
+                            <CardContent>
+                                <div className="grid gap-2 sm:max-w-sm">
+                                    <Label htmlFor="hora_ingreso_paciente">
+                                        Ingreso del paciente
                                     </Label>
                                     <Input
-                                        id="hora_inicio"
+                                        id="hora_ingreso_paciente"
                                         type="datetime-local"
-                                        value={data.hora_inicio}
+                                        value={data.hora_ingreso_paciente}
                                         onChange={(e) =>
                                             setData(
-                                                'hora_inicio',
-                                                e.target.value,
-                                            )
-                                        }
-                                        required
-                                    />
-                                    <InputError
-                                        message={error('hora_inicio')}
-                                    />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="hora_fin">
-                                        Salida de sala
-                                    </Label>
-                                    <Input
-                                        id="hora_fin"
-                                        type="datetime-local"
-                                        value={data.hora_fin}
-                                        onChange={(e) =>
-                                            setData('hora_fin', e.target.value)
-                                        }
-                                    />
-                                    <InputError message={error('hora_fin')} />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="hora_incision">
-                                        Incisión (opcional)
-                                    </Label>
-                                    <Input
-                                        id="hora_incision"
-                                        type="datetime-local"
-                                        value={data.hora_incision}
-                                        onChange={(e) =>
-                                            setData(
-                                                'hora_incision',
+                                                'hora_ingreso_paciente',
                                                 e.target.value,
                                             )
                                         }
                                     />
                                     <InputError
-                                        message={error('hora_incision')}
+                                        message={error('hora_ingreso_paciente')}
                                     />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="hora_cierre">
-                                        Cierre (opcional)
-                                    </Label>
-                                    <Input
-                                        id="hora_cierre"
-                                        type="datetime-local"
-                                        value={data.hora_cierre}
-                                        onChange={(e) =>
-                                            setData(
-                                                'hora_cierre',
-                                                e.target.value,
-                                            )
-                                        }
-                                    />
-                                    <InputError
-                                        message={error('hora_cierre')}
-                                    />
-                                </div>
-                            </div>
-                            {duracion !== null && (
-                                <p className="text-xs text-muted-foreground">
-                                    {duracion} min de sala
-                                    {minutosNeto !== null && (
-                                        <>
-                                            {' · '}
-                                            {minutosNeto} min de tiempo
-                                            quirúrgico neto{' · '}
-                                            <span className="text-amber-700 dark:text-amber-500">
-                                                {duracion - minutosNeto} min de
-                                                sala sin operar
-                                            </span>
-                                        </>
+                                    {minutosPre !== null && (
+                                        <p className="text-xs text-muted-foreground">
+                                            {minutosPre} min de preparación
+                                        </p>
                                     )}
-                                </p>
-                            )}
-                        </CardContent>
-                    </Card>
+                                </div>
+                            </CardContent>
+                        </Card>
 
-                    {tarjetaPersonal(
-                        'quirurgica',
-                        'El equipo quirúrgico. Sus minutos son la base del costo TDABC de talento humano.',
-                    )}
-                    {tarjetaInsumos(
-                        'quirurgica',
-                        'Lo consumido operando: suturas, gasas, material de osteosíntesis, implantes.',
-                    )}
+                        {tarjetaPersonal(
+                            'pre',
+                            'Quien prepara al paciente y alista la sala: enfermería, instrumentador, camillero.',
+                        )}
+                        {tarjetaInsumos(
+                            'pre',
+                            'Lo que se consume antes de entrar: bata, gorro, vía, antiséptico, profilaxis.',
+                        )}
+                    </>
+                )}
 
-                    <Card>
-                        <CardHeader>
-                            <CardTitle className="text-base">
-                                Equipos médicos
-                            </CardTitle>
-                            <CardDescription>
-                                Equipos usados y sus minutos de uso.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-3">
-                            {data.equipos_medicos.map((fila, i) => (
-                                <div
-                                    key={i}
-                                    className="flex flex-wrap items-center gap-2"
-                                >
-                                    <div className="min-w-64 flex-1">
-                                        <BuscadorSelect
-                                            opciones={opcionesEquipos}
-                                            valor={fila.id}
-                                            onCambio={(v) =>
-                                                actualizarFila(
-                                                    'equipos_medicos',
-                                                    i,
-                                                    { id: v },
-                                                )
-                                            }
-                                            placeholder="Seleccione equipo"
-                                            placeholderBusqueda="Buscar equipo…"
-                                        />
-                                        <InputError
-                                            message={error(
-                                                `equipos_medicos.${i}.id`,
-                                            )}
-                                        />
-                                    </div>
-                                    <div className="w-32">
+                {clavePaso === 'quirurgica' && (
+                    <>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-base">
+                                    Tiempos de sala
+                                </CardTitle>
+                                <CardDescription>
+                                    Solo la entrada a sala es obligatoria.
+                                    Incisión y cierre permiten separar el tiempo
+                                    operando del tiempo de sala.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                                <div className="grid gap-4 sm:grid-cols-2">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="hora_inicio">
+                                            Entrada a sala
+                                        </Label>
                                         <Input
-                                            type="number"
-                                            min={1}
-                                            max={1440}
-                                            placeholder="Minutos"
-                                            value={fila.minutos_uso}
+                                            id="hora_inicio"
+                                            type="datetime-local"
+                                            value={data.hora_inicio}
                                             onChange={(e) =>
-                                                actualizarFila(
-                                                    'equipos_medicos',
-                                                    i,
-                                                    {
-                                                        minutos_uso:
-                                                            e.target.value,
-                                                    },
+                                                setData(
+                                                    'hora_inicio',
+                                                    e.target.value,
+                                                )
+                                            }
+                                            required
+                                        />
+                                        <InputError
+                                            message={error('hora_inicio')}
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="hora_fin">
+                                            Salida de sala
+                                        </Label>
+                                        <Input
+                                            id="hora_fin"
+                                            type="datetime-local"
+                                            value={data.hora_fin}
+                                            onChange={(e) =>
+                                                setData(
+                                                    'hora_fin',
+                                                    e.target.value,
                                                 )
                                             }
                                         />
                                         <InputError
-                                            message={error(
-                                                `equipos_medicos.${i}.minutos_uso`,
-                                            )}
+                                            message={error('hora_fin')}
                                         />
                                     </div>
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon"
-                                        aria-label="Quitar"
-                                        onClick={() =>
-                                            quitarFila('equipos_medicos', i)
-                                        }
-                                    >
-                                        <Trash2 className="size-4 text-destructive" />
-                                    </Button>
-                                    {marcaExtra(equipoEsExtra(fila))}
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="hora_incision">
+                                            Incisión (opcional)
+                                        </Label>
+                                        <Input
+                                            id="hora_incision"
+                                            type="datetime-local"
+                                            value={data.hora_incision}
+                                            onChange={(e) =>
+                                                setData(
+                                                    'hora_incision',
+                                                    e.target.value,
+                                                )
+                                            }
+                                        />
+                                        <InputError
+                                            message={error('hora_incision')}
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="hora_cierre">
+                                            Cierre (opcional)
+                                        </Label>
+                                        <Input
+                                            id="hora_cierre"
+                                            type="datetime-local"
+                                            value={data.hora_cierre}
+                                            onChange={(e) =>
+                                                setData(
+                                                    'hora_cierre',
+                                                    e.target.value,
+                                                )
+                                            }
+                                        />
+                                        <InputError
+                                            message={error('hora_cierre')}
+                                        />
+                                    </div>
                                 </div>
-                            ))}
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() =>
-                                    setData('equipos_medicos', [
-                                        ...data.equipos_medicos,
-                                        {
-                                            id: '',
-                                            minutos_uso: String(duracion ?? ''),
-                                        },
-                                    ])
-                                }
-                            >
-                                <Plus className="size-4" /> Agregar equipo
-                            </Button>
-
-                            {chipsFaltantes(
-                                'De la plantilla falta:',
-                                equiposFaltantes().map((fila) => ({
-                                    clave: fila.equipo_medico_id,
-                                    etiqueta: nombreEquipo(
-                                        fila.equipo_medico_id,
-                                    ),
-                                    opcional: fila.opcional,
-                                })),
-                                (equipoId) => {
-                                    const linea = plantilla.equipos.find(
-                                        (p) => p.equipo_medico_id === equipoId,
-                                    );
-
-                                    setData('equipos_medicos', [
-                                        ...data.equipos_medicos,
-                                        {
-                                            id: equipoId,
-                                            minutos_uso:
-                                                linea?.minutos_uso !== ''
-                                                    ? (linea?.minutos_uso ?? '')
-                                                    : String(duracion ?? ''),
-                                        },
-                                    ]);
-                                },
-                            )}
-                        </CardContent>
-                    </Card>
-                </>
-            )}
-
-            {clavePaso === 'post' && (
-                <>
-                    <Card>
-                        <CardHeader>
-                            <div className="flex flex-wrap items-start justify-between gap-2">
-                                <div>
-                                    <CardTitle className="text-base">
-                                        Recuperación
-                                    </CardTitle>
-                                    <CardDescription>
-                                        Desde que sale de sala hasta el egreso.
-                                        Si el paciente sigue hospitalizado, deja
-                                        el egreso vacío.
-                                    </CardDescription>
-                                </div>
-                                {puedeSugerirPost && (
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={sugerirDesdeProtocolo}
-                                    >
-                                        <Wand2 className="size-4" /> Sugerir del
-                                        protocolo
-                                    </Button>
-                                )}
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="grid gap-2 sm:max-w-sm">
-                                <Label htmlFor="hora_salida_recuperacion">
-                                    Salida de recuperación
-                                </Label>
-                                <Input
-                                    id="hora_salida_recuperacion"
-                                    type="datetime-local"
-                                    value={data.hora_salida_recuperacion}
-                                    onChange={(e) =>
-                                        setData(
-                                            'hora_salida_recuperacion',
-                                            e.target.value,
-                                        )
-                                    }
-                                />
-                                <InputError
-                                    message={error('hora_salida_recuperacion')}
-                                />
-                                {minutosPost !== null && (
+                                {duracion !== null && (
                                     <p className="text-xs text-muted-foreground">
-                                        {minutosPost} min de recuperación
+                                        {duracion} min de sala
+                                        {minutosNeto !== null && (
+                                            <>
+                                                {' · '}
+                                                {minutosNeto} min de tiempo
+                                                quirúrgico neto{' · '}
+                                                <span className="text-amber-700 dark:text-amber-500">
+                                                    {duracion - minutosNeto} min
+                                                    de sala sin operar
+                                                </span>
+                                            </>
+                                        )}
                                     </p>
                                 )}
-                            </div>
-                        </CardContent>
-                    </Card>
+                            </CardContent>
+                        </Card>
 
-                    {tarjetaPersonal(
-                        'post',
-                        'Quien atiende al paciente en recuperación, y quien procesa el instrumental usado.',
-                    )}
-                    {tarjetaInsumos(
-                        'post',
-                        'Lo consumido después: analgesia, curaciones, material de esterilización.',
-                    )}
-                </>
-            )}
+                        {tarjetaPersonal(
+                            'quirurgica',
+                            'El equipo quirúrgico. Sus minutos son la base del costo TDABC de talento humano.',
+                        )}
+                        {tarjetaInsumos(
+                            'quirurgica',
+                            'Lo consumido operando: suturas, gasas, material de osteosíntesis, implantes.',
+                        )}
 
-            {esUltimo && (
-                <>
-                    {cicloTotal !== null && (
-                        <div className="flex items-baseline justify-between gap-2 rounded-lg border px-4 py-3 text-sm">
-                            <span className="font-medium">
-                                Ciclo completo del paciente
-                            </span>
-                            <span className="tabular-nums">
-                                {cicloTotal} min
-                            </span>
-                        </div>
-                    )}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-base">
+                                    Equipos médicos
+                                </CardTitle>
+                                <CardDescription>
+                                    Equipos usados y sus minutos de uso.
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                                {data.equipos_medicos.map((fila, i) => (
+                                    <div
+                                        key={i}
+                                        className="flex flex-wrap items-center gap-2"
+                                    >
+                                        <div className="min-w-64 flex-1">
+                                            <BuscadorSelect
+                                                opciones={opcionesEquipos}
+                                                valor={fila.id}
+                                                onCambio={(v) =>
+                                                    actualizarFila(
+                                                        'equipos_medicos',
+                                                        i,
+                                                        { id: v },
+                                                    )
+                                                }
+                                                placeholder="Seleccione equipo"
+                                                placeholderBusqueda="Buscar equipo…"
+                                                etiquetaAccesible="Equipo médico"
+                                            />
+                                            <InputError
+                                                message={error(
+                                                    `equipos_medicos.${i}.id`,
+                                                )}
+                                            />
+                                        </div>
+                                        <div className="w-32">
+                                            <Input
+                                                type="number"
+                                                min={1}
+                                                max={1440}
+                                                placeholder="Minutos"
+                                                value={fila.minutos_uso}
+                                                onChange={(e) =>
+                                                    actualizarFila(
+                                                        'equipos_medicos',
+                                                        i,
+                                                        {
+                                                            minutos_uso:
+                                                                e.target.value,
+                                                        },
+                                                    )
+                                                }
+                                            />
+                                            <InputError
+                                                message={error(
+                                                    `equipos_medicos.${i}.minutos_uso`,
+                                                )}
+                                            />
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            aria-label="Quitar"
+                                            onClick={() =>
+                                                quitarFila('equipos_medicos', i)
+                                            }
+                                        >
+                                            <Trash2 className="size-4 text-destructive" />
+                                        </Button>
+                                        {marcaExtra(equipoEsExtra(fila))}
+                                    </div>
+                                ))}
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() =>
+                                        setData('equipos_medicos', [
+                                            ...data.equipos_medicos,
+                                            {
+                                                id: '',
+                                                minutos_uso: String(
+                                                    duracion ?? '',
+                                                ),
+                                            },
+                                        ])
+                                    }
+                                >
+                                    <Plus className="size-4" /> Agregar equipo
+                                </Button>
 
+                                {chipsFaltantes(
+                                    'De la plantilla falta:',
+                                    equiposFaltantes().map((fila) => ({
+                                        clave: fila.equipo_medico_id,
+                                        etiqueta: nombreEquipo(
+                                            fila.equipo_medico_id,
+                                        ),
+                                        opcional: fila.opcional,
+                                    })),
+                                    (equipoId) => {
+                                        const linea = plantilla.equipos.find(
+                                            (p) =>
+                                                p.equipo_medico_id === equipoId,
+                                        );
+
+                                        setData('equipos_medicos', [
+                                            ...data.equipos_medicos,
+                                            {
+                                                id: equipoId,
+                                                minutos_uso:
+                                                    linea?.minutos_uso !== ''
+                                                        ? (linea?.minutos_uso ??
+                                                          '')
+                                                        : String(
+                                                              duracion ?? '',
+                                                          ),
+                                            },
+                                        ]);
+                                    },
+                                )}
+                            </CardContent>
+                        </Card>
+                    </>
+                )}
+
+                {clavePaso === 'post' && (
+                    <>
+                        <Card>
+                            <CardHeader>
+                                <div className="flex flex-wrap items-start justify-between gap-2">
+                                    <div>
+                                        <CardTitle className="text-base">
+                                            Recuperación
+                                        </CardTitle>
+                                        <CardDescription>
+                                            Desde que sale de sala hasta el
+                                            egreso. Si el paciente sigue
+                                            hospitalizado, deja el egreso vacío.
+                                        </CardDescription>
+                                    </div>
+                                    {puedeSugerirPost && (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={sugerirDesdeProtocolo}
+                                        >
+                                            <Wand2 className="size-4" /> Sugerir
+                                            del protocolo
+                                        </Button>
+                                    )}
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="grid gap-2 sm:max-w-sm">
+                                    <Label htmlFor="hora_salida_recuperacion">
+                                        Salida de recuperación
+                                    </Label>
+                                    <Input
+                                        id="hora_salida_recuperacion"
+                                        type="datetime-local"
+                                        value={data.hora_salida_recuperacion}
+                                        onChange={(e) =>
+                                            setData(
+                                                'hora_salida_recuperacion',
+                                                e.target.value,
+                                            )
+                                        }
+                                    />
+                                    <InputError
+                                        message={error(
+                                            'hora_salida_recuperacion',
+                                        )}
+                                    />
+                                    {minutosPost !== null && (
+                                        <p className="text-xs text-muted-foreground">
+                                            {minutosPost} min de recuperación
+                                        </p>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {tarjetaPersonal(
+                            'post',
+                            'Quien atiende al paciente en recuperación, y quien procesa el instrumental usado.',
+                        )}
+                        {tarjetaInsumos(
+                            'post',
+                            'Lo consumido después: analgesia, curaciones, material de esterilización.',
+                        )}
+                    </>
+                )}
+
+                {esUltimo && (
+                    <>
+                        {/* Resumen antes de guardar: hasta aquí se enviaba sin
+                        haber visto nunca junto lo capturado en los tres
+                        pasos, y corregir después cuesta más que revisar. */}
+                        <ResumenRegistro
+                            data={data}
+                            catalogos={catalogos}
+                            cicloTotal={cicloTotal}
+                            duracion={duracion}
+                            minutosPre={minutosPre}
+                            minutosPost={minutosPost}
+                            onIrAPaso={setPasoActual}
+                            pasos={pasos}
+                        />
+
+                        {listoParaGuardar && noContabilizable && (
+                            <Alert className="border-amber-300/70 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+                                <TriangleAlert className="size-4" />
+                                <AlertTitle>
+                                    Este procedimiento no se contabilizará
+                                    todavía
+                                </AlertTitle>
+                                <AlertDescription className="text-amber-800 dark:text-amber-300/90">
+                                    {sinHoraFin && (
+                                        <p>
+                                            No tiene hora de salida de sala: sin
+                                            ella no hay duración real que
+                                            costear.
+                                        </p>
+                                    )}
+                                    {sinEstadoRealizada && (
+                                        <p>
+                                            Su estado es «
+                                            {etiquetaValor(
+                                                data.estado,
+                                            ).toLowerCase()}
+                                            »: solo los procedimientos
+                                            realizados se costean y entran a los
+                                            indicadores.
+                                        </p>
+                                    )}
+                                    {sinEgreso && !sinHoraFin && (
+                                        <p>
+                                            No tiene salida de recuperación:
+                                            mientras el paciente siga en el
+                                            hospital el ciclo no ha terminado, y
+                                            darlo por realizado sería un dato
+                                            que no ocurrió.
+                                        </p>
+                                    )}
+                                    <p className="mt-1 font-medium">
+                                        Es lo normal al registrar: guárdalo así
+                                        y ciérralo con «Cerrar» desde el listado
+                                        cuando el paciente egrese.
+                                    </p>
+                                </AlertDescription>
+                            </Alert>
+                        )}
+                    </>
+                )}
+
+                <div className="flex items-center gap-3">
+                    {pasoActual > 0 && (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setPasoActual(pasoActual - 1)}
+                        >
+                            Atrás
+                        </Button>
+                    )}
+                    {esUltimo ? (
+                        <Button type="submit" disabled={processing}>
+                            {textoEnviar}
+                        </Button>
+                    ) : (
+                        <Button
+                            type="button"
+                            onClick={() => setPasoActual(pasoActual + 1)}
+                        >
+                            Siguiente
+                        </Button>
+                    )}
+                    <Button asChild variant="outline">
+                        <Link href={hrefCancelar}>Cancelar</Link>
+                    </Button>
+                </div>
+            </div>
+
+            {/* La estimación acompaña los tres pasos en vez de aparecer
+                    solo al final: ver el costo crecer mientras se captura es
+                    lo que convierte el formulario en una herramienta y no en
+                    un trámite. */}
+            <aside className="space-y-4 lg:sticky lg:top-4">
+                {estimacion !== null && estimacion.total > 0 && (
                     <EstimacionCosto
                         estimacion={estimacion}
                         duracionMinutos={duracion}
                     />
-
-                    {noContabilizable && (
-                        <Alert className="border-amber-300/70 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
-                            <TriangleAlert className="size-4" />
-                            <AlertTitle>
-                                Este procedimiento no se contabilizará en los
-                                indicadores
-                            </AlertTitle>
-                            <AlertDescription className="text-amber-800 dark:text-amber-300/90">
-                                {sinHoraFin && (
-                                    <p>
-                                        No tiene hora de salida de sala: sin
-                                        ella no hay duración real que costear.
-                                    </p>
-                                )}
-                                {sinEstadoRealizada && (
-                                    <p>
-                                        Su estado es «
-                                        {data.estado.replace('_', ' ')}»: solo
-                                        los procedimientos realizados se costean
-                                        y entran a los indicadores.
-                                    </p>
-                                )}
-                                {sinEgreso && !sinHoraFin && (
-                                    <p>
-                                        No tiene salida de recuperación:
-                                        mientras el paciente siga en el hospital
-                                        el ciclo no ha terminado, y darlo por
-                                        realizado sería un dato que no ocurrió.
-                                    </p>
-                                )}
-                                <p>
-                                    Puedes guardarlo así y completarlo después
-                                    con «Cerrar» desde el listado; entretanto
-                                    queda marcado como «No contabilizada».
-                                </p>
-                            </AlertDescription>
-                        </Alert>
-                    )}
-                </>
-            )}
-
-            <div className="flex items-center gap-3">
-                {pasoActual > 0 && (
-                    <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => setPasoActual(pasoActual - 1)}
-                    >
-                        Atrás
-                    </Button>
                 )}
-                {esUltimo ? (
-                    <Button type="submit" disabled={processing}>
-                        {textoEnviar}
-                    </Button>
-                ) : (
-                    <Button
-                        type="button"
-                        onClick={() => setPasoActual(pasoActual + 1)}
-                    >
-                        Siguiente
-                    </Button>
+
+                {!esCorreccion && (
+                    <p className="rounded-lg border bg-muted/40 p-3 text-xs text-muted-foreground">
+                        El egreso del paciente se registra después: al guardar,
+                        este procedimiento queda abierto y se completa con{' '}
+                        <strong>«Cerrar»</strong> desde el listado cuando salga
+                        de recuperación.
+                    </p>
                 )}
-                <Button asChild variant="outline">
-                    <Link href={hrefCancelar}>Cancelar</Link>
-                </Button>
-            </div>
+            </aside>
         </form>
+    );
+}
+
+/** Etiqueta legible de un estado o tipo, con sus tildes. */
+function etiquetaValor(valor: string): string {
+    return etiqueta(valor);
+}
+
+/**
+ * Repaso de lo capturado en los tres pasos, con un enlace de vuelta a cada
+ * uno. Se enseña justo antes del botón de guardar.
+ */
+function ResumenRegistro({
+    data,
+    catalogos,
+    cicloTotal,
+    duracion,
+    minutosPre,
+    minutosPost,
+    onIrAPaso,
+    pasos,
+}: {
+    data: DatosCirugia;
+    catalogos: CatalogosCirugia;
+    cicloTotal: number | null;
+    duracion: number | null;
+    minutosPre: number | null;
+    minutosPost: number | null;
+    onIrAPaso: (indice: number) => void;
+    pasos: { clave: ClavePaso; titulo: string; fase: FaseCiclo | null }[];
+}) {
+    const paciente = catalogos.pacientes.find(
+        (p) => String(p.id) === data.paciente_id,
+    );
+    const sala = catalogos.salas.find(
+        (s) => String(s.id) === data.sala_operatoria_id,
+    );
+    const principal = catalogos.procedimientos.find(
+        (p) =>
+            String(p.id) ===
+            (data.procedimientos.find((f) => f.es_principal)?.id ??
+                data.procedimientos[0]?.id),
+    );
+
+    const irA = (clave: ClavePaso) => {
+        const indice = pasos.findIndex((paso) => paso.clave === clave);
+
+        if (indice >= 0) {
+            onIrAPaso(indice);
+        }
+    };
+
+    const porFase = (fase: FaseCiclo) => ({
+        personas: data.equipo.filter((f) => f.fase === fase).length,
+        insumos: data.consumos.filter((f) => f.fase === fase).length,
+    });
+
+    const filas: {
+        clave: ClavePaso;
+        titulo: string;
+        contenido: React.ReactNode;
+    }[] = [
+        {
+            clave: 'paciente',
+            titulo: 'Paciente y procedimiento',
+            contenido: (
+                <>
+                    {paciente
+                        ? `${paciente.apellidos}, ${paciente.nombres}`
+                        : 'Sin paciente'}
+                    {' · '}
+                    {principal?.nombre ?? 'Sin procedimiento'}
+                    {sala ? ` · ${sala.nombre}` : ' · Sin sala'}
+                </>
+            ),
+        },
+        {
+            clave: 'pre',
+            titulo: 'Pre-quirúrgico',
+            contenido: (
+                <>
+                    {minutosPre !== null
+                        ? `${minutosPre} min de preparación`
+                        : 'Sin hora de ingreso'}
+                    {' · '}
+                    {porFase('pre').personas} personas ·{' '}
+                    {porFase('pre').insumos} insumos
+                </>
+            ),
+        },
+        {
+            clave: 'quirurgica',
+            titulo: 'Quirúrgico',
+            contenido: (
+                <>
+                    {duracion !== null
+                        ? `${duracion} min de sala`
+                        : 'Sin salida de sala'}
+                    {' · '}
+                    {porFase('quirurgica').personas} personas ·{' '}
+                    {porFase('quirurgica').insumos} insumos ·{' '}
+                    {data.equipos_medicos.length} equipos
+                </>
+            ),
+        },
+    ];
+
+    if (pasos.some((paso) => paso.clave === 'post')) {
+        filas.push({
+            clave: 'post',
+            titulo: 'Post-quirúrgico',
+            contenido: (
+                <>
+                    {minutosPost !== null
+                        ? `${minutosPost} min de recuperación`
+                        : 'Sin egreso'}
+                    {' · '}
+                    {porFase('post').personas} personas ·{' '}
+                    {porFase('post').insumos} insumos
+                </>
+            ),
+        });
+    }
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="text-base">
+                    Repaso antes de guardar
+                </CardTitle>
+                <CardDescription>
+                    Toque cualquier bloque para volver a él y corregirlo.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+                {filas.map((fila) => (
+                    <button
+                        key={fila.clave}
+                        type="button"
+                        onClick={() => irA(fila.clave)}
+                        className="flex w-full flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-muted"
+                    >
+                        <span className="font-medium">{fila.titulo}</span>
+                        <span className="text-muted-foreground">
+                            {fila.contenido}
+                        </span>
+                    </button>
+                ))}
+
+                {cicloTotal !== null && (
+                    <div className="flex items-baseline justify-between gap-2 border-t px-2 pt-3 text-sm">
+                        <span className="font-medium">
+                            Ciclo completo del paciente
+                        </span>
+                        <span className="tabular-nums">{cicloTotal} min</span>
+                    </div>
+                )}
+            </CardContent>
+        </Card>
     );
 }

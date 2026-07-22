@@ -34,6 +34,25 @@ export type PaginadoProcedimientosCosteo = {
     to: number | null;
 };
 
+/** Un punto de la serie de costos de un procedimiento. */
+export type PuntoSerieProcedimiento = {
+    cirugia_id: number;
+    fecha: string;
+    costo_total: number;
+    duracion_minutos: number | null;
+};
+
+/** Promedios del procedimiento, para situar una cirugía concreta. */
+export type ReferenciaProcedimiento = {
+    n: number;
+    costo_total: number;
+    recurso_humano: number;
+    sala: number;
+    equipos: number;
+    insumos: number;
+    indirectos: number;
+};
+
 export type ProcedimientoCosteoInfo = {
     id: number;
     codigo_cups: string;
@@ -117,12 +136,24 @@ export type PuntoOutlier = {
     criterios: string[];
 };
 
+/** Cuartiles y bigotes de Tukey, para el diagrama de caja. */
+export type CajaOutliers = {
+    minimo: number;
+    bigote_inferior: number;
+    q1: number;
+    mediana: number;
+    q3: number;
+    bigote_superior: number;
+    maximo: number;
+};
+
 export type GrupoOutliers = {
     procedimiento: ProcedimientoResumen;
     n: number;
     media: number;
     desviacion: number;
     coeficiente_variacion: number | null;
+    caja: CajaOutliers;
     limites: {
         z_inferior: number;
         z_superior: number;
@@ -174,15 +205,44 @@ export type Completitud = {
     completitud_global: number | null;
 };
 
+/** Serie mensual del costo, para la gráfica de evolución. */
+export type MesTendencia = {
+    mes: string;
+    etiqueta: string;
+    n: number;
+    costo_promedio: number;
+    costo_total: number;
+    recurso_humano: number;
+    sala: number;
+    equipos: number;
+    insumos: number;
+    indirectos: number;
+};
+
+export type TendenciaMensual = {
+    meses: MesTendencia[];
+    ultimo: MesTendencia | null;
+    variacion_ultimo_mes: number | null;
+};
+
 export type UtilizacionSalas = {
     mes: string;
+    /** Ventana realmente medida: sigue al periodo activo del panel. */
+    ventana: {
+        desde: string;
+        hasta: string;
+        dias: number;
+        etiqueta: string;
+    };
     global: {
+        n_cirugias: number;
         minutos_usados: number;
         minutos_disponibles: number;
         utilizacion_pct: number | null;
     };
     por_sala: {
         sala: { id: number; nombre: string };
+        n_cirugias: number;
         minutos_usados: number;
         minutos_disponibles: number;
         utilizacion_pct: number | null;

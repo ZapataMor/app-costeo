@@ -47,7 +47,10 @@ export default function ProcedimientosEdit({
 
 ProcedimientosEdit.layout = {
     breadcrumbs: [
-        { title: 'Procedimientos', href: '/parametros/procedimientos' },
+        {
+            title: 'Catálogo de procedimientos',
+            href: '/parametros/procedimientos',
+        },
         { title: 'Editar', href: '#' },
     ],
 };

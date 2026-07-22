@@ -15,7 +15,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { cop } from '@/lib/formato';
+import { cop, etiqueta } from '@/lib/formato';
 import type {
     FiltrosPersonalCosteo,
     PersonalCosteoFila,
@@ -220,12 +220,8 @@ export default function PersonalCosteoIndex({
                                 Todos los roles
                             </SelectItem>
                             {roles.map((rol) => (
-                                <SelectItem
-                                    key={rol}
-                                    value={rol}
-                                    className="capitalize"
-                                >
-                                    {rol}
+                                <SelectItem key={rol} value={rol}>
+                                    {etiqueta(rol)}
                                 </SelectItem>
                             ))}
                         </SelectContent>
@@ -308,8 +304,8 @@ export default function PersonalCosteoIndex({
                                             </span>
                                         )}
                                     </td>
-                                    <td className="p-3 capitalize">
-                                        {persona.rol}
+                                    <td className="p-3">
+                                        {etiqueta(persona.rol)}
                                     </td>
                                     <td className="p-3 text-right tabular-nums">
                                         {persona.n_cirugias}

@@ -1,6 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { Eye, Search, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { EncabezadoCosteo } from '@/components/costeo/encabezado-costeo';
 import { Paginacion } from '@/components/parametros/paginacion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -65,18 +66,12 @@ export default function ProcedimientosCosteoIndex({
 
     return (
         <>
-            <Head title="Procedimientos · Costeo" />
+            <Head title="Costo por procedimiento" />
             <div className="flex flex-col gap-4 p-4">
-                <div className="mb-1">
-                    <h1 className="font-serif text-[32px] leading-tight font-semibold text-[#161B2F] dark:text-[#F3F0ED]">
-                        Procedimientos
-                    </h1>
-                    <p className="mt-1 text-[13.5px] text-[#74787E] dark:text-[#A6AAB2]">
-                        Todos los procedimientos registrados en el hospital.
-                        Entra a uno para ver cada cirugía realizada y su costo
-                        TDABC detallado.
-                    </p>
-                </div>
+                <EncabezadoCosteo
+                    titulo="Costo por procedimiento"
+                    descripcion="Cuánto cuesta cada procedimiento del hospital. Entre a uno para ver cada cirugía realizada y su costo TDABC detallado."
+                />
 
                 <div className="flex flex-wrap items-center gap-2">
                     <div className="relative w-full max-w-xs">
@@ -279,6 +274,6 @@ export default function ProcedimientosCosteoIndex({
 ProcedimientosCosteoIndex.layout = {
     breadcrumbs: [
         { title: 'Costeo quirúrgico', href: '/costeo' },
-        { title: 'Procedimientos', href: '/costeo/procedimientos' },
+        { title: 'Costo por procedimiento', href: '/costeo/procedimientos' },
     ],
 };

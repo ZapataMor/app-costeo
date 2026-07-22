@@ -42,6 +42,7 @@ export function BuscadorSelect({
     sinResultados = 'Sin coincidencias.',
     className,
     id,
+    etiquetaAccesible,
 }: {
     opciones: OpcionBuscador[];
     valor: string;
@@ -51,6 +52,12 @@ export function BuscadorSelect({
     sinResultados?: string;
     className?: string;
     id?: string;
+    /**
+     * Nombre para lectores de pantalla. Los `<Label>` de los formularios no
+     * llegaban al botón —no hay un input al que apuntar con `htmlFor`—, así
+     * que estos selectores se anunciaban solo como «combobox».
+     */
+    etiquetaAccesible?: string;
 }) {
     const [abierto, setAbierto] = useState(false);
 
@@ -65,6 +72,7 @@ export function BuscadorSelect({
                     variant="outline"
                     role="combobox"
                     aria-expanded={abierto}
+                    aria-label={etiquetaAccesible}
                     className={cn(
                         'w-full justify-between font-normal',
                         seleccionada === undefined && 'text-muted-foreground',

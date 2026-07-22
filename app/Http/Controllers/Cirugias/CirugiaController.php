@@ -73,11 +73,9 @@ class CirugiaController extends Controller
             ->when($request->filled('desde'), fn (Builder $q) => $q->whereDate('fecha', '>=', $request->date('desde')))
             ->when($request->filled('hasta'), fn (Builder $q) => $q->whereDate('fecha', '<=', $request->date('hasta')))
             // Bandeja de pendientes: lo que no entrará a los indicadores
-            // mientras no se cierre.
+            // mientras no se complete.
             ->when($pendientes, fn (Builder $q) => $q->where(
-                fn (Builder $q) => $q
-                    ->whereNull('hora_fin')
-                    ->orWhere('estado', '!=', EstadoCirugia::Realizada->value),
+                fn (Builder $q) => self::filtroPendientes($q)
             ))
             ->orderByDesc('fecha')
             ->orderByDesc('id')
@@ -99,6 +97,9 @@ class CirugiaController extends Controller
                 'paso_cierre' => $cirugia->pasoDeCierre(),
                 'hora_inicio' => $cirugia->hora_inicio->format('Y-m-d\TH:i'),
                 'hora_fin' => $cirugia->hora_fin?->format('Y-m-d\TH:i'),
+                // Por qué no cuenta para los indicadores: sin el motivo, la
+                // insignia «No contabilizada» obliga a adivinar qué falta.
+                'motivo_pendiente' => $this->motivoPendiente($cirugia),
             ]);
 
         return Inertia::render('cirugias/index', [
@@ -113,11 +114,46 @@ class CirugiaController extends Controller
             ],
             // Total real de pendientes en el hospital, no solo en esta página.
             'totalPendientes' => Cirugia::query()
-                ->where(fn (Builder $q) => $q
-                    ->whereNull('hora_fin')
-                    ->orWhere('estado', '!=', EstadoCirugia::Realizada->value))
+                ->where(fn (Builder $q) => self::filtroPendientes($q))
                 ->count(),
         ]);
+    }
+
+    /** Qué le falta a esta cirugía para entrar a los indicadores. */
+    private function motivoPendiente(Cirugia $cirugia): ?string
+    {
+        if ($cirugia->hora_fin === null) {
+            return 'Falta la salida de sala';
+        }
+
+        if ($cirugia->estado !== EstadoCirugia::Realizada->value) {
+            return 'Está en «'.str_replace('_', ' ', $cirugia->estado).'»';
+        }
+
+        if ($cirugia->costo === null) {
+            return 'Falta calcular el costo';
+        }
+
+        return null;
+    }
+
+    /**
+     * Qué cuenta como pendiente: todo lo que hoy no llega a los indicadores.
+     *
+     * Incluye las cirugías ya cerradas que se quedaron sin costo calculado.
+     * Antes solo miraba el cierre, así que una cirugía terminada y sin costear
+     * era invisible: no aparecía en la bandeja, pero sí bajaba la completitud
+     * del panel, y no había forma de encontrarla.
+     */
+    private static function filtroPendientes(Builder $query): void
+    {
+        $query
+            ->whereNull('hora_fin')
+            ->orWhere('estado', '!=', EstadoCirugia::Realizada->value)
+            ->orWhere(fn (Builder $q) => $q
+                ->where('estado', EstadoCirugia::Realizada->value)
+                ->whereNotNull('hora_fin')
+                ->whereDoesntHave('costo'));
     }
 
     public function create(): Response

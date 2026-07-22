@@ -15,7 +15,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { cop } from '@/lib/formato';
+import { cop, etiqueta } from '@/lib/formato';
 import type {
     DesglosePersonal,
     PaginadoHistorialPersona,
@@ -353,8 +353,8 @@ export default function PersonalCosteoShow({
                                                 </span>
                                             )}
                                         </td>
-                                        <td className="p-3 capitalize">
-                                            {fila.rol}
+                                        <td className="p-3">
+                                            {etiqueta(fila.rol)}
                                         </td>
                                         <td className="p-3">
                                             {etiquetasFase[fila.fase] ??

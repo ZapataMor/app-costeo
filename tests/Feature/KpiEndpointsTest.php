@@ -10,7 +10,9 @@ use App\Models\Paciente;
 use App\Models\ProcedimientoQuirurgico;
 use App\Models\SalaOperatoria;
 use App\Models\User;
+use App\Services\Indicators\KpiService;
 use App\Support\HospitalContext;
+use App\Support\Periodo;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Tests\TestCase;
@@ -129,6 +131,51 @@ class KpiEndpointsTest extends TestCase
             ->assertJsonPath('por_sala.0.minutos_usados', 240)
             ->assertJsonPath('por_sala.0.minutos_disponibles', 18720)
             ->assertJsonPath('por_sala.0.utilizacion_pct', 0.0128);
+    }
+
+    public function test_utilizacion_de_salas_sigue_el_periodo_seleccionado(): void
+    {
+        // Una cirugía de 2 h en mayo y otra en junio.
+        $this->crearCirugiaCosteada(100_000, inicio: '2026-05-05 08:00:00', duracionMinutos: 120);
+        $this->crearCirugiaCosteada(100_000, inicio: '2026-06-12 10:00:00', duracionMinutos: 120);
+
+        HospitalContext::set($this->hospital->id);
+
+        $kpis = (new KpiService)->enPeriodo(
+            new Periodo(Carbon::parse('2026-05-01'), Carbon::parse('2026-06-30')->endOfDay()),
+        );
+
+        $utilizacion = $kpis->utilizacionSalas();
+
+        // El KPI ignoraba el periodo y se quedaba siempre en un solo mes: el
+        // panel decía «toda la historia» y el número medía otra cosa.
+        $this->assertSame(240, $utilizacion['global']['minutos_usados']);
+        $this->assertSame(2, $utilizacion['global']['n_cirugias']);
+
+        // Dos meses naturales completos: el doble de capacidad, no la de uno.
+        $this->assertSame(18720 * 2, $utilizacion['por_sala'][0]['minutos_disponibles']);
+        $this->assertSame('2026-05-01', $utilizacion['ventana']['desde']);
+        $this->assertSame('2026-06-30', $utilizacion['ventana']['hasta']);
+    }
+
+    public function test_tendencia_mensual_calcula_la_variacion_entre_meses(): void
+    {
+        // Mayo: dos cirugías de 400k y 600k (promedio 500k).
+        $this->crearCirugiaCosteada(400_000, inicio: '2026-05-05 08:00:00');
+        $this->crearCirugiaCosteada(600_000, inicio: '2026-05-20 08:00:00');
+        // Junio: una de 400k → el promedio baja un 20 %.
+        $this->crearCirugiaCosteada(400_000, inicio: '2026-06-10 08:00:00');
+
+        HospitalContext::set($this->hospital->id);
+
+        $tendencia = (new KpiService)->tendenciaMensual();
+
+        $this->assertCount(2, $tendencia['meses']);
+        $this->assertSame('2026-05', $tendencia['meses'][0]['mes']);
+        $this->assertSame(500_000.0, $tendencia['meses'][0]['costo_promedio']);
+        $this->assertSame(2, $tendencia['meses'][0]['n']);
+        $this->assertSame('2026-06', $tendencia['meses'][1]['mes']);
+        $this->assertSame(-0.2, $tendencia['variacion_ultimo_mes']);
     }
 
     public function test_completitud_de_captura(): void

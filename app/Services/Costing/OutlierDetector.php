@@ -123,6 +123,21 @@ class OutlierDetector
 
         $primero = $grupo->first();
 
+        // Bigotes de Tukey: el valor real más extremo que sigue dentro de los
+        // límites, no el límite en sí. Es lo que dibuja la caja.
+        $dentro = array_values(array_filter(
+            $costos,
+            fn (float $c): bool => $c >= $limiteIqrInferior && $c <= $limiteIqrSuperior,
+        ));
+
+        // Un grupo sin filas no existe —se agrupa por procedimiento sobre las
+        // que hay—, pero la caja se calcula sin suponerlo.
+        $minimo = $costos === [] ? 0.0 : min($costos);
+        $maximo = $costos === [] ? 0.0 : max($costos);
+        $extremos = $dentro === [] ? $costos : $dentro;
+        $bigoteInferior = $extremos === [] ? $minimo : min($extremos);
+        $bigoteSuperior = $extremos === [] ? $maximo : max($extremos);
+
         return [
             'procedimiento' => [
                 'id' => $primero->procedimiento_id,
@@ -133,6 +148,15 @@ class OutlierDetector
             'media' => round($media, 2),
             'desviacion' => round($desviacion, 2),
             'coeficiente_variacion' => $media > 0 ? round($desviacion / $media, 4) : null,
+            'caja' => [
+                'minimo' => round($minimo, 2),
+                'bigote_inferior' => round($bigoteInferior, 2),
+                'q1' => round($q1, 2),
+                'mediana' => round(Estadistica::percentil($costos, 0.5), 2),
+                'q3' => round($q3, 2),
+                'bigote_superior' => round($bigoteSuperior, 2),
+                'maximo' => round($maximo, 2),
+            ],
             'limites' => [
                 'z_inferior' => round($media - self::UMBRAL_Z * $desviacion, 2),
                 'z_superior' => round($media + self::UMBRAL_Z * $desviacion, 2),

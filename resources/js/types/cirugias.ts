@@ -2,6 +2,8 @@ import type { LinkPaginacion } from '@/types/parametros';
 
 export type CirugiaFila = {
     id: number;
+    /** Qué le falta para entrar a los indicadores; null si ya está completa. */
+    motivo_pendiente?: string | null;
     fecha: string | null;
     paciente: { nombres: string; apellidos: string } | null;
     procedimiento_principal: { codigo_cups: string; nombre: string } | null;

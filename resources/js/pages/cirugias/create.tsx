@@ -27,7 +27,7 @@ export default function CirugiasCreate(catalogos: CatalogosCirugia) {
 
 CirugiasCreate.layout = {
     breadcrumbs: [
-        { title: 'Procedimientos', href: '/cirugias' },
+        { title: 'Cirugías realizadas', href: '/cirugias' },
         { title: 'Registrar', href: '/cirugias/create' },
     ],
 };

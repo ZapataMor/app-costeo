@@ -11,6 +11,7 @@ use App\Models\SalaOperatoria;
 use App\Support\Estadistica;
 use App\Support\HospitalContext;
 use App\Support\Periodo;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -183,35 +184,37 @@ class KpiService
 
     /**
      * Utilización de salas (estructura): minutos operados ÷ minutos
-     * disponibles en el mes. Si no se indica mes, usa el de la cirugía
-     * realizada más reciente.
+     * disponibles en la ventana analizada.
+     *
+     * La ventana es, en orden: el mes pedido explícitamente (API), el periodo
+     * activo del servicio, o el mes de la cirugía realizada más reciente.
+     * Antes solo existía la tercera opción, así que el panel mostraba un mes
+     * suelto mientras el resto de la página decía «toda la historia» y el
+     * número parecía roto.
      *
      * @param  string|null  $mes  formato Y-m, p. ej. "2026-06"
      * @return array<string, mixed>
      */
     public function utilizacionSalas(?string $mes = null): array
     {
+        [$inicio, $fin, $etiqueta, $mesResuelto] = $this->ventanaUtilizacion($mes);
+
+        // `diffInDays` devuelve float: del 22/04 00:00 al 21/07 23:59 da
+        // 90,99…, y sin truncar la ventana se rotulaba «91,99999 días».
+        $dias = (int) $inicio->diffInDays($fin) + 1;
+
         // Con hospital activo, el denominador es su capacidad; en modo
         // consolidado (super_admin sin hospital) cada sala usa la capacidad
-        // de SU hospital.
+        // de SU hospital. La ventana completa manda sobre el mes: comparar un
+        // trimestre contra la capacidad de un mes triplicaba el error.
         $hospitalId = HospitalContext::id();
 
         $minutosPorHospital = Hospital::query()
             ->when($hospitalId !== null, fn ($query) => $query->whereKey($hospitalId))
             ->get()
             ->mapWithKeys(fn (Hospital $hospital): array => [
-                $hospital->id => $hospital->minutosDisponiblesMes(),
+                $hospital->id => $hospital->minutosDisponiblesEntre($inicio, $fin),
             ]);
-
-        if ($mes === null) {
-            $ultimaFecha = Cirugia::where('estado', 'realizada')->max('fecha');
-            $mes = $ultimaFecha !== null
-                ? Carbon::parse($ultimaFecha)->format('Y-m')
-                : now()->format('Y-m');
-        }
-
-        $inicio = Carbon::createFromFormat('Y-m', $mes)->startOfMonth();
-        $fin = $inicio->copy()->endOfMonth();
 
         $cirugias = Cirugia::query()
             ->where('estado', 'realizada')
@@ -224,15 +227,18 @@ class KpiService
             ->groupBy('sala_operatoria_id')
             ->map(fn ($grupo) => (int) $grupo->sum(fn (Cirugia $c): int => $c->duracionMinutos() ?? 0));
 
+        $cirugiasPorSala = $cirugias->groupBy('sala_operatoria_id')->map->count();
+
         $totalDisponibles = 0;
 
-        $salas = SalaOperatoria::orderBy('nombre')->get()->map(function (SalaOperatoria $sala) use ($minutosPorSala, $minutosPorHospital, &$totalDisponibles): array {
+        $salas = SalaOperatoria::orderBy('nombre')->get()->map(function (SalaOperatoria $sala) use ($minutosPorSala, $cirugiasPorSala, $minutosPorHospital, &$totalDisponibles): array {
             $usados = $minutosPorSala->get($sala->id, 0);
             $minutosDisponibles = (int) $minutosPorHospital->get($sala->hospital_id, 0);
             $totalDisponibles += $minutosDisponibles;
 
             return [
                 'sala' => ['id' => $sala->id, 'nombre' => $sala->nombre],
+                'n_cirugias' => (int) $cirugiasPorSala->get($sala->id, 0),
                 'minutos_usados' => $usados,
                 'minutos_disponibles' => $minutosDisponibles,
                 'utilizacion_pct' => $minutosDisponibles > 0
@@ -244,8 +250,15 @@ class KpiService
         $totalUsados = (int) $minutosPorSala->sum();
 
         return [
-            'mes' => $mes,
+            'mes' => $mesResuelto,
+            'ventana' => [
+                'desde' => $inicio->toDateString(),
+                'hasta' => $fin->toDateString(),
+                'dias' => $dias,
+                'etiqueta' => $etiqueta,
+            ],
             'global' => [
+                'n_cirugias' => $cirugias->count(),
                 'minutos_usados' => $totalUsados,
                 'minutos_disponibles' => $totalDisponibles,
                 'utilizacion_pct' => $totalDisponibles > 0
@@ -254,6 +267,56 @@ class KpiService
             ],
             'por_sala' => $salas,
         ];
+    }
+
+    /**
+     * Resuelve la ventana de la utilización de salas.
+     *
+     * Las fechas se tipan como `CarbonInterface`: el periodo trae instancias
+     * mutables y `now()` inmutables, y aquí solo se leen.
+     *
+     * @return array{0: CarbonInterface, 1: CarbonInterface, 2: string, 3: string}
+     */
+    protected function ventanaUtilizacion(?string $mes): array
+    {
+        // Mes explícito: la API lo usa para pedir un mes concreto.
+        if ($mes !== null) {
+            $inicio = Carbon::createFromFormat('Y-m', $mes)->startOfMonth();
+            $fin = $inicio->copy()->endOfMonth();
+
+            return [$inicio, $fin, $inicio->translatedFormat('F Y'), $mes];
+        }
+
+        // Periodo activo del panel: manda sobre cualquier valor por defecto.
+        if (! $this->periodo->vacio()) {
+            $inicio = $this->periodo->desde ?? Carbon::parse(
+                Cirugia::where('estado', 'realizada')->min('fecha') ?? now()
+            )->startOfDay();
+            $fin = $this->periodo->hasta ?? now()->endOfDay();
+
+            return [
+                $inicio->copy()->startOfDay(),
+                $fin->copy()->endOfDay(),
+                $this->periodo->etiqueta(),
+                $inicio->format('Y-m'),
+            ];
+        }
+
+        // Sin periodo: toda la historia registrada, para no contradecir al
+        // resto del panel con un mes suelto.
+        $primera = Cirugia::where('estado', 'realizada')->min('fecha');
+        $ultima = Cirugia::where('estado', 'realizada')->max('fecha');
+
+        if ($primera === null || $ultima === null) {
+            $inicio = now()->startOfMonth();
+
+            return [$inicio, now()->endOfMonth(), 'Toda la historia', $inicio->format('Y-m')];
+        }
+
+        $inicio = Carbon::parse($primera)->startOfDay();
+        $fin = Carbon::parse($ultima)->endOfDay();
+
+        return [$inicio, $fin, 'Toda la historia', $fin->format('Y-m')];
     }
 
     /**
@@ -374,6 +437,88 @@ class KpiService
                 'total' => round((float) $fila->total, 2),
             ])->values()->all(),
         ];
+    }
+
+    /**
+     * Evolución mensual del costo: promedio por cirugía, volumen y gasto
+     * total de cada mes, más el desglose por componente.
+     *
+     * Es la única vista que responde «¿estamos mejorando?»: sin serie
+     * temporal, todos los demás indicadores son una foto sin antes ni después.
+     *
+     * @return array<string, mixed>
+     */
+    public function tendenciaMensual(): array
+    {
+        $filas = $this->baseCostosContabilizables()
+            ->select([
+                'costos_cirugia.costo_total',
+                'costos_cirugia.costo_recurso_humano',
+                'costos_cirugia.costo_sala',
+                'costos_cirugia.costo_equipos',
+                'costos_cirugia.costo_insumos',
+                'costos_cirugia.costo_indirecto',
+                'cirugias.fecha',
+            ])
+            ->toBase()
+            ->get()
+            ->filter(fn ($fila): bool => $fila->fecha !== null);
+
+        $meses = $filas
+            ->groupBy(fn ($fila): string => Carbon::parse($fila->fecha)->format('Y-m'))
+            ->map(function (Collection $grupo, string $mes): array {
+                $costos = $grupo->map(fn ($f): float => (float) $f->costo_total)->all();
+                $n = count($costos);
+
+                return [
+                    'mes' => $mes,
+                    'etiqueta' => Carbon::createFromFormat('Y-m', $mes)
+                        ->translatedFormat('M Y'),
+                    'n' => $n,
+                    'costo_promedio' => round(Estadistica::media($costos), 2),
+                    'costo_total' => round(array_sum($costos), 2),
+                    'recurso_humano' => $this->promedioDe($grupo, 'costo_recurso_humano'),
+                    'sala' => $this->promedioDe($grupo, 'costo_sala'),
+                    'equipos' => $this->promedioDe($grupo, 'costo_equipos'),
+                    'insumos' => $this->promedioDe($grupo, 'costo_insumos'),
+                    'indirectos' => $this->promedioDe($grupo, 'costo_indirecto'),
+                ];
+            })
+            ->sortKeys()
+            ->values()
+            ->all();
+
+        // Variación del último mes contra el anterior: el titular de la
+        // gráfica, para no obligar a leer dos puntos y restarlos de cabeza.
+        $n = count($meses);
+        $ultimo = $n > 0 ? $meses[$n - 1] : null;
+        $previo = $n > 1 ? $meses[$n - 2] : null;
+
+        $variacion = null;
+
+        if ($ultimo !== null && $previo !== null && $previo['costo_promedio'] > 0) {
+            $variacion = round(
+                ($ultimo['costo_promedio'] - $previo['costo_promedio']) / $previo['costo_promedio'],
+                4,
+            );
+        }
+
+        return [
+            'meses' => $meses,
+            'ultimo' => $ultimo,
+            'variacion_ultimo_mes' => $variacion,
+        ];
+    }
+
+    /**
+     * @param  Collection<int, \stdClass>  $grupo
+     */
+    protected function promedioDe(Collection $grupo, string $columna): float
+    {
+        return round(
+            Estadistica::media($grupo->map(fn ($f): float => (float) $f->{$columna})->all()),
+            2,
+        );
     }
 
     protected function nivelVariabilidad(?float $cv): ?string

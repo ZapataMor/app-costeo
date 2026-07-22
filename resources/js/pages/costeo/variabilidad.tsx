@@ -1,17 +1,20 @@
-import { Head } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import {
     Bar,
     BarChart,
     CartesianGrid,
     Cell,
+    LabelList,
     ReferenceLine,
     ResponsiveContainer,
     Tooltip,
     XAxis,
     YAxis,
 } from 'recharts';
+import { EncabezadoCosteo } from '@/components/costeo/encabezado-costeo';
 import type { Periodo } from '@/components/costeo/selector-periodo';
 import { SelectorPeriodo } from '@/components/costeo/selector-periodo';
+import { TablaResponsive } from '@/components/costeo/tabla-responsive';
 import { Badge } from '@/components/ui/badge';
 import {
     Card,
@@ -21,13 +24,8 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { cop, pct } from '@/lib/formato';
+import { COLOR_POR_NIVEL, etiquetaEje, MARGEN } from '@/lib/graficas';
 import type { VariabilidadProcedimiento } from '@/types/costeo';
-
-const colorPorNivel: Record<string, string> = {
-    alta: '#9E3B3B',
-    media: '#A47E53',
-    baja: '#4C837C',
-};
 
 export default function Variabilidad({
     por_procedimiento,
@@ -40,22 +38,39 @@ export default function Variabilidad({
 }) {
     const datos = por_procedimiento.map((fila) => ({
         ...fila,
-        etiqueta: fila.procedimiento.codigo_cups,
+        etiqueta: etiquetaEje(fila.procedimiento.nombre),
         cv_pct:
             fila.coeficiente_variacion !== null
                 ? fila.coeficiente_variacion * 100
                 : 0,
     }));
 
+    const sinDatos = datos.length === 0;
+    const conAlta = datos.filter((f) => f.nivel_variabilidad === 'alta');
+
     return (
         <>
             <Head title="Variabilidad de costos" />
             <div className="flex flex-col gap-4 p-4">
+                <EncabezadoCosteo
+                    titulo="Variabilidad"
+                    descripcion="Qué tan parecidas son entre sí las cirugías del mismo procedimiento. Mucha variación significa que el protocolo no se está siguiendo igual todas las veces."
+                />
+
                 <SelectorPeriodo
                     url="/costeo/variabilidad"
                     periodo={periodo}
                     etiqueta={periodoEtiqueta}
                 />
+
+                {conAlta.length > 0 && (
+                    <div className="rounded-lg border border-amber-300/70 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+                        {conAlta.length === 1
+                            ? `«${conAlta[0].procedimiento.nombre}» tiene variabilidad alta: es el primer candidato a estandarizar.`
+                            : `${conAlta.length} procedimientos tienen variabilidad alta: son los primeros candidatos a estandarizar.`}
+                    </div>
+                )}
+
                 <Card>
                     <CardHeader>
                         <CardTitle className="text-base">
@@ -68,59 +83,99 @@ export default function Variabilidad({
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="h-96">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={datos}>
-                                <CartesianGrid
-                                    strokeDasharray="3 3"
-                                    className="opacity-30"
-                                />
-                                <XAxis dataKey="etiqueta" fontSize={12} />
-                                <YAxis
-                                    tickFormatter={(v: number) =>
-                                        `${v.toFixed(0)} %`
-                                    }
-                                    fontSize={11}
-                                    width={50}
-                                />
-                                <Tooltip
-                                    formatter={(valor) =>
-                                        `${Number(valor).toFixed(1)} %`
-                                    }
-                                    labelFormatter={(cups) => {
-                                        const fila = datos.find(
-                                            (d) => d.etiqueta === cups,
-                                        );
+                        {sinDatos ? (
+                            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                                No hay cirugías costeadas en este periodo.
+                            </div>
+                        ) : (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={datos} margin={MARGEN}>
+                                    <CartesianGrid
+                                        strokeDasharray="3 3"
+                                        className="opacity-30"
+                                        vertical={false}
+                                    />
+                                    <XAxis
+                                        dataKey="etiqueta"
+                                        fontSize={11}
+                                        interval={0}
+                                        height={48}
+                                        tickMargin={10}
+                                    />
+                                    <YAxis
+                                        tickFormatter={(v: number) =>
+                                            `${v.toFixed(0)} %`
+                                        }
+                                        fontSize={11}
+                                        width={50}
+                                    />
+                                    <Tooltip
+                                        formatter={(valor) =>
+                                            `${Number(valor).toFixed(1)} %`
+                                        }
+                                        labelFormatter={(etiqueta) => {
+                                            const fila = datos.find(
+                                                (d) => d.etiqueta === etiqueta,
+                                            );
 
-                                        return fila
-                                            ? `${fila.procedimiento.nombre} (${cups})`
-                                            : cups;
-                                    }}
-                                />
-                                <ReferenceLine
-                                    y={30}
-                                    stroke="#9E3B3B"
-                                    strokeDasharray="6 4"
-                                />
-                                <ReferenceLine
-                                    y={15}
-                                    stroke="#A47E53"
-                                    strokeDasharray="6 4"
-                                />
-                                <Bar dataKey="cv_pct" name="CV">
-                                    {datos.map((fila) => (
-                                        <Cell
-                                            key={fila.procedimiento.id}
-                                            fill={
-                                                colorPorNivel[
-                                                    fila.nivel_variabilidad ??
-                                                        'baja'
-                                                ]
+                                            return fila
+                                                ? `${fila.procedimiento.nombre} (${fila.procedimiento.codigo_cups}) · n=${fila.n}`
+                                                : String(etiqueta);
+                                        }}
+                                    />
+                                    {/* Los umbrales estaban sin rotular: había
+                                        que leer la descripción para saber qué
+                                        marcaba cada línea. */}
+                                    <ReferenceLine
+                                        y={30}
+                                        stroke={COLOR_POR_NIVEL.alta}
+                                        strokeDasharray="6 4"
+                                        label={{
+                                            value: 'alta · 30 %',
+                                            position: 'right',
+                                            fontSize: 10,
+                                            fill: COLOR_POR_NIVEL.alta,
+                                        }}
+                                    />
+                                    <ReferenceLine
+                                        y={15}
+                                        stroke={COLOR_POR_NIVEL.media}
+                                        strokeDasharray="6 4"
+                                        label={{
+                                            value: 'media · 15 %',
+                                            position: 'right',
+                                            fontSize: 10,
+                                            fill: COLOR_POR_NIVEL.media,
+                                        }}
+                                    />
+                                    <Bar
+                                        dataKey="cv_pct"
+                                        name="CV"
+                                        maxBarSize={80}
+                                    >
+                                        <LabelList
+                                            dataKey="cv_pct"
+                                            position="top"
+                                            fontSize={11}
+                                            formatter={(v) =>
+                                                `${Number(v).toFixed(0)} %`
                                             }
                                         />
-                                    ))}
-                                </Bar>
-                            </BarChart>
-                        </ResponsiveContainer>
+                                        {datos.map((fila) => (
+                                            <Cell
+                                                key={fila.procedimiento.id}
+                                                fill={
+                                                    COLOR_POR_NIVEL[
+                                                        fila.nivel_variabilidad ??
+                                                            'baja'
+                                                    ]
+                                                }
+                                            />
+                                        ))}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        )}
                     </CardContent>
                 </Card>
 
@@ -131,7 +186,7 @@ export default function Variabilidad({
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <table className="w-full text-sm">
+                        <TablaResponsive>
                             <thead>
                                 <tr className="border-b text-left text-muted-foreground">
                                     <th className="py-2 font-medium">
@@ -161,7 +216,12 @@ export default function Variabilidad({
                                         className="border-b last:border-0"
                                     >
                                         <td className="py-2">
-                                            {fila.procedimiento.nombre}{' '}
+                                            <Link
+                                                href={`/costeo/procedimientos/${fila.procedimiento.id}`}
+                                                className="hover:underline"
+                                            >
+                                                {fila.procedimiento.nombre}
+                                            </Link>{' '}
                                             <span className="font-mono text-xs text-muted-foreground">
                                                 {fila.procedimiento.codigo_cups}
                                             </span>
@@ -207,7 +267,7 @@ export default function Variabilidad({
                                     </tr>
                                 ))}
                             </tbody>
-                        </table>
+                        </TablaResponsive>
                     </CardContent>
                 </Card>
             </div>

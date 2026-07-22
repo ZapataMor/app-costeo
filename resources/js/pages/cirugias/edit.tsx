@@ -34,7 +34,7 @@ export default function CirugiasEdit({
 
 CirugiasEdit.layout = {
     breadcrumbs: [
-        { title: 'Procedimientos', href: '/cirugias' },
+        { title: 'Cirugías realizadas', href: '/cirugias' },
         { title: 'Corregir', href: '/cirugias' },
     ],
 };

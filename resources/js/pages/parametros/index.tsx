@@ -142,7 +142,7 @@ const definiciones: {
     },
     {
         clave: 'procedimientos',
-        titulo: 'Procedimientos',
+        titulo: 'Catálogo de procedimientos',
         tituloNuevo: 'Nuevo procedimiento quirúrgico',
         descripcion: 'Catálogo CUPS de procedimientos quirúrgicos.',
         href: '/parametros/procedimientos',

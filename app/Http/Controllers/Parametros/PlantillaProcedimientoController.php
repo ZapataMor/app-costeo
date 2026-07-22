@@ -13,6 +13,7 @@ use App\Models\PlantillaInsumo;
 use App\Models\PlantillaPersonal;
 use App\Models\ProcedimientoQuirurgico;
 use App\Models\RecursoHumano;
+use App\Services\Plantillas\GeneradorPlantilla;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -28,6 +29,8 @@ use Inertia\Response;
  */
 class PlantillaProcedimientoController extends Controller
 {
+    public function __construct(protected GeneradorPlantilla $generador) {}
+
     public function edit(ProcedimientoQuirurgico $procedimiento): Response
     {
         $procedimiento->load(ProcedimientoQuirurgico::RELACIONES_PLANTILLA);
@@ -75,7 +78,40 @@ class PlantillaProcedimientoController extends Controller
                 ->get(['id', 'nombre', 'costo_hora']),
             'rolesQuirurgicos' => RolQuirurgico::values(),
             'fases' => FaseCiclo::values(),
+            // Cuántas cirugías respaldan una propuesta automática: si son
+            // pocas, el botón se ofrece deshabilitado con la razón a la vista.
+            'cirugiasHistoricas' => $this->generador->cirugiasAnalizables($procedimiento),
+            'minimoHistorico' => GeneradorPlantilla::MINIMO_CIRUGIAS,
         ]);
+    }
+
+    /**
+     * Propone la plantilla a partir del histórico y la deja cargada en el
+     * formulario: el estándar lo confirma una persona antes de usarse.
+     */
+    public function sugerir(ProcedimientoQuirurgico $procedimiento): RedirectResponse
+    {
+        $propuesta = $this->generador->proponer($procedimiento);
+
+        if ($propuesta === null) {
+            Inertia::flash('toast', [
+                'type' => 'error',
+                'message' => 'Hacen falta al menos '.GeneradorPlantilla::MINIMO_CIRUGIAS.
+                    ' cirugías registradas de este procedimiento para deducir su plantilla.',
+            ]);
+
+            return back();
+        }
+
+        $escritas = $this->generador->generar($procedimiento);
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => "Plantilla deducida de {$propuesta['n_cirugias']} cirugías: {$escritas} líneas. ".
+                'Revísela y ajústela antes de darla por buena.',
+        ]);
+
+        return back();
     }
 
     /**

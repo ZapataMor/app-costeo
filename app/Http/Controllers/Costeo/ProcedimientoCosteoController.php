@@ -135,6 +135,10 @@ class ProcedimientoCosteoController extends Controller
                     : (int) round((float) $duraciones->avg()),
             ],
             'cirugias' => $cirugias,
+            // Serie completa (sin paginar) para la gráfica: en la tabla solo
+            // se ven 15 casos, y la dispersión de costos es justo lo que hay
+            // que mirar entero.
+            'serie' => $this->serieDe($procedimiento),
             'filtros' => $filtros,
             'estados' => EstadoCirugia::values(),
         ]);
@@ -154,7 +158,83 @@ class ProcedimientoCosteoController extends Controller
             'procedimiento' => $procedimiento->only(['id', 'codigo_cups', 'nombre']),
             'cirugia' => $presentar->ejecutar($cirugia),
             'costo' => $cirugia->costo,
+            // Contra qué se compara: un costo suelto no dice nada hasta que
+            // se sabe si es alto o bajo para ese mismo procedimiento.
+            'referencia' => $this->referenciaDe($procedimiento, $cirugia),
         ]);
+    }
+
+    /**
+     * Costo de cada cirugía costeada del procedimiento, en orden cronológico.
+     *
+     * @return list<array{cirugia_id: int, fecha: string, costo_total: float, duracion_minutos: int|null}>
+     */
+    private function serieDe(ProcedimientoQuirurgico $procedimiento): array
+    {
+        $puntos = $this->instanciasDe($procedimiento)
+            ->where('estado', EstadoCirugia::Realizada->value)
+            ->whereNotNull('hora_fin')
+            ->whereHas('costo')
+            ->with('costo')
+            ->orderBy('fecha')
+            ->orderBy('id')
+            ->get()
+            ->map(fn (Cirugia $c): array => [
+                'cirugia_id' => $c->id,
+                'fecha' => $c->fecha->toDateString(),
+                'costo_total' => round((float) $c->costo->costo_total, 2),
+                'duracion_minutos' => $c->duracionMinutos(),
+            ])
+            ->all();
+
+        return array_values($puntos);
+    }
+
+    /**
+     * Promedio del procedimiento y desglose promedio por componente, para
+     * situar el costo de una cirugía concreta.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function referenciaDe(ProcedimientoQuirurgico $procedimiento, Cirugia $cirugia): ?array
+    {
+        $promedios = CostoCirugia::query()
+            ->join('cirugias', 'cirugias.id', '=', 'costos_cirugia.cirugia_id')
+            ->where('cirugias.estado', EstadoCirugia::Realizada->value)
+            ->whereNotNull('cirugias.hora_fin')
+            ->join('cirugia_procedimiento', function ($join): void {
+                $join->on('cirugia_procedimiento.cirugia_id', '=', 'cirugias.id')
+                    ->where('cirugia_procedimiento.es_principal', true);
+            })
+            ->where('cirugia_procedimiento.procedimiento_quirurgico_id', $procedimiento->id)
+            // La propia cirugía queda fuera: compararla contra un promedio
+            // que la incluye suaviza justo la desviación que se busca.
+            ->where('cirugias.id', '!=', $cirugia->id)
+            ->selectRaw(implode(', ', [
+                'count(*) as n',
+                'avg(costos_cirugia.costo_total) as costo_total',
+                'avg(costos_cirugia.costo_recurso_humano) as recurso_humano',
+                'avg(costos_cirugia.costo_sala) as sala',
+                'avg(costos_cirugia.costo_equipos) as equipos',
+                'avg(costos_cirugia.costo_insumos) as insumos',
+                'avg(costos_cirugia.costo_indirecto) as indirectos',
+            ]))
+            ->toBase()
+            ->first();
+
+        if ($promedios === null || (int) $promedios->n === 0) {
+            return null;
+        }
+
+        return [
+            'n' => (int) $promedios->n,
+            'costo_total' => round((float) $promedios->costo_total, 2),
+            'recurso_humano' => round((float) $promedios->recurso_humano, 2),
+            'sala' => round((float) $promedios->sala, 2),
+            'equipos' => round((float) $promedios->equipos, 2),
+            'insumos' => round((float) $promedios->insumos, 2),
+            'indirectos' => round((float) $promedios->indirectos, 2),
+        ];
     }
 
     /**

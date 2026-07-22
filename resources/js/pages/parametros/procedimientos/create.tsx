@@ -31,7 +31,10 @@ export default function ProcedimientosCreate({
 
 ProcedimientosCreate.layout = {
     breadcrumbs: [
-        { title: 'Procedimientos', href: '/parametros/procedimientos' },
+        {
+            title: 'Catálogo de procedimientos',
+            href: '/parametros/procedimientos',
+        },
         { title: 'Nuevo', href: '/parametros/procedimientos/create' },
     ],
 };

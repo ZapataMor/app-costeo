@@ -279,7 +279,7 @@ export default function CirugiasShow({
 
 CirugiasShow.layout = {
     breadcrumbs: [
-        { title: 'Procedimientos', href: '/cirugias' },
+        { title: 'Cirugías realizadas', href: '/cirugias' },
         { title: 'Detalle', href: '#' },
     ],
 };

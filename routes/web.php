@@ -83,6 +83,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 ->name('procedimientos.plantilla.edit');
             Route::put('procedimientos/{procedimiento}/plantilla', [Parametros\PlantillaProcedimientoController::class, 'update'])
                 ->name('procedimientos.plantilla.update');
+
+            // Deduce la plantilla de lo que ya se registró: arrancar el
+            // protocolo de cero es el trabajo que la app existe para ahorrar.
+            Route::post('procedimientos/{procedimiento}/plantilla/sugerir', [Parametros\PlantillaProcedimientoController::class, 'sugerir'])
+                ->name('procedimientos.plantilla.sugerir');
         });
 
     // ── Registro de procedimientos (Capa 2) ─────────────────────────────

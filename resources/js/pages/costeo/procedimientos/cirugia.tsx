@@ -2,23 +2,34 @@ import { Head, Link, router } from '@inertiajs/react';
 import { ArrowLeft, Calculator, TriangleAlert } from 'lucide-react';
 import { useState } from 'react';
 import { DesgloseCosto } from '@/components/cirugias/desglose-costo';
+import { ComposicionCirugia } from '@/components/costeo/composicion-cirugia';
 import Heading from '@/components/heading';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { cop } from '@/lib/formato';
+import {
+    cop,
+    etiqueta,
+    fecha as formatearFecha,
+    fechaHora,
+} from '@/lib/formato';
 import type { CirugiaDetalle, CostoCirugia } from '@/types/cirugias';
-import type { ProcedimientoResumen } from '@/types/costeo';
+import type {
+    ProcedimientoResumen,
+    ReferenciaProcedimiento,
+} from '@/types/costeo';
 
 export default function ProcedimientoCosteoCirugia({
     procedimiento,
     cirugia,
     costo,
+    referencia,
 }: {
     procedimiento: ProcedimientoResumen;
     cirugia: CirugiaDetalle;
     costo: CostoCirugia | null;
+    referencia: ReferenciaProcedimiento | null;
 }) {
     const [calculando, setCalculando] = useState(false);
 
@@ -39,12 +50,12 @@ export default function ProcedimientoCosteoCirugia({
     return (
         <>
             <Head
-                title={`${procedimiento.nombre} · ${cirugia.fecha ?? 'sin fecha'}`}
+                title={`${procedimiento.nombre} · ${formatearFecha(cirugia.fecha)}`}
             />
             <div className="flex flex-col gap-4 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                     <Heading
-                        title={`${procedimiento.nombre} · ${cirugia.fecha ?? 'sin fecha'}`}
+                        title={`${procedimiento.nombre} · ${formatearFecha(cirugia.fecha)}`}
                         description={
                             cirugia.paciente
                                 ? `Paciente: ${cirugia.paciente.nombres} ${cirugia.paciente.apellidos}`
@@ -84,7 +95,7 @@ export default function ProcedimientoCosteoCirugia({
                                     Inicio
                                 </span>
                                 <span className="tabular-nums">
-                                    {cirugia.hora_inicio ?? '—'}
+                                    {fechaHora(cirugia.hora_inicio)}
                                 </span>
                             </div>
                             <div className="flex justify-between">
@@ -92,7 +103,7 @@ export default function ProcedimientoCosteoCirugia({
                                     Fin
                                 </span>
                                 <span className="tabular-nums">
-                                    {cirugia.hora_fin ?? '—'}
+                                    {fechaHora(cirugia.hora_fin)}
                                 </span>
                             </div>
                             <div className="flex justify-between">
@@ -109,9 +120,9 @@ export default function ProcedimientoCosteoCirugia({
                                 <span className="text-muted-foreground">
                                     Tipo / Estado
                                 </span>
-                                <span className="capitalize">
-                                    {cirugia.tipo} /{' '}
-                                    {cirugia.estado.replace('_', ' ')}
+                                <span>
+                                    {etiqueta(cirugia.tipo)} /{' '}
+                                    {etiqueta(cirugia.estado)}
                                 </span>
                             </div>
                             <div className="flex justify-between">
@@ -174,7 +185,13 @@ export default function ProcedimientoCosteoCirugia({
                 </div>
 
                 {costo ? (
-                    <DesgloseCosto costo={costo} />
+                    <>
+                        <ComposicionCirugia
+                            costo={costo}
+                            referencia={referencia}
+                        />
+                        <DesgloseCosto costo={costo} />
+                    </>
                 ) : (
                     <>
                         <Alert className="border-amber-300/70 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
@@ -189,8 +206,9 @@ export default function ProcedimientoCosteoCirugia({
                                 ) : (
                                     <p>
                                         Solo se costean cirugías en estado
-                                        «realizada». Esta cirugía está «
-                                        {cirugia.estado.replace('_', ' ')}».
+                                        «realizada». Esta cirugía está en «
+                                        {etiqueta(cirugia.estado).toLowerCase()}
+                                        ».
                                     </p>
                                 )}
                             </AlertDescription>
@@ -229,8 +247,10 @@ export default function ProcedimientoCosteoCirugia({
                                                             {miembro.nombre ??
                                                                 '—'}
                                                         </td>
-                                                        <td className="py-1.5 capitalize">
-                                                            {miembro.rol}
+                                                        <td className="py-1.5">
+                                                            {etiqueta(
+                                                                miembro.rol,
+                                                            )}
                                                         </td>
                                                         <td className="py-1.5 text-right tabular-nums">
                                                             {
@@ -350,7 +370,7 @@ export default function ProcedimientoCosteoCirugia({
 ProcedimientoCosteoCirugia.layout = {
     breadcrumbs: [
         { title: 'Costeo quirúrgico', href: '/costeo' },
-        { title: 'Procedimientos', href: '/costeo/procedimientos' },
+        { title: 'Costo por procedimiento', href: '/costeo/procedimientos' },
         { title: 'Detalle de la cirugía', href: '#' },
     ],
 };

@@ -42,9 +42,12 @@ const historialNavItems: NavItem[] = [
 
 // Captura de datos (Capa 2). El digitador solo ve el registro de
 // procedimientos; da de alta pacientes desde el propio formulario.
+// El menú decía «Registro de procedimientos» y la página, «Procedimientos»:
+// el mismo módulo con dos nombres, y ese nombre repetido en Parámetros y en
+// Costeo. Aquí y en la página se llama igual.
 const registroNavItems: NavItem[] = [
     {
-        title: 'Registro de procedimientos',
+        title: 'Cirugías realizadas',
         href: '/cirugias',
         icon: Syringe,
     },

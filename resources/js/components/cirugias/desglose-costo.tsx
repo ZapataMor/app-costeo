@@ -5,7 +5,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { cop } from '@/lib/formato';
+import { cop, etiqueta, fechaHora, numero } from '@/lib/formato';
 import type { CostoCirugia } from '@/types/cirugias';
 
 function FilaTotal({
@@ -43,10 +43,10 @@ export function DesgloseCosto({ costo }: { costo: CostoCirugia }) {
                     </CardTitle>
                     <CardDescription>
                         {costo.calculado_en
-                            ? `Calculado el ${new Date(costo.calculado_en).toLocaleString('es-CO')}`
+                            ? `Calculado el ${fechaHora(costo.calculado_en)}`
                             : 'Sin fecha de cálculo'}
                         {detalle &&
-                            ` · ${detalle.minutos_disponibles_mes.toLocaleString('es-CO')} minutos disponibles/mes`}
+                            ` · ${numero(detalle.minutos_disponibles_mes)} minutos disponibles/mes`}
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-1.5">
@@ -134,8 +134,12 @@ export function DesgloseCosto({ costo }: { costo: CostoCirugia }) {
                                         <th className="py-1.5 text-right font-medium">
                                             Min
                                         </th>
+                                        {/* Se mostraba «833,333» ($/min con
+                                            tres decimales), que se lee como
+                                            833 pesos. Por hora es una cifra
+                                            que un jefe de servicio reconoce. */}
                                         <th className="py-1.5 text-right font-medium">
-                                            $/min
+                                            $/hora
                                         </th>
                                         <th className="py-1.5 text-right font-medium">
                                             Costo
@@ -151,15 +155,15 @@ export function DesgloseCosto({ costo }: { costo: CostoCirugia }) {
                                             <td className="py-1.5">
                                                 {linea.nombre}
                                             </td>
-                                            <td className="py-1.5 capitalize">
-                                                {linea.rol}
+                                            <td className="py-1.5">
+                                                {etiqueta(linea.rol)}
                                             </td>
                                             <td className="py-1.5 text-right tabular-nums">
                                                 {linea.minutos}
                                             </td>
                                             <td className="py-1.5 text-right tabular-nums">
-                                                {linea.costo_por_minuto.toLocaleString(
-                                                    'es-CO',
+                                                {cop(
+                                                    linea.costo_por_minuto * 60,
                                                 )}
                                             </td>
                                             <td className="py-1.5 text-right tabular-nums">

@@ -37,11 +37,11 @@ export default function ProcedimientosIndex({
 }) {
     return (
         <>
-            <Head title="Procedimientos quirúrgicos" />
+            <Head title="Catálogo de procedimientos" />
             <div className="flex flex-col gap-4 p-4">
                 <EncabezadoListado
                     hrefAtras="/parametros"
-                    titulo="Procedimientos quirúrgicos"
+                    titulo="Catálogo de procedimientos"
                     descripcion="Protocolos con código CUPS, duración estimada y tarifa de referencia (parámetro de Capa 1)."
                     accion={
                         <ModalFormulario
@@ -200,6 +200,9 @@ export default function ProcedimientosIndex({
 
 ProcedimientosIndex.layout = {
     breadcrumbs: [
-        { title: 'Procedimientos', href: '/parametros/procedimientos' },
+        {
+            title: 'Catálogo de procedimientos',
+            href: '/parametros/procedimientos',
+        },
     ],
 };

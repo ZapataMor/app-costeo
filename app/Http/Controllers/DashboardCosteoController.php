@@ -27,6 +27,7 @@ class DashboardCosteoController extends Controller
             'completitud' => $kpis->completitud(),
             'utilizacion' => $kpis->utilizacionSalas(),
             'glosasRecaudo' => $kpis->glosasRecaudo(),
+            'tendencia' => $kpis->tendenciaMensual(),
             ...$this->periodo($kpis),
         ]);
     }

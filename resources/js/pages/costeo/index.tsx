@@ -9,9 +9,12 @@ import {
     Waves,
 } from 'lucide-react';
 import { BotonExportar } from '@/components/boton-exportar';
+import { EncabezadoCosteo } from '@/components/costeo/encabezado-costeo';
 import { KpiCard } from '@/components/costeo/kpi-card';
 import type { Periodo } from '@/components/costeo/selector-periodo';
 import { SelectorPeriodo } from '@/components/costeo/selector-periodo';
+import { TablaResponsive } from '@/components/costeo/tabla-responsive';
+import { TendenciaCostos } from '@/components/costeo/tendencia-costos';
 import {
     Card,
     CardContent,
@@ -19,11 +22,12 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { cop, pct } from '@/lib/formato';
+import { cop, minutos, numero, pct } from '@/lib/formato';
 import type {
     Completitud,
     CostosKpi,
     GlosasRecaudo,
+    TendenciaMensual,
     UtilizacionSalas,
 } from '@/types/costeo';
 
@@ -90,6 +94,7 @@ export default function CosteoIndex({
     completitud,
     utilizacion,
     glosasRecaudo,
+    tendencia,
     periodo,
     periodoEtiqueta,
 }: {
@@ -97,22 +102,29 @@ export default function CosteoIndex({
     completitud: Completitud;
     utilizacion: UtilizacionSalas;
     glosasRecaudo: GlosasRecaudo;
+    tendencia: TendenciaMensual;
     periodo: Periodo;
     periodoEtiqueta: string;
 }) {
+    // De mayor a menor: el procedimiento más caro es lo primero que se busca
+    // aquí, y antes salían en el orden arbitrario de la consulta.
+    const porProcedimiento = [...costos.por_procedimiento].sort(
+        (a, b) => (b.costo_promedio ?? 0) - (a.costo_promedio ?? 0),
+    );
+
+    const maximoPromedio = Math.max(
+        1,
+        ...porProcedimiento.map((f) => f.costo_promedio ?? 0),
+    );
+
     return (
         <>
             <Head title="Costeo quirúrgico" />
             <div className="flex flex-col gap-4 p-4">
-                <div className="mb-1">
-                    <h1 className="font-serif text-[32px] leading-tight font-semibold text-[#161B2F] dark:text-[#F3F0ED]">
-                        Costeo quirúrgico
-                    </h1>
-                    <p className="mt-1 text-[13.5px] text-[#74787E] dark:text-[#A6AAB2]">
-                        Indicadores operativos, composición de costos y
-                        rentabilidad hospitalaria.
-                    </p>
-                </div>
+                <EncabezadoCosteo
+                    titulo="Costeo quirúrgico"
+                    descripcion="Indicadores operativos, composición de costos y rentabilidad hospitalaria."
+                />
 
                 <div className="flex flex-wrap items-center gap-2">
                     <SelectorPeriodo
@@ -137,19 +149,22 @@ export default function CosteoIndex({
                         detalle={`${costos.global.n_cirugias_costeadas} cirugías costeadas`}
                     />
                     <KpiCard
-                        titulo="Rango de costos"
+                        titulo="Costo más alto"
                         valor={cop(costos.global.costo_maximo)}
-                        detalle={`mínimo ${cop(costos.global.costo_minimo)}`}
+                        detalle={`el más bajo, ${cop(costos.global.costo_minimo)}`}
                     />
                     <KpiCard
                         titulo="Completitud de captura"
                         valor={pct(completitud.completitud_global)}
                         detalle={`${completitud.completas} de ${completitud.total_cirugias_realizadas} cirugías completas`}
                     />
+                    {/* El titular es el minuto operado, no el porcentaje: la
+                        capacidad instalada de un quirófano es tan grande que
+                        el ratio siempre sale bajo y se lee como un error. */}
                     <KpiCard
-                        titulo={`Utilización de salas (${utilizacion.mes})`}
-                        valor={pct(utilizacion.global.utilizacion_pct)}
-                        detalle={`${utilizacion.global.minutos_usados.toLocaleString('es-CO')} min operados`}
+                        titulo="Minutos de sala operados"
+                        valor={numero(utilizacion.global.minutos_usados)}
+                        detalle={`${utilizacion.global.n_cirugias} cirugías · ${pct(utilizacion.global.utilizacion_pct)} de la capacidad`}
                     />
                     <KpiCard
                         titulo="Tasa de glosas"
@@ -163,7 +178,9 @@ export default function CosteoIndex({
                     />
                 </div>
 
-                <div className="grid gap-[18px] md:grid-cols-2 xl:grid-cols-5">
+                <TendenciaCostos tendencia={tendencia} />
+
+                <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-[18px]">
                     {paneles.map((panel) => (
                         <Link key={panel.href} href={panel.href} prefetch>
                             <Card className="h-full transition-colors hover:bg-accent/50">
@@ -222,58 +239,142 @@ export default function CosteoIndex({
                         </CardContent>
                     </Card>
 
+                    {/* La tabla de CUPS + promedio era ilegible de un vistazo:
+                        ahora es un ranking con barra, y cada fila entra al
+                        procedimiento. */}
                     <Card>
                         <CardHeader>
                             <CardTitle className="text-base">
                                 Costo promedio por procedimiento
                             </CardTitle>
                             <CardDescription>
-                                Código CUPS y promedio de las cirugías costeadas
+                                De mayor a menor, sobre las cirugías costeadas
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <table className="w-full text-sm">
-                                <thead>
-                                    <tr className="border-b text-left text-muted-foreground">
-                                        <th className="py-2 font-medium">
-                                            CUPS
-                                        </th>
-                                        <th className="py-2 font-medium">
-                                            Procedimiento
-                                        </th>
-                                        <th className="py-2 text-right font-medium">
-                                            n
-                                        </th>
-                                        <th className="py-2 text-right font-medium">
-                                            Promedio
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {costos.por_procedimiento.map((fila) => (
-                                        <tr
-                                            key={fila.procedimiento.id}
-                                            className="border-b last:border-0"
-                                        >
-                                            <td className="py-2 font-mono text-xs">
-                                                {fila.procedimiento.codigo_cups}
-                                            </td>
-                                            <td className="py-2">
-                                                {fila.procedimiento.nombre}
-                                            </td>
-                                            <td className="py-2 text-right tabular-nums">
-                                                {fila.n}
-                                            </td>
-                                            <td className="py-2 text-right tabular-nums">
-                                                {cop(fila.costo_promedio)}
-                                            </td>
-                                        </tr>
+                            {porProcedimiento.length === 0 ? (
+                                <p className="py-6 text-center text-sm text-muted-foreground">
+                                    Todavía no hay cirugías costeadas en este
+                                    periodo.
+                                </p>
+                            ) : (
+                                <ul className="space-y-3">
+                                    {porProcedimiento.map((fila) => (
+                                        <li key={fila.procedimiento.id}>
+                                            <Link
+                                                href={`/costeo/procedimientos/${fila.procedimiento.id}`}
+                                                className="group block"
+                                            >
+                                                <div className="flex items-baseline justify-between gap-3 text-sm">
+                                                    <span className="truncate group-hover:underline">
+                                                        {
+                                                            fila.procedimiento
+                                                                .nombre
+                                                        }
+                                                    </span>
+                                                    <span className="shrink-0 tabular-nums">
+                                                        {cop(
+                                                            fila.costo_promedio,
+                                                        )}
+                                                    </span>
+                                                </div>
+                                                <div className="mt-1 flex items-center gap-2">
+                                                    <div className="h-1.5 flex-1 overflow-hidden rounded bg-muted">
+                                                        <div
+                                                            className="h-full rounded bg-primary"
+                                                            style={{
+                                                                width: `${((fila.costo_promedio ?? 0) / maximoPromedio) * 100}%`,
+                                                            }}
+                                                        />
+                                                    </div>
+                                                    <span className="shrink-0 font-mono text-[11px] text-muted-foreground">
+                                                        {
+                                                            fila.procedimiento
+                                                                .codigo_cups
+                                                        }{' '}
+                                                        · n={fila.n}
+                                                    </span>
+                                                </div>
+                                            </Link>
+                                        </li>
                                     ))}
-                                </tbody>
-                            </table>
+                                </ul>
+                            )}
                         </CardContent>
                     </Card>
                 </div>
+
+                {/* `por_sala` ya se calculaba y nunca se mostraba: era el dato
+                    accionable detrás del porcentaje global. */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-base">
+                            Utilización por sala
+                        </CardTitle>
+                        <CardDescription>
+                            Minutos operados sobre la capacidad instalada ·{' '}
+                            {utilizacion.ventana.etiqueta} (
+                            {utilizacion.ventana.dias} días)
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <TablaResponsive>
+                            <thead>
+                                <tr className="border-b text-left text-muted-foreground">
+                                    <th className="py-2 font-medium">Sala</th>
+                                    <th className="py-2 text-right font-medium">
+                                        Cirugías
+                                    </th>
+                                    <th className="py-2 text-right font-medium">
+                                        Minutos operados
+                                    </th>
+                                    <th className="py-2 text-right font-medium">
+                                        Capacidad
+                                    </th>
+                                    <th className="py-2 pl-6 font-medium">
+                                        Utilización
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {utilizacion.por_sala.map((fila) => (
+                                    <tr
+                                        key={fila.sala.id}
+                                        className="border-b last:border-0"
+                                    >
+                                        <td className="py-2">
+                                            {fila.sala.nombre}
+                                        </td>
+                                        <td className="py-2 text-right tabular-nums">
+                                            {fila.n_cirugias}
+                                        </td>
+                                        <td className="py-2 text-right tabular-nums">
+                                            {minutos(fila.minutos_usados)}
+                                        </td>
+                                        <td className="py-2 text-right text-muted-foreground tabular-nums">
+                                            {minutos(fila.minutos_disponibles)}
+                                        </td>
+                                        <td className="py-2 pl-6">
+                                            <div className="flex items-center gap-2">
+                                                <div className="h-2 w-full max-w-40 overflow-hidden rounded bg-muted">
+                                                    <div
+                                                        className="h-full rounded bg-primary"
+                                                        style={{
+                                                            width: `${Math.min(100, (fila.utilizacion_pct ?? 0) * 100)}%`,
+                                                        }}
+                                                    />
+                                                </div>
+                                                <span className="w-14 shrink-0 text-right tabular-nums">
+                                                    {pct(fila.utilizacion_pct)}
+                                                </span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </TablaResponsive>
+                    </CardContent>
+                </Card>
             </div>
         </>
     );

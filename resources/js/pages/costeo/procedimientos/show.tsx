@@ -1,5 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { ArrowLeft, Eye, X } from 'lucide-react';
+import { DispersionProcedimiento } from '@/components/costeo/dispersion-procedimiento';
 import { KpiCard } from '@/components/costeo/kpi-card';
 import Heading from '@/components/heading';
 import { Paginacion } from '@/components/parametros/paginacion';
@@ -13,12 +14,13 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { cop } from '@/lib/formato';
+import { cop, etiqueta, fecha as formatearFecha } from '@/lib/formato';
 import type {
     EstadisticasProcedimiento,
     FiltrosInstanciasCirugia,
     PaginadoInstanciasCirugia,
     ProcedimientoCosteoInfo,
+    PuntoSerieProcedimiento,
 } from '@/types/costeo';
 
 const TODOS = 'todos';
@@ -27,12 +29,14 @@ export default function ProcedimientoCosteoShow({
     procedimiento,
     estadisticas,
     cirugias,
+    serie,
     filtros,
     estados,
 }: {
     procedimiento: ProcedimientoCosteoInfo;
     estadisticas: EstadisticasProcedimiento;
     cirugias: PaginadoInstanciasCirugia;
+    serie: PuntoSerieProcedimiento[];
     filtros: FiltrosInstanciasCirugia;
     estados: string[];
 }) {
@@ -96,6 +100,12 @@ export default function ProcedimientoCosteoShow({
                     />
                 </div>
 
+                <DispersionProcedimiento
+                    serie={serie}
+                    procedimientoId={procedimiento.id}
+                    promedio={estadisticas.costo_promedio}
+                />
+
                 <div className="flex flex-wrap items-center gap-2">
                     <label className="flex items-center gap-2 text-sm text-muted-foreground">
                         Desde
@@ -134,12 +144,8 @@ export default function ProcedimientoCosteoShow({
                                 Todos los estados
                             </SelectItem>
                             {estados.map((estado) => (
-                                <SelectItem
-                                    key={estado}
-                                    value={estado}
-                                    className="capitalize"
-                                >
-                                    {estado.replace('_', ' ')}
+                                <SelectItem key={estado} value={estado}>
+                                    {etiqueta(estado)}
                                 </SelectItem>
                             ))}
                         </SelectContent>
@@ -196,8 +202,8 @@ export default function ProcedimientoCosteoShow({
                                     key={cirugia.id}
                                     className="border-b last:border-0"
                                 >
-                                    <td className="p-3 tabular-nums">
-                                        {cirugia.fecha ?? '—'}
+                                    <td className="p-3 whitespace-nowrap tabular-nums">
+                                        {formatearFecha(cirugia.fecha)}
                                     </td>
                                     <td className="p-3 tabular-nums">
                                         {cirugia.hora_inicio
@@ -212,8 +218,8 @@ export default function ProcedimientoCosteoShow({
                                     <td className="p-3">
                                         {cirugia.sala ?? '—'}
                                     </td>
-                                    <td className="p-3 capitalize">
-                                        {cirugia.estado.replace('_', ' ')}
+                                    <td className="p-3">
+                                        {etiqueta(cirugia.estado)}
                                     </td>
                                     <td className="p-3 text-right tabular-nums">
                                         {cirugia.duracion_minutos !== null
@@ -264,7 +270,7 @@ export default function ProcedimientoCosteoShow({
 ProcedimientoCosteoShow.layout = {
     breadcrumbs: [
         { title: 'Costeo quirúrgico', href: '/costeo' },
-        { title: 'Procedimientos', href: '/costeo/procedimientos' },
+        { title: 'Costo por procedimiento', href: '/costeo/procedimientos' },
         { title: 'Detalle del procedimiento', href: '#' },
     ],
 };
