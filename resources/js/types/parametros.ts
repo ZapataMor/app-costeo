@@ -86,5 +86,6 @@ export type HospitalConfig = {
     departamento: string;
     horas_dia: number;
     dias_mes: number;
+    minutos_efectivos_hora: number;
     factor_indirecto: string;
 };

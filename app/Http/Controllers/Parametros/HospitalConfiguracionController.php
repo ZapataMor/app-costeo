@@ -34,7 +34,7 @@ class HospitalConfiguracionController extends Controller
         return Inertia::render('parametros/hospital', [
             'configuracion' => $hospital->only([
                 'id', 'nombre', 'nit', 'municipio', 'departamento',
-                'horas_dia', 'dias_mes', 'factor_indirecto',
+                'horas_dia', 'dias_mes', 'minutos_efectivos_hora', 'factor_indirecto',
             ]),
             'minutosDisponiblesMes' => $hospital->minutosDisponiblesMes(),
         ]);

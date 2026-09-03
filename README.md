@@ -107,9 +107,16 @@ un recurso de otro hospital responde `404` sin código adicional.
 ```
 costo total   = Σ(costo/minuto del recurso × minutos de uso) + costo de insumos
 costo/minuto  = (salario + prestaciones + indirectos) ÷ minutos disponibles/mes
-minutos disp. = horas_dia × dias_mes × 60      (12 × 26 × 60 = 18.720 por defecto)
+minutos disp. = horas_dia × dias_mes × minutos_efectivos_hora   (12 × 26 × 60 = 18.720)
 ```
 
+- `minutos_efectivos_hora` (default 60) es la porción productiva de cada hora. Con 40
+  la capacidad baja a 12.480 y toda tarifa por minuto sube un 50 %. El valor usado se
+  congela en `cirugias.minutos_efectivos_hora_registrado`.
+- **Los indicadores de utilización usan la capacidad vigente, no la del periodo
+  consultado**: cambiar `horas_dia`, `dias_mes` o `minutos_efectivos_hora` reescribe
+  los porcentajes históricos de ocupación de salas. Los costos no cambian, porque cada
+  cirugía lleva su capacidad congelada.
 - Sala y equipos médicos se costean por tarifa/hora prorrateada a minutos.
 - `costo_indirecto = costo_directo × hospitales.factor_indirecto` (asignación adicional).
 - El desglose línea a línea queda en `costos_cirugia.detalle` (JSON).

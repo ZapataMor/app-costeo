@@ -74,7 +74,7 @@ class ParametrosController extends Controller
                 'nivelesConfiabilidad' => NivelConfiabilidad::values(),
             ],
             'hospitalActivo' => $hospital?->only([
-                'id', 'nombre', 'horas_dia', 'dias_mes', 'factor_indirecto',
+                'id', 'nombre', 'horas_dia', 'dias_mes', 'minutos_efectivos_hora', 'factor_indirecto',
             ]),
         ]);
     }

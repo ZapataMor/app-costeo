@@ -5,6 +5,7 @@ namespace App\Services\Indicators;
 use App\Enums\EstadoCirugia;
 use App\Enums\RolQuirurgico;
 use App\Models\CostoCirugia;
+use App\Models\Hospital;
 use App\Models\RecursoHumano;
 use App\Support\Estadistica;
 use App\Support\Periodo;
@@ -530,8 +531,10 @@ class PersonalCosteoService
             .'recursos_humanos.salario_mensual + recursos_humanos.prestaciones_mensuales '
             .'+ recursos_humanos.costos_indirectos_mensuales)';
 
+        // La capacidad se toma de Hospital para no reescribir aquí la fórmula:
+        // este SQL y TdabcCostingService tienen que dar el mismo número.
         $minutosDisponibles = 'coalesce(cirugias.minutos_disponibles_mes_registrado, '
-            .'hospitales.horas_dia * hospitales.dias_mes * 60)';
+            .Hospital::expresionMinutosDisponiblesMes().')';
 
         return "round({$costoMensual} * miembros_equipo_quirurgico.minutos_participacion "
             ."/ {$minutosDisponibles}, 2)";
