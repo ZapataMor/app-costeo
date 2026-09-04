@@ -58,6 +58,7 @@ interface ParametrosIndexProps {
         nombre: string;
         horas_dia: number;
         dias_mes: number;
+        minutos_efectivos_hora: number;
         factor_indirecto: number;
     } | null;
 }
@@ -337,6 +338,27 @@ export default function ParametrosIndex({
                                         </dt>
                                         <dd className="font-medium tabular-nums">
                                             {hospital.dias_mes}
+                                        </dd>
+                                    </div>
+                                    <div className="flex justify-between border-b pb-2">
+                                        <dt className="text-muted-foreground">
+                                            Minutos efectivos por hora
+                                        </dt>
+                                        <dd className="font-medium tabular-nums">
+                                            {hospital.minutos_efectivos_hora}
+                                        </dd>
+                                    </div>
+                                    <div className="flex justify-between border-b pb-2">
+                                        <dt className="text-muted-foreground">
+                                            Capacidad por recurso
+                                        </dt>
+                                        <dd className="font-medium tabular-nums">
+                                            {(
+                                                hospital.horas_dia *
+                                                hospital.dias_mes *
+                                                hospital.minutos_efectivos_hora
+                                            ).toLocaleString('es-CO')}{' '}
+                                            min/mes
                                         </dd>
                                     </div>
                                     <div className="flex justify-between">
