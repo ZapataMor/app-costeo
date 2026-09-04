@@ -2,6 +2,7 @@ import { Head, Link } from '@inertiajs/react';
 import {
     BedDouble,
     Building2,
+    Coins,
     ListChecks,
     MonitorSpeaker,
     Package,
@@ -51,6 +52,7 @@ interface ParametrosIndexProps {
         equiposMedicos: ModuloResumen;
         salasOperatorias: ModuloResumen;
         procedimientos: ModuloResumen;
+        costosIndirectos: ModuloResumen;
     };
     catalogos: Catalogos;
     hospitalActivo: {
@@ -77,7 +79,9 @@ const definiciones: {
     descripcion: string;
     href: string;
     icono: ComponentType<{ className?: string }>;
-    formulario: (cerrar: () => void, catalogos: Catalogos) => ReactNode;
+    // Opcional: un catálogo con formulario propio (campos condicionados,
+    // vigencias) no cabe en el modal del hub y solo enlaza a su listado.
+    formulario?: (cerrar: () => void, catalogos: Catalogos) => ReactNode;
 }[] = [
     {
         clave: 'recursosHumanos',
@@ -156,6 +160,15 @@ const definiciones: {
                 onSuccess={cerrar}
             />
         ),
+    },
+    {
+        clave: 'costosIndirectos',
+        titulo: 'Costos indirectos',
+        tituloNuevo: 'Nuevo concepto de costo indirecto',
+        descripcion:
+            'Bolsas de costo indirecto con su inductor y vigencia (CIF).',
+        href: '/parametros/costos-indirectos',
+        icono: Coins,
     },
 ];
 
@@ -285,15 +298,20 @@ export default function ParametrosIndex({
                                                 Ver listado y CRUD
                                             </Link>
                                         </Button>
-                                        <ModalFormulario
-                                            titulo={tituloNuevo}
-                                            textoBoton="Nuevo"
-                                            tamanoBoton="sm"
-                                        >
-                                            {(cerrar) =>
-                                                formulario(cerrar, catalogos)
-                                            }
-                                        </ModalFormulario>
+                                        {formulario && (
+                                            <ModalFormulario
+                                                titulo={tituloNuevo}
+                                                textoBoton="Nuevo"
+                                                tamanoBoton="sm"
+                                            >
+                                                {(cerrar) =>
+                                                    formulario(
+                                                        cerrar,
+                                                        catalogos,
+                                                    )
+                                                }
+                                            </ModalFormulario>
+                                        )}
                                     </CardFooter>
                                 </Card>
                             );

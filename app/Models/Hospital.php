@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\CategoriaCif;
+use App\Enums\OrigenComponente;
 use App\Models\Concerns\Auditable;
 use Carbon\CarbonInterface;
 use Database\Factories\HospitalFactory;
@@ -23,6 +25,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $dias_mes
  * @property int $minutos_efectivos_hora
  * @property float $factor_indirecto
+ * @property OrigenComponente $origen_infraestructura
+ * @property OrigenComponente $origen_depreciacion_equipos
+ * @property OrigenComponente $origen_personal_indirecto
  */
 class Hospital extends Model
 {
@@ -30,6 +35,20 @@ class Hospital extends Model
     use Auditable, HasFactory;
 
     protected $table = 'hospitales';
+
+    /**
+     * Los orígenes se quedan fuera de `$fillable` —solo ActivarCategoriaCif
+     * los escribe— pero necesitan default en el modelo: `create()` no relee
+     * la fila, así que sin esto un hospital recién creado traería null y
+     * `origenDe()` no podría responder hasta el primer refresh.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'origen_infraestructura' => 'digitado',
+        'origen_depreciacion_equipos' => 'digitado',
+        'origen_personal_indirecto' => 'digitado',
+    ];
 
     protected $fillable = [
         'nombre',
@@ -50,7 +69,44 @@ class Hospital extends Model
             'dias_mes' => 'integer',
             'minutos_efectivos_hora' => 'integer',
             'factor_indirecto' => 'float',
+            'origen_infraestructura' => OrigenComponente::class,
+            'origen_depreciacion_equipos' => OrigenComponente::class,
+            'origen_personal_indirecto' => OrigenComponente::class,
         ];
+    }
+
+    /**
+     * Origen del componente directo que la categoría podría duplicar.
+     * Las categorías sin equivalente en el directo siempre son `digitado`.
+     */
+    public function origenDe(CategoriaCif $categoria): OrigenComponente
+    {
+        $columna = $categoria->columnaOrigen();
+
+        if ($columna === null) {
+            return OrigenComponente::Digitado;
+        }
+
+        return $this->getAttribute($columna);
+    }
+
+    /**
+     * Mapa completo de orígenes, para congelarlo en la cirugía: sin él,
+     * recostear una cirugía vieja cambiaría según el switch de hoy.
+     *
+     * @return array<string, string>
+     */
+    public function origenesDeComponentes(): array
+    {
+        $origenes = [];
+
+        foreach (CategoriaCif::cases() as $categoria) {
+            if ($categoria->solapaConElDirecto()) {
+                $origenes[$categoria->value] = $this->origenDe($categoria)->value;
+            }
+        }
+
+        return $origenes;
     }
 
     /**
@@ -165,5 +221,11 @@ class Hospital extends Model
     public function equiposMedicos(): HasMany
     {
         return $this->hasMany(EquipoMedico::class);
+    }
+
+    /** @return HasMany<ConceptoCostoIndirecto, $this> */
+    public function conceptosCostoIndirecto(): HasMany
+    {
+        return $this->hasMany(ConceptoCostoIndirecto::class);
     }
 }

@@ -77,6 +77,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 ->except('show')->parameters(['salas-operatorias' => 'salaOperatoria']);
             Route::resource('procedimientos', Parametros\ProcedimientoQuirurgicoController::class)->except('show');
 
+            // Bolsas de costo indirecto. Solo captura: encender una bolsa
+            // excluye del costo directo el componente equivalente, así que la
+            // activación llega con el motor de asignación, no antes.
+            Route::resource('costos-indirectos', Parametros\ConceptoCostoIndirectoController::class)
+                ->except('show')->parameters(['costos-indirectos' => 'concepto']);
+
             // Plantilla del protocolo: lo que el procedimiento usa siempre y
             // con lo que nacerá prellenado cada registro suyo.
             Route::get('procedimientos/{procedimiento}/plantilla', [Parametros\PlantillaProcedimientoController::class, 'edit'])

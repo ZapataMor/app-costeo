@@ -7,6 +7,7 @@ use App\Enums\NivelComplejidad;
 use App\Enums\NivelConfiabilidad;
 use App\Enums\RolQuirurgico;
 use App\Http\Controllers\Controller;
+use App\Models\ConceptoCostoIndirecto;
 use App\Models\EquipoMedico;
 use App\Models\Hospital;
 use App\Models\Insumo;
@@ -66,6 +67,17 @@ class ParametrosController extends Controller
                     'valor' => $p->tarifa_soat !== null ? (float) $p->tarifa_soat : null,
                     'unidad' => 'SOAT',
                 ]),
+                'costosIndirectos' => $this->resumen(
+                    ConceptoCostoIndirecto::query()->orderBy('categoria')->orderBy('nombre'),
+                    fn (ConceptoCostoIndirecto $c): array => [
+                        'id' => $c->id,
+                        'nombre' => $c->nombre,
+                        'detalle' => str_replace('_', ' ', ucfirst($c->categoria->value))
+                            .' · '.($c->activo ? 'activo' : 'inactivo'),
+                        'valor' => $c->monto_mensual !== null ? (float) $c->monto_mensual : null,
+                        'unidad' => 'mes',
+                    ],
+                ),
             ],
             'catalogos' => [
                 'roles' => RolQuirurgico::values(),
