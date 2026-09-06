@@ -1,0 +1,226 @@
+{
+  "main": {
+    "id": "de1d3e2261acbf7e",
+    "type": "split",
+    "children": [
+      {
+        "id": "f8e4c52095b925f5",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "51566dda53d04747",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "03 - Actores/Area de Facturacion.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "Area de Facturacion"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "a6c3a3a70a781b0d",
+    "type": "split",
+    "children": [
+      {
+        "id": "ae40d8f41208107e",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "400570eb0e90168d",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Explorador de archivos"
+            }
+          },
+          {
+            "id": "1d881319540e6a13",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "cotización",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Buscar"
+            }
+          },
+          {
+            "id": "e5e5a2d3f26a040b",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Marcadores"
+            }
+          }
+        ],
+        "currentTab": 1
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "857e0d6772601124",
+    "type": "split",
+    "children": [
+      {
+        "id": "2dae16039dcf559d",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "f401a888c1cfe8ae",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "04 - Proyecto/Preguntas Abiertas.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Enlaces entrantes de Preguntas Abiertas"
+            }
+          },
+          {
+            "id": "df53d84f7eefb44d",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "04 - Proyecto/Preguntas Abiertas.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Enlaces salientes de Preguntas Abiertas"
+            }
+          },
+          {
+            "id": "8cb2be6e13eb349f",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Etiquetas"
+            }
+          },
+          {
+            "id": "71621256d9df65a1",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "Todas las propiedades"
+            }
+          },
+          {
+            "id": "439239f7fad8fde5",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "04 - Proyecto/Preguntas Abiertas.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Esquema de Preguntas Abiertas"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Abrir selector rápido": false,
+      "graph:Abrir vista gráfica": false,
+      "canvas:Crear nuevo lienzo": false,
+      "daily-notes:Abrir la nota de hoy": false,
+      "templates:Insertar plantilla": false,
+      "command-palette:Abrir paleta de comandos": false,
+      "bases:Crear nueva base": false
+    }
+  },
+  "active": "51566dda53d04747",
+  "lastOpenFiles": [
+    "INICIO.md",
+    "Sin título.canvas",
+    "Sin título.base",
+    "05 - Fuentes/originales/UPS-GT001084.pdf",
+    "05 - Fuentes/originales/Trabajo-de-Titulación.pdf",
+    "05 - Fuentes/originales/FonnegraJuanita_2024_HerramientaDigitalCompras.pdf",
+    "05 - Fuentes/originales/ebook-costeo-basado-actividades-tiempo.pdf",
+    "05 - Fuentes/originales/cbc,+XVICongresso_artigo_0560.pdf",
+    "05 - Fuentes/originales/20538.pdf",
+    "05 - Fuentes/Fuente - Tesis Herramienta Digital Compras Biomedicas HAMA (Medellin).md",
+    "05 - Fuentes/Fuente - Tesis Gestion Costos Cirugias Hospital del Nino y la Mujer (Cuenca).md",
+    "05 - Fuentes/Fuente - Tesis Gestion Costos Cirugias Hospital del Nino y la Mujer (Cuenca).md.tmp.21324.4c622a5fee3c",
+    "05 - Fuentes/Fuente - Tesis ABC Quirofano Hospital Leon Becerra (Guayaquil).md",
+    "05 - Fuentes/Fuente - Tesis ABC Quirofano Hospital Leon Becerra (Guayaquil).md.tmp.21324.dac44b9ab337",
+    "05 - Fuentes/Fuente - Tesis ABC Quirofano Hospital San Juan de Dios (Cuenca).md",
+    "05 - Fuentes/Fuente - Caso ABC Hospital Regional de Talca (Chile).md",
+    "05 - Fuentes/Fuente - Ebook TDABC (Kaplan y Anderson).md",
+    "00 - Bandeja de Entrada/LEEME.md",
+    "00 - Bandeja de Entrada/20538.pdf",
+    "02 - Conceptos/Glosario.md",
+    "02 - Conceptos/Sistema de Gestion del Conocimiento (SGC).md",
+    "02 - Conceptos/Sistema de Salud Colombiano.md",
+    "02 - Conceptos/Cuenta del Paciente.md",
+    "02 - Conceptos/Cotizacion de Procedimientos.md",
+    "02 - Conceptos/Costeo ABC y TDABC.md",
+    "02 - Conceptos/Complicaciones y Escalamiento de Costos.md",
+    "04 - Proyecto/Preguntas Abiertas.md",
+    "01 - Explicaciones/Explicaciones.md",
+    "04 - Proyecto/Objetivo del Proyecto.md",
+    "04 - Proyecto/Orlando Ruiz.md",
+    "03 - Actores/Paciente.md",
+    "03 - Actores/Medico.md",
+    "03 - Actores/Hospital o Clinica (IPS).md",
+    "03 - Actores/Gobierno (ADRES).md",
+    "03 - Actores/Asegurador (EPS).md",
+    "03 - Actores/Area de Facturacion.md"
+  ]
+}
