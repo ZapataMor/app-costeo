@@ -15,7 +15,8 @@ use InvalidArgumentException;
  *
  * Costo total = Σ(costo/minuto del recurso × minutos de uso) + costo de insumos
  * costo/minuto = (salario + prestaciones + indirectos) ÷ minutos disponibles/mes
- * minutos disponibles/mes = horas_dia × dias_mes × 60 (por defecto 12 × 26 × 60 = 18.720)
+ * minutos disponibles/mes = horas_dia × dias_mes × minutos_efectivos_hora
+ * (por defecto 12 × 26 × 60 = 18.720)
  *
  * La sala y los equipos médicos se costean por su tarifa/hora prorrateada
  * a minutos. El costo indirecto adicional aplica el factor_indirecto del
@@ -60,9 +61,14 @@ class TdabcCostingService
         }
 
         $factorIndirecto = $cirugia->factor_indirecto_registrado ?? $hospital->factor_indirecto;
+        $minutosEfectivosHora = $cirugia->minutos_efectivos_hora_registrado
+            ?? $hospital->minutos_efectivos_hora;
 
         $detalle = [
             'minutos_disponibles_mes' => $minutosDisponibles,
+            // Descompone el denominador anterior: sin esto, un costo viejo no
+            // dice si sus 18.720 minutos vienen de 60 o de otra capacidad.
+            'minutos_efectivos_hora' => $minutosEfectivosHora,
             'recurso_humano' => [],
             'sala' => null,
             'equipos' => [],

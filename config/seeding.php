@@ -20,11 +20,12 @@ return [
     |
     |     SEED_USER_PASSWORD=password
     |
+    | Definir la variable vacía (SEED_USER_PASSWORD=) cuenta como no definirla.
+    |
     */
 
-    'user_password' => env(
-        'SEED_USER_PASSWORD',
-        env('APP_ENV') === 'production' ? null : 'password',
-    ),
+    'user_password' => filled(env('SEED_USER_PASSWORD'))
+        ? env('SEED_USER_PASSWORD')
+        : (env('APP_ENV') === 'production' ? null : 'password'),
 
 ];

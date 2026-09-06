@@ -34,6 +34,7 @@ use Illuminate\Support\Carbon;
  * @property string $estado
  * @property string|null $diagnostico_cie10
  * @property int|null $minutos_disponibles_mes_registrado
+ * @property int|null $minutos_efectivos_hora_registrado
  * @property float|null $factor_indirecto_registrado
  * @property string|null $costo_hora_sala_registrado
  */
@@ -61,6 +62,7 @@ class Cirugia extends Model
         'diagnostico_cie10',
         'observaciones',
         'minutos_disponibles_mes_registrado',
+        'minutos_efectivos_hora_registrado',
         'factor_indirecto_registrado',
         'costo_hora_sala_registrado',
     ];
@@ -76,6 +78,7 @@ class Cirugia extends Model
             'hora_fin' => 'datetime',
             'hora_salida_recuperacion' => 'datetime',
             'minutos_disponibles_mes_registrado' => 'integer',
+            'minutos_efectivos_hora_registrado' => 'integer',
             'factor_indirecto_registrado' => 'float',
             'costo_hora_sala_registrado' => 'decimal:2',
         ];

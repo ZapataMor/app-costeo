@@ -32,6 +32,7 @@ class HospitalSeeder extends Seeder
             'departamento' => 'La Guajira',
             'horas_dia' => 12,
             'dias_mes' => 26,
+            'minutos_efectivos_hora' => 60,
             'factor_indirecto' => 0,
         ],
         [
@@ -42,6 +43,7 @@ class HospitalSeeder extends Seeder
             'departamento' => 'La Guajira',
             'horas_dia' => 12,
             'dias_mes' => 26,
+            'minutos_efectivos_hora' => 60,
             'factor_indirecto' => 0.12,
         ],
     ];

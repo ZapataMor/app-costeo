@@ -54,8 +54,10 @@ export default function HospitalConfiguracion({
                                 {minutosDisponiblesMes.toLocaleString('es-CO')}{' '}
                                 minutos/mes
                             </strong>{' '}
-                            (horas/día × días/mes × 60), denominador del costo
-                            por minuto de cada recurso.
+                            ({hospital.horas_dia} h/día × {hospital.dias_mes}{' '}
+                            días/mes × {hospital.minutos_efectivos_hora} min
+                            efectivos/hora), denominador del costo por minuto de
+                            cada recurso.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -66,7 +68,7 @@ export default function HospitalConfiguracion({
                         >
                             {({ processing, errors }) => (
                                 <>
-                                    <div className="grid gap-4 sm:grid-cols-3">
+                                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                                         <div className="grid gap-2">
                                             <Label htmlFor="horas_dia">
                                                 Horas por día
@@ -104,6 +106,27 @@ export default function HospitalConfiguracion({
                                             />
                                         </div>
                                         <div className="grid gap-2">
+                                            <Label htmlFor="minutos_efectivos_hora">
+                                                Minutos efectivos por hora
+                                            </Label>
+                                            <Input
+                                                id="minutos_efectivos_hora"
+                                                name="minutos_efectivos_hora"
+                                                type="number"
+                                                min="1"
+                                                max="60"
+                                                defaultValue={
+                                                    hospital.minutos_efectivos_hora
+                                                }
+                                                required
+                                            />
+                                            <InputError
+                                                message={
+                                                    errors.minutos_efectivos_hora
+                                                }
+                                            />
+                                        </div>
+                                        <div className="grid gap-2">
                                             <Label htmlFor="factor_indirecto">
                                                 Factor indirecto (0–1)
                                             </Label>
@@ -126,6 +149,26 @@ export default function HospitalConfiguracion({
                                             />
                                         </div>
                                     </div>
+                                    <p className="text-xs text-muted-foreground">
+                                        Los{' '}
+                                        <strong>
+                                            minutos efectivos por hora
+                                        </strong>{' '}
+                                        son la parte productiva de cada hora (60
+                                        = hora completa; 40 descuenta
+                                        alistamiento, aseo y tiempos muertos).
+                                        Cambiarlos{' '}
+                                        <strong>
+                                            altera todas las tarifas por minuto
+                                            futuras
+                                        </strong>
+                                        : bajar de 60 a 40 reduce la capacidad
+                                        un 33 % y encarece cada minuto un 50 %.
+                                        Las cirugías ya registradas conservan la
+                                        capacidad congelada en su costeo; los
+                                        indicadores de utilización sí se
+                                        recalculan con el valor vigente.
+                                    </p>
                                     <p className="text-xs text-muted-foreground">
                                         El factor indirecto se aplica sobre el
                                         costo directo de cada cirugía (p. ej.

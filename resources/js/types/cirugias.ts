@@ -188,6 +188,8 @@ export type CirugiaDetalle = {
 
 export type DetalleCosto = {
     minutos_disponibles_mes: number;
+    /** Ausente en costeos anteriores a la capacidad efectiva parametrizable. */
+    minutos_efectivos_hora?: number;
     recurso_humano: {
         recurso_humano_id: number;
         nombre: string;

@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\CategoriaCif;
+use App\Enums\OrigenComponente;
 use App\Models\Concerns\Auditable;
 use Carbon\CarbonInterface;
 use Database\Factories\HospitalFactory;
@@ -21,7 +23,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $departamento
  * @property int $horas_dia
  * @property int $dias_mes
+ * @property int $minutos_efectivos_hora
  * @property float $factor_indirecto
+ * @property OrigenComponente $origen_infraestructura
+ * @property OrigenComponente $origen_depreciacion_equipos
+ * @property OrigenComponente $origen_personal_indirecto
  */
 class Hospital extends Model
 {
@@ -29,6 +35,20 @@ class Hospital extends Model
     use Auditable, HasFactory;
 
     protected $table = 'hospitales';
+
+    /**
+     * Los orígenes se quedan fuera de `$fillable` —solo ActivarCategoriaCif
+     * los escribe— pero necesitan default en el modelo: `create()` no relee
+     * la fila, así que sin esto un hospital recién creado traería null y
+     * `origenDe()` no podría responder hasta el primer refresh.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'origen_infraestructura' => 'digitado',
+        'origen_depreciacion_equipos' => 'digitado',
+        'origen_personal_indirecto' => 'digitado',
+    ];
 
     protected $fillable = [
         'nombre',
@@ -38,6 +58,7 @@ class Hospital extends Model
         'departamento',
         'horas_dia',
         'dias_mes',
+        'minutos_efectivos_hora',
         'factor_indirecto',
     ];
 
@@ -46,17 +67,71 @@ class Hospital extends Model
         return [
             'horas_dia' => 'integer',
             'dias_mes' => 'integer',
+            'minutos_efectivos_hora' => 'integer',
             'factor_indirecto' => 'float',
+            'origen_infraestructura' => OrigenComponente::class,
+            'origen_depreciacion_equipos' => OrigenComponente::class,
+            'origen_personal_indirecto' => OrigenComponente::class,
         ];
     }
 
     /**
+     * Origen del componente directo que la categoría podría duplicar.
+     * Las categorías sin equivalente en el directo siempre son `digitado`.
+     */
+    public function origenDe(CategoriaCif $categoria): OrigenComponente
+    {
+        $columna = $categoria->columnaOrigen();
+
+        if ($columna === null) {
+            return OrigenComponente::Digitado;
+        }
+
+        return $this->getAttribute($columna);
+    }
+
+    /**
+     * Mapa completo de orígenes, para congelarlo en la cirugía: sin él,
+     * recostear una cirugía vieja cambiaría según el switch de hoy.
+     *
+     * @return array<string, string>
+     */
+    public function origenesDeComponentes(): array
+    {
+        $origenes = [];
+
+        foreach (CategoriaCif::cases() as $categoria) {
+            if ($categoria->solapaConElDirecto()) {
+                $origenes[$categoria->value] = $this->origenDe($categoria)->value;
+            }
+        }
+
+        return $origenes;
+    }
+
+    /**
      * Capacidad práctica TDABC: minutos disponibles por recurso al mes.
-     * Por defecto 12 h/día × 26 días × 60 = 18.720 minutos.
+     * Por defecto 12 h/día × 26 días × 60 min efectivos = 18.720 minutos.
+     *
+     * `minutos_efectivos_hora` es la porción productiva de cada hora: con 40
+     * la capacidad baja a 12.480 y toda tarifa por minuto sube un 50 %.
      */
     public function minutosDisponiblesMes(): int
     {
-        return $this->horas_dia * $this->dias_mes * 60;
+        return $this->horas_dia * $this->dias_mes * $this->minutos_efectivos_hora;
+    }
+
+    /**
+     * La misma fórmula de minutosDisponiblesMes() expresada en SQL.
+     *
+     * Los indicadores agregan con `sum()`/`group by` sobre miles de
+     * participaciones y no pueden hidratarlas para reusar el método; sin este
+     * punto único la capacidad quedaba escrita dos veces —una en PHP y otra
+     * como literal en el SQL— y ya se habían separado una vez.
+     */
+    public static function expresionMinutosDisponiblesMes(string $tabla = 'hospitales'): string
+    {
+        return "{$tabla}.horas_dia * {$tabla}.dias_mes * {$tabla}.minutos_efectivos_hora";
     }
 
     /**
@@ -69,6 +144,11 @@ class Hospital extends Model
      * Los meses naturales completos usan el valor configurado tal cual; una
      * ventana arbitraria prorratea los días naturales a días operativos con
      * la proporción `dias_mes / 30,4375` (días promedio de un mes).
+     *
+     * Usa siempre la capacidad VIGENTE, no la del periodo consultado: cambiar
+     * `horas_dia`, `dias_mes` o `minutos_efectivos_hora` reescribe la
+     * utilización histórica. Es una decisión explícita (ver README); los
+     * costos no se ven afectados porque van congelados en cada cirugía.
      */
     public function minutosDisponiblesEntre(CarbonInterface $inicio, CarbonInterface $fin): int
     {
@@ -91,7 +171,7 @@ class Hospital extends Model
         $dias = (int) $inicio->diffInDays($fin) + 1;
 
         return (int) round(
-            $this->horas_dia * 60 * $dias * ($this->dias_mes / 30.4375),
+            $this->horas_dia * $this->minutos_efectivos_hora * $dias * ($this->dias_mes / 30.4375),
         );
     }
 
@@ -141,5 +221,11 @@ class Hospital extends Model
     public function equiposMedicos(): HasMany
     {
         return $this->hasMany(EquipoMedico::class);
+    }
+
+    /** @return HasMany<ConceptoCostoIndirecto, $this> */
+    public function conceptosCostoIndirecto(): HasMany
+    {
+        return $this->hasMany(ConceptoCostoIndirecto::class);
     }
 }

@@ -56,6 +56,10 @@ class RegistrarCirugia
             $cirugia->loadMissing(['hospital', 'sala']);
             $cirugia->forceFill([
                 'minutos_disponibles_mes_registrado' => $cirugia->hospital->minutosDisponiblesMes(),
+                // Congelar solo el producto dejaba sin explicación de dónde
+                // salía: con la capacidad efectiva parametrizable, el mismo
+                // total puede venir de 12×26×60 o de 18×26×40.
+                'minutos_efectivos_hora_registrado' => $cirugia->hospital->minutos_efectivos_hora,
                 'factor_indirecto_registrado' => $cirugia->hospital->factor_indirecto,
                 'costo_hora_sala_registrado' => $cirugia->sala?->costo_hora,
             ])->save();

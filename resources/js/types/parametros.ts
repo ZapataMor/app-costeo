@@ -86,5 +86,33 @@ export type HospitalConfig = {
     departamento: string;
     horas_dia: number;
     dias_mes: number;
+    minutos_efectivos_hora: number;
     factor_indirecto: string;
+};
+
+export type ConceptoCostoIndirectoParam = {
+    id: number;
+    nombre: string;
+    categoria: string;
+    base_asignacion: string;
+    monto_mensual: string | null;
+    porcentaje: string | null;
+    vigente_desde: string;
+    vigente_hasta: string | null;
+    activo: boolean;
+    fuente: string | null;
+    nivel_confiabilidad: NivelConfiabilidad;
+};
+
+/** Catálogos que necesita el formulario de conceptos CIF. */
+export type CategoriaCifOpcion = {
+    valor: string;
+    solapa: boolean;
+    solape: string | null;
+};
+
+export type BaseAsignacionOpcion = {
+    valor: string;
+    etiqueta: string;
+    usaPorcentaje: boolean;
 };

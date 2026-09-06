@@ -56,6 +56,7 @@ trait Auditable
             'CostoCirugia' => 'el costo de cirugía',
             'ResultadoClinico' => 'el resultado clínico',
             'Facturacion' => 'la facturación',
+            'ConceptoCostoIndirecto' => 'el concepto de costo indirecto',
             'Hospital' => 'la configuración del hospital',
             default => 'el registro de '.class_basename(static::class),
         };
