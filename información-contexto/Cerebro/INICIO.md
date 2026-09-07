@@ -15,6 +15,7 @@ Proyecto doctoral del profesor [[Orlando Ruiz]]: un **Sistema de Gestión del Co
 
 ### Conceptos clave
 - [[Costeo ABC y TDABC]] — la metodología contable central del proyecto. ⭐
+- [[Costos Indirectos (CIF)]] — cómo se reparte lo que no se rastrea a una cirugía, y la trampa del doble conteo. ⭐
 - [[Sistema de Gestion del Conocimiento (SGC)]] — el marco de la tesis doctoral. ⭐
 - [[Cuenta del Paciente]] — la "hoja de vida" financiera que se abre al ingresar.
 - [[Cotizacion de Procedimientos]] — cuánto cuesta cada procedimiento.
@@ -26,6 +27,7 @@ Proyecto doctoral del profesor [[Orlando Ruiz]]: un **Sistema de Gestión del Co
 - [[Fuente - Capitulo 5 Tesis Doctoral SGC]] — el documento clave. ⭐
 - [[Fuente - Libro Costeo ABC Hospital San Jose de Maicao]] — libro del profesor (2022).
 - [[Fuente - Tablas Excel Recoleccion Costos Quirurgicos]] — el modelo de datos en embrión.
+- [[Fuente - Guia de Campos Base de Datos TDABC+MILP]] — las fórmulas y tasas exactas del pipeline doctoral. ⭐
 - [[Fuente - Documentos administrativos del libro]]
 
 ### Actores

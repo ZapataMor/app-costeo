@@ -2,12 +2,14 @@
 
 namespace App\Services\Cirugias;
 
+use App\Enums\CategoriaCif;
 use App\Models\Cirugia;
 use App\Models\ConsumoInsumo;
 use App\Models\EquipoMedico;
 use App\Models\Insumo;
 use App\Models\MiembroEquipoQuirurgico;
 use App\Models\RecursoHumano;
+use App\Services\Costing\AsignadorCif;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -52,6 +54,11 @@ class ActualizarCirugia
             // Tarifas ya congeladas, indexadas por el recurso al que pertenecen.
             $costoMensualPrevio = $cirugia->equipoQuirurgico
                 ->pluck('costo_mensual_registrado', 'recurso_humano_id');
+
+            $indirectosDePersonal = ! AsignadorCif::derivadoDeCif(
+                $cirugia->parametros_cif_registrados,
+                CategoriaCif::PersonalIndirecto,
+            );
             $costoUnitarioPrevio = $cirugia->consumos
                 ->pluck('costo_unitario_registrado', 'insumo_id');
             $costoHoraEquipoPrevio = $cirugia->equiposMedicos
@@ -103,8 +110,12 @@ class ActualizarCirugia
                     'hora_inicio' => $miembro['hora_inicio'] ?? null,
                     'hora_fin' => $miembro['hora_fin'] ?? null,
                     'minutos_participacion' => $miembro['minutos_participacion'],
+                    // Un integrante añadido en la corrección toma la tarifa
+                    // vigente, pero bajo el régimen CIF congelado en la
+                    // cirugía: si la bolsa de personal indirecto ya cubría
+                    // esos indirectos al registrar, sigue cubriéndolos.
                     'costo_mensual_registrado' => $costoMensualPrevio[$recurso->id]
-                        ?? $recurso->costoMensualTotal(),
+                        ?? $recurso->costoMensualTotal($indirectosDePersonal),
                 ]);
             }
 

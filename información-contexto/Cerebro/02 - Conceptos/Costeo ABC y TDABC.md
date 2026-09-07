@@ -50,4 +50,4 @@ Cuatro casos latinoamericanos de ABC en cirugía/quirófano confirman los patron
 - [[Fuente - Tesis ABC Quirofano Hospital Leon Becerra (Guayaquil)]] — actividades cronometradas en minutos por centro de costos; recomienda explícitamente construir un software para sostener el ABC.
 - [[Fuente - Tesis Gestion Costos Cirugias Hospital del Nino y la Mujer (Cuenca)]] — ABC + **punto de equilibrio con mezcla de cirugías** (nº mínimo de cirugías/mes para no perder).
 
-Relación con otras notas: la [[Cotizacion de Procedimientos]] es la aplicación práctica de este costeo; la comparación costo vs. tarifa determina el margen frente a la [[Asegurador (EPS)]].
+Relación con otras notas: [[Costos Indirectos (CIF)]] desarrolla la parte más difícil del método —qué hacer con lo que no se rastrea a una cirugía— y su estado en el aplicativo; la [[Cotizacion de Procedimientos]] es la aplicación práctica de este costeo; la comparación costo vs. tarifa determina el margen frente a la [[Asegurador (EPS)]].

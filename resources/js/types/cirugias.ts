@@ -215,6 +215,29 @@ export type DetalleCosto = {
     }[];
     /** Costo directo agrupado por fase del ciclo. */
     por_fase: Record<FaseCiclo, number>;
+    /**
+     * Cómo se calculó el indirecto: `bolsas` reparte cada concepto CIF por su
+     * inductor; `factor` aplica el porcentaje único del hospital. Nulo en las
+     * cirugías costeadas antes del motor CIF.
+     */
+    indirecto: {
+        via: 'bolsas' | 'factor';
+        factor_indirecto: number | null;
+        bolsas: {
+            concepto_costo_indirecto_id: number;
+            nombre: string;
+            categoria: string;
+            base_asignacion: string;
+            monto_mensual: number | null;
+            porcentaje: number | null;
+            denominador: number | null;
+            tasa: number;
+            unidades: number;
+            monto: number;
+        }[];
+    } | null;
+    /** Indirecto prorrateado por fase según su peso en el costo directo. */
+    indirecto_por_fase?: Record<FaseCiclo, number>;
     insumos: {
         insumo_id: number;
         fase: FaseCiclo;

@@ -77,9 +77,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 ->except('show')->parameters(['salas-operatorias' => 'salaOperatoria']);
             Route::resource('procedimientos', Parametros\ProcedimientoQuirurgicoController::class)->except('show');
 
-            // Bolsas de costo indirecto. Solo captura: encender una bolsa
-            // excluye del costo directo el componente equivalente, así que la
-            // activación llega con el motor de asignación, no antes.
+            // Bolsas de costo indirecto. Encender una categoría excluye del
+            // costo directo el componente equivalente y enciende sus bolsas
+            // en la misma transacción: las dos rutas van al mismo servicio,
+            // que es el único autorizado a mover ese par.
+            Route::post('costos-indirectos/activar', [Parametros\ConceptoCostoIndirectoController::class, 'activar'])
+                ->name('costos-indirectos.activar');
+            Route::post('costos-indirectos/desactivar', [Parametros\ConceptoCostoIndirectoController::class, 'desactivar'])
+                ->name('costos-indirectos.desactivar');
             Route::resource('costos-indirectos', Parametros\ConceptoCostoIndirectoController::class)
                 ->except('show')->parameters(['costos-indirectos' => 'concepto']);
 

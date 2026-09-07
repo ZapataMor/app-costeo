@@ -40,6 +40,9 @@ trait ReglasConceptoCostoIndirecto
                 'date',
                 new SinSolapeDeVigencias(
                     (string) $this->input('nombre'),
+                    // Un concepto se identifica por nombre + categoría: dos
+                    // «Mantenimiento» de categorías distintas son dos bolsas.
+                    $this->input('categoria'),
                     $this->input('vigente_hasta'),
                     $ignorarId,
                 ),

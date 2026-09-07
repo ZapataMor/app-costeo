@@ -37,6 +37,7 @@ use Illuminate\Support\Carbon;
  * @property int|null $minutos_efectivos_hora_registrado
  * @property float|null $factor_indirecto_registrado
  * @property string|null $costo_hora_sala_registrado
+ * @property array<string, mixed>|null $parametros_cif_registrados
  */
 class Cirugia extends Model
 {
@@ -65,6 +66,7 @@ class Cirugia extends Model
         'minutos_efectivos_hora_registrado',
         'factor_indirecto_registrado',
         'costo_hora_sala_registrado',
+        'parametros_cif_registrados',
     ];
 
     protected function casts(): array
@@ -81,6 +83,7 @@ class Cirugia extends Model
             'minutos_efectivos_hora_registrado' => 'integer',
             'factor_indirecto_registrado' => 'float',
             'costo_hora_sala_registrado' => 'decimal:2',
+            'parametros_cif_registrados' => 'array',
         ];
     }
 
@@ -204,6 +207,16 @@ class Cirugia extends Model
         return $this->belongsToMany(EquipoMedico::class, 'cirugia_equipo_medico')
             ->withPivot('minutos_uso', 'costo_hora_registrado')
             ->withTimestamps();
+    }
+
+    /**
+     * Bolsas CIF aplicadas a esta cirugía, línea a línea.
+     *
+     * @return HasMany<CirugiaConceptoIndirecto, $this>
+     */
+    public function conceptosIndirectos(): HasMany
+    {
+        return $this->hasMany(CirugiaConceptoIndirecto::class);
     }
 
     /** @return HasOne<CostoCirugia, $this> */

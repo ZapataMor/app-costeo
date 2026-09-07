@@ -2,6 +2,7 @@ import { Head, Link } from '@inertiajs/react';
 import { Info, Pencil } from 'lucide-react';
 import ConceptoCostoIndirectoController from '@/actions/App/Http/Controllers/Parametros/ConceptoCostoIndirectoController';
 import { FiltrosListado } from '@/components/filtros-listado';
+import { ActivacionCategoriasCif } from '@/components/parametros/activacion-categorias-cif';
 import { ConfirmarEliminacion } from '@/components/parametros/confirmar-eliminacion';
 import { EncabezadoListado } from '@/components/parametros/encabezado-listado';
 import { ConceptoCostoIndirectoForm } from '@/components/parametros/forms/concepto-costo-indirecto-form';
@@ -14,6 +15,7 @@ import { opcionesDesdeValores } from '@/lib/filtros';
 import { cop } from '@/lib/formato';
 import type {
     BaseAsignacionOpcion,
+    CapacidadesCif,
     CategoriaCifOpcion,
     ConceptoCostoIndirectoParam,
     Paginado,
@@ -34,12 +36,14 @@ export default function CostosIndirectosIndex({
     categorias,
     basesAsignacion,
     nivelesConfiabilidad,
+    capacidades,
     filtros,
 }: {
     conceptos: Paginado<ConceptoCostoIndirectoParam>;
     categorias: CategoriaCifOpcion[];
     basesAsignacion: BaseAsignacionOpcion[];
     nivelesConfiabilidad: string[];
+    capacidades: CapacidadesCif;
     filtros: Record<string, string>;
 }) {
     return (
@@ -61,6 +65,7 @@ export default function CostosIndirectosIndex({
                                     categorias={categorias}
                                     basesAsignacion={basesAsignacion}
                                     nivelesConfiabilidad={nivelesConfiabilidad}
+                                    capacidades={capacidades}
                                     onSuccess={cerrar}
                                 />
                             )}
@@ -71,14 +76,18 @@ export default function CostosIndirectosIndex({
                 <div className="flex gap-3 rounded-lg border bg-muted/30 p-4 text-sm">
                     <Info className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
                     <p className="text-muted-foreground">
-                        Los conceptos se capturan <strong>inactivos</strong> y
-                        todavía no afectan ningún costeo: el costo indirecto
-                        sigue saliendo del factor del hospital. Activar una
-                        categoría excluye del costo directo el componente
-                        equivalente, así que se habilita junto con el motor de
-                        asignación.
+                        Los conceptos se capturan <strong>inactivos</strong>. Al
+                        activar una categoría, sus bolsas se reparten entre las
+                        cirugías por su inductor y el componente equivalente
+                        deja de sumarse al costo directo, para no contarlo dos
+                        veces. Mientras haya bolsas activas, el{' '}
+                        <strong>factor indirecto del hospital se ignora</strong>
+                        : son dos métodos alternativos. Las cirugías ya
+                        registradas conservan el costeo de su día.
                     </p>
                 </div>
+
+                <ActivacionCategoriasCif categorias={categorias} />
 
                 <FiltrosListado
                     url="/parametros/costos-indirectos"

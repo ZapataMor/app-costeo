@@ -109,7 +109,15 @@ export type CategoriaCifOpcion = {
     valor: string;
     solapa: boolean;
     solape: string | null;
+    /** Bolsas registradas y encendidas de esta categoría. */
+    total: number;
+    activos: number;
+    /** Registros digitados que se contarían dos veces al activar. */
+    conflictos: { nombre: string; valor: number }[];
 };
+
+/** Capacidad mensual disponible como denominador de cada base por minuto. */
+export type CapacidadesCif = Partial<Record<string, number>>;
 
 export type BaseAsignacionOpcion = {
     valor: string;

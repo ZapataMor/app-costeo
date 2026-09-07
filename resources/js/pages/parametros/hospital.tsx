@@ -18,9 +18,11 @@ import type { HospitalConfig } from '@/types/parametros';
 export default function HospitalConfiguracion({
     configuracion: hospital,
     minutosDisponiblesMes,
+    bolsasActivas,
 }: {
     configuracion: HospitalConfig;
     minutosDisponiblesMes: number;
+    bolsasActivas: number;
 }) {
     return (
         <>
@@ -169,12 +171,40 @@ export default function HospitalConfiguracion({
                                         indicadores de utilización sí se
                                         recalculan con el valor vigente.
                                     </p>
-                                    <p className="text-xs text-muted-foreground">
-                                        El factor indirecto se aplica sobre el
-                                        costo directo de cada cirugía (p. ej.
-                                        0.12 = 12 %). Usa 0 si los indirectos ya
-                                        están asignados en los recursos.
-                                    </p>
+                                    {bolsasActivas > 0 ? (
+                                        <p className="text-xs text-amber-600">
+                                            Este hospital tiene{' '}
+                                            <strong>
+                                                {bolsasActivas} bolsa
+                                                {bolsasActivas === 1
+                                                    ? ''
+                                                    : 's'}{' '}
+                                                de costo indirecto activa
+                                                {bolsasActivas === 1 ? '' : 's'}
+                                            </strong>
+                                            , así que el factor indirecto{' '}
+                                            <strong>no se aplica</strong> a las
+                                            cirugías nuevas: el indirecto se
+                                            reparte por el inductor de cada
+                                            bolsa. El valor se conserva para las
+                                            cirugías costeadas antes de
+                                            activarlas.
+                                        </p>
+                                    ) : (
+                                        <p className="text-xs text-muted-foreground">
+                                            El factor indirecto se aplica sobre
+                                            el costo directo de cada cirugía (p.
+                                            ej. 0.12 = 12 %). Usa 0 solo si los
+                                            indirectos ya están asignados dentro
+                                            de los recursos; en cero y sin
+                                            bolsas activas,{' '}
+                                            <strong>
+                                                las cirugías se costean sin
+                                                ningún costo indirecto
+                                            </strong>
+                                            .
+                                        </p>
+                                    )}
                                     <Button disabled={processing}>
                                         Guardar configuración
                                     </Button>

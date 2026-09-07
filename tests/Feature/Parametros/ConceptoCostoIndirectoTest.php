@@ -5,7 +5,9 @@ namespace Tests\Feature\Parametros;
 use App\Enums\BaseAsignacionCif;
 use App\Enums\CategoriaCif;
 use App\Models\ConceptoCostoIndirecto;
+use App\Models\SalaOperatoria;
 use App\Models\Scopes\HospitalScope;
+use Inertia\Testing\AssertableInertia as Assert;
 
 /**
  * Catálogo de bolsas CIF: alta, validaciones excluyentes de monto/porcentaje,
@@ -201,6 +203,103 @@ class ConceptoCostoIndirectoTest extends ParametrosTestCase
         $this->assertFalse(
             ConceptoCostoIndirecto::withoutGlobalScope(HospitalScope::class)->sole()->activo,
         );
+    }
+
+    /**
+     * El panel de activación se dibuja con estos datos: cuántas bolsas hay por
+     * categoría, cuántas están encendidas y qué registros digitados quedarían
+     * duplicados. Sin ellos el diálogo no puede nombrar el conflicto.
+     */
+    public function test_el_listado_expone_el_estado_de_cada_categoria(): void
+    {
+        ConceptoCostoIndirecto::factory()->create(['hospital_id' => $this->hospitalA->id]);
+        SalaOperatoria::factory()->create([
+            'hospital_id' => $this->hospitalA->id,
+            'nombre' => 'Quirófano 1',
+            'costo_hora' => 180_000,
+        ]);
+
+        $this->actingAs($this->adminA)
+            ->get('/parametros/costos-indirectos')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->has('capacidades.minuto_quirofano')
+                ->where('categorias.0.valor', CategoriaCif::Infraestructura->value)
+                ->where('categorias.0.total', 1)
+                ->where('categorias.0.activos', 0)
+                ->where('categorias.0.conflictos.0.nombre', 'Quirófano 1'));
+    }
+
+    /**
+     * Un hospital tiene «Mantenimiento» de infraestructura y «Mantenimiento»
+     * de servicios generales: son dos bolsas con inductores distintos, no una
+     * vigencia solapada. Identificar el concepto solo por el nombre bloqueaba
+     * la segunda.
+     */
+    public function test_el_mismo_nombre_en_otra_categoria_no_es_solape(): void
+    {
+        ConceptoCostoIndirecto::factory()->create([
+            'hospital_id' => $this->hospitalA->id,
+            'nombre' => 'Mantenimiento',
+            'categoria' => CategoriaCif::Infraestructura->value,
+            'vigente_desde' => '2026-01-01',
+            'vigente_hasta' => null,
+        ]);
+
+        $this->actingAs($this->adminA)
+            ->post('/parametros/costos-indirectos', $this->datos([
+                'nombre' => 'Mantenimiento',
+                'categoria' => CategoriaCif::ServiciosGenerales->value,
+                'vigente_desde' => '2026-02-01',
+            ]))
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(
+            2,
+            ConceptoCostoIndirecto::withoutGlobalScope(HospitalScope::class)->count(),
+        );
+    }
+
+    /**
+     * Una bolsa encendida ya está repartiéndose. Cambiarle el monto en
+     * caliente reescribe todas las tasas futuras sin dejar rastro; para eso
+     * están las vigencias.
+     */
+    public function test_no_se_puede_cambiar_el_monto_de_una_bolsa_activa(): void
+    {
+        $concepto = ConceptoCostoIndirecto::factory()->create([
+            'hospital_id' => $this->hospitalA->id,
+        ]);
+        ConceptoCostoIndirecto::withoutGlobalScope(HospitalScope::class)
+            ->whereKey($concepto->id)->update(['activo' => true]);
+
+        $this->actingAs($this->adminA)->put(
+            "/parametros/costos-indirectos/{$concepto->id}",
+            $this->datos(['monto_mensual' => 99_000_000]),
+        );
+
+        $this->assertEqualsWithDelta(
+            20_000_000,
+            (float) $concepto->fresh()->monto_mensual,
+            0.01,
+        );
+    }
+
+    /** Corregir la fuente o cerrar la vigencia sí se puede con la bolsa activa. */
+    public function test_una_bolsa_activa_admite_correcciones_que_no_mueven_dinero(): void
+    {
+        $concepto = ConceptoCostoIndirecto::factory()->create([
+            'hospital_id' => $this->hospitalA->id,
+        ]);
+        ConceptoCostoIndirecto::withoutGlobalScope(HospitalScope::class)
+            ->whereKey($concepto->id)->update(['activo' => true]);
+
+        $this->actingAs($this->adminA)->put(
+            "/parametros/costos-indirectos/{$concepto->id}",
+            $this->datos(['vigente_hasta' => '2026-12-31', 'fuente' => 'Factura Air-e 2026']),
+        )->assertSessionHasNoErrors();
+
+        $this->assertSame('2026-12-31', $concepto->fresh()->vigente_hasta?->format('Y-m-d'));
     }
 
     /** @param array<string, mixed> $sobrescribir */
