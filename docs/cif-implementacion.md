@@ -44,7 +44,7 @@ vez; dividirla entre la capacidad de uno solo triplicaría la tasa. `MotorCifTes
 test_la_tasa_baja_cuando_el_hospital_tiene_mas_salas` fija esa diferencia.
 
 Coincide con la metodología de la tesis, que asigna el CIF a **420 COP por minuto de
-quirófano** (`Documentos contexto SICOPH/Guia_Campos_Base_Datos_TDABC_MILP.docx`), y
+quirófano** (`cerebro/otros/fuentes/originales/profesor/Guia_Campos_Base_Datos_TDABC_MILP.docx`), y
 con el Excel de recolección del profesor, cuyas hojas 6 a 9 son cuatro bolsas con
 inductor propio.
 
