@@ -125,7 +125,7 @@ La guía TDABC+MILP ([[Fuente - Guia de Campos Base de Datos TDABC+MILP]]) fija 
 
 ## 10. Acuerdo comercial
 
-Fuente: `información-contexto/Cotizacion_App_Costeo_TDABC.docx` (julio 2026, validez 30 días). [VERIFICAR] si fue aceptada y firmada.
+Fuente: `cerebro/otros/fuentes/originales/proyecto/Cotizacion_App_Costeo_TDABC.docx` (julio 2026, validez 30 días; antes en `información-contexto/`). [VERIFICAR] si fue aceptada y firmada.
 
 - **Objeto**: desarrollo completo del aplicativo (capas 1-5 de Kerschberg), funcional y escalable, **en el marco de una asociación para su futura comercialización** en otros centros de salud.
 - **Valor**: **COP $9.000.000** (referencia de mercado citada: $40-70 M; esfuerzo estimado 400-500 h, ~$20.000/h). Ofrecido como "precio de socio".

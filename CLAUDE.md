@@ -40,7 +40,7 @@ Seguir `cerebro/otros/bandeja-de-entrada.md`.
 - Fechas absolutas `AAAA-MM-DD`. Marcar con `[VERIFICAR]` toda suposición no confirmada con el código, el cliente o el hospital.
 - Cifras en COP; fórmulas del motor con nombres de columna reales.
 - El cerebro contiene datos del cliente y de los hospitales; el repositorio remoto es **público** (ver `cerebro/cliente-y-negocio.md` §11). No agregar datos personales de pacientes ni credenciales reales.
-- No crear el junction de Obsidian (lo crea el usuario). Las carpetas `información-contexto/` y `Documentos contexto SICOPH/` fueron migradas a `cerebro/` y eliminadas el 2026-09-15; si reaparecen por un merge, su contenido ya está en `cerebro/otros/`.
+- **Bóveda central de Obsidian**: `C:\Obsidian\Cerebros` (fuera de OneDrive: el sincronizador atraviesa los junctions y duplicaría el cerebro en el otro equipo). Ve este cerebro por `proyectos\app-costeo`, junction creado con `mklink /J "C:\Obsidian\Cerebros\proyectos\app-costeo" "C:\dev\app-costeo\cerebro"`. No crear ni tocar el junction desde el repo (lo crea el usuario en cada equipo). Las carpetas `información-contexto/` y `Documentos contexto SICOPH/` fueron migradas a `cerebro/` y eliminadas el 2026-09-15; si reaparecen por un merge, su contenido ya está en `cerebro/otros/`.
 
 ## Convenciones del código (resumen)
 

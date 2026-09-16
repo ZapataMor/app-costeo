@@ -22,5 +22,6 @@ Existía un vault de Obsidian en `información-contexto/Cerebro/` (conceptos, ac
 
 ## Consecuencias
 - ⚠️ El repositorio es **público**: el cerebro contiene datos del cliente y de los hospitales. Decisión pendiente del usuario ([[backlog-mejoras]] #15).
-- Duplicación temporal: `información-contexto/Cerebro/` sigue existiendo hasta que el usuario confirme su borrado; `otros/fuentes/originales/` duplica casi todo `Documentos contexto SICOPH/`.
+- ~~Duplicación temporal: `información-contexto/Cerebro/` sigue existiendo hasta que el usuario confirme su borrado; `otros/fuentes/originales/` duplica casi todo `Documentos contexto SICOPH/`.~~ **Resuelto el 2026-09-15**: ambas carpetas se eliminaron del árbol y de Git; la única copia es `cerebro/otros/`.
+- La bóveda central vive en `C:\Obsidian\Cerebros` (fuera de OneDrive, para que el sincronizador no duplique el cerebro en el otro equipo); `proyectos\app-costeo` es un junction a `C:\dev\app-costeo\cerebro`. Auditoría en [[2026-09-15]].
 - Nombres de archivo con espacios y paréntesis en `otros/` (heredados) — se aceptan por compatibilidad de enlaces.
