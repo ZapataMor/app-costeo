@@ -13,8 +13,10 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { cop, numero } from '@/lib/formato';
 import type {
     BaseAsignacionOpcion,
+    CapacidadesCif,
     CategoriaCifOpcion,
     ConceptoCostoIndirectoParam,
 } from '@/types/parametros';
@@ -33,6 +35,7 @@ export function ConceptoCostoIndirectoForm({
     categorias,
     basesAsignacion,
     nivelesConfiabilidad,
+    capacidades = {},
     hrefCancelar,
     onSuccess,
     onCancelar,
@@ -42,6 +45,7 @@ export function ConceptoCostoIndirectoForm({
     categorias: CategoriaCifOpcion[];
     basesAsignacion: BaseAsignacionOpcion[];
     nivelesConfiabilidad: string[];
+    capacidades?: CapacidadesCif;
     hrefCancelar?: string;
     onSuccess?: () => void;
     onCancelar?: () => void;
@@ -52,6 +56,16 @@ export function ConceptoCostoIndirectoForm({
     const [base, setBase] = useState(
         concepto?.base_asignacion ?? basesAsignacion[0]?.valor ?? '',
     );
+    const [monto, setMonto] = useState(concepto?.monto_mensual ?? '');
+
+    // La tasa es el número que de verdad se aplica a cada cirugía; verla
+    // mientras se escribe el monto evita descubrir un cero de más cuando ya
+    // está costeando.
+    const denominador = capacidades[base] ?? 0;
+    const tasa =
+        denominador > 0 && Number(monto) > 0
+            ? Number(monto) / denominador
+            : null;
 
     // El monto y el porcentaje son excluyentes: el backend prohíbe el campo
     // que no corresponde, así que aquí solo se muestra el que aplica.
@@ -161,9 +175,33 @@ export function ConceptoCostoIndirectoForm({
                                     type="number"
                                     step="0.01"
                                     min="0.01"
-                                    defaultValue={concepto?.monto_mensual ?? ''}
+                                    value={monto ?? ''}
+                                    onChange={(e) => setMonto(e.target.value)}
                                     required
                                 />
+                                {denominador > 0 && (
+                                    <p className="text-xs text-muted-foreground">
+                                        Capacidad del hospital para esta base:{' '}
+                                        <strong>
+                                            {numero(denominador)} min/mes
+                                        </strong>
+                                        {tasa !== null && (
+                                            <>
+                                                {' → '}
+                                                <strong>
+                                                    {cop(tasa)} por minuto
+                                                </strong>
+                                            </>
+                                        )}
+                                    </p>
+                                )}
+                                {denominador === 0 && (
+                                    <p className="text-xs text-amber-600">
+                                        El hospital no tiene capacidad activa
+                                        para esta base; la categoría no se podrá
+                                        activar hasta que la haya.
+                                    </p>
+                                )}
                                 <InputError message={errors.monto_mensual} />
                             </div>
                         )}

@@ -12,8 +12,13 @@ use Illuminate\Translation\PotentiallyTranslatedString;
  * Un mismo concepto no puede tener dos vigencias que se pisen.
  *
  * Si «Energía eléctrica» vale 20 millones desde enero y 24 desde julio, en
- * julio hay dos filas candidatas y el costeo tendría que elegir una: cobraría
- * el concepto dos veces o escogería en silencio. Se corta en la captura.
+ * julio hay dos filas candidatas y el costeo cobraría el concepto dos veces.
+ * Se corta en la captura.
+ *
+ * La identidad del concepto es **nombre + categoría**, no el nombre solo: un
+ * hospital tiene «Mantenimiento» de infraestructura y «Mantenimiento» de
+ * servicios generales, y son dos bolsas distintas con inductores distintos.
+ * Comparar solo por nombre bloqueaba la segunda.
  *
  * Dos rangos se solapan si cada uno empieza antes de que el otro termine.
  * `vigente_hasta` nulo es vigencia abierta, así que cuenta como infinito.
@@ -22,6 +27,7 @@ class SinSolapeDeVigencias implements ValidationRule
 {
     public function __construct(
         private readonly string $nombre,
+        private readonly ?string $categoria,
         private readonly ?string $vigenteHasta,
         private readonly ?int $ignorarId = null,
     ) {}
@@ -49,6 +55,7 @@ class SinSolapeDeVigencias implements ValidationRule
 
         $choque = ConceptoCostoIndirecto::query()
             ->where('nombre', $nombre)
+            ->when($this->categoria !== null, fn ($q) => $q->where('categoria', $this->categoria))
             ->when($this->ignorarId !== null, fn ($q) => $q->whereKeyNot($this->ignorarId))
             // El existente empieza antes de que termine el nuevo…
             ->when($hasta !== null, fn ($q) => $q->whereDate('vigente_desde', '<=', $hasta))

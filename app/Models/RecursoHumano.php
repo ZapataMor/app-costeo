@@ -57,12 +57,21 @@ class RecursoHumano extends Model
         ];
     }
 
-    /** salario + prestaciones + indirectos asignados. */
-    public function costoMensualTotal(): float
+    /**
+     * salario + prestaciones + indirectos asignados.
+     *
+     * Los indirectos se excluyen cuando el hospital marcó
+     * `origen_personal_indirecto = derivado_de_cif`: ese costo ya lo cubre la
+     * bolsa CIF de personal indirecto y sumarlo aquí lo contaría dos veces.
+     * El campo digitado se conserva intacto —hace falta para comparar el
+     * método actual con el método por bolsas— y es el costo congelado en cada
+     * cirugía el que refleja la decisión vigente al registrarla.
+     */
+    public function costoMensualTotal(bool $incluirIndirectos = true): float
     {
         return (float) $this->salario_mensual
             + (float) $this->prestaciones_mensuales
-            + (float) $this->costos_indirectos_mensuales;
+            + ($incluirIndirectos ? (float) $this->costos_indirectos_mensuales : 0.0);
     }
 
     /**

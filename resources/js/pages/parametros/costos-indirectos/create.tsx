@@ -4,6 +4,7 @@ import Heading from '@/components/heading';
 import { ConceptoCostoIndirectoForm } from '@/components/parametros/forms/concepto-costo-indirecto-form';
 import type {
     BaseAsignacionOpcion,
+    CapacidadesCif,
     CategoriaCifOpcion,
 } from '@/types/parametros';
 
@@ -11,10 +12,12 @@ export default function CostosIndirectosCreate({
     categorias,
     basesAsignacion,
     nivelesConfiabilidad,
+    capacidades,
 }: {
     categorias: CategoriaCifOpcion[];
     basesAsignacion: BaseAsignacionOpcion[];
     nivelesConfiabilidad: string[];
+    capacidades: CapacidadesCif;
 }) {
     return (
         <>
@@ -29,6 +32,7 @@ export default function CostosIndirectosCreate({
                     categorias={categorias}
                     basesAsignacion={basesAsignacion}
                     nivelesConfiabilidad={nivelesConfiabilidad}
+                    capacidades={capacidades}
                     hrefCancelar={ConceptoCostoIndirectoController.index.url()}
                 />
             </div>

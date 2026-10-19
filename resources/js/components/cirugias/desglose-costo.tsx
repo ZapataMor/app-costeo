@@ -72,7 +72,11 @@ export function DesgloseCosto({ costo }: { costo: CostoCirugia }) {
                         valor={Number(costo.costo_directo)}
                     />
                     <FilaTotal
-                        etiqueta="Costo indirecto (factor del hospital)"
+                        etiqueta={
+                            detalle?.indirecto?.via === 'bolsas'
+                                ? 'Costo indirecto (bolsas CIF por inductor)'
+                                : 'Costo indirecto (factor del hospital)'
+                        }
                         valor={Number(costo.costo_indirecto)}
                     />
                     <div className="my-2 border-t" />
@@ -112,6 +116,91 @@ export function DesgloseCosto({ costo }: { costo: CostoCirugia }) {
                     </CardContent>
                 </Card>
             )}
+
+            {detalle?.indirecto?.via === 'bolsas' &&
+                detalle.indirecto.bolsas.length > 0 && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-base">
+                                Costos indirectos por bolsa
+                            </CardTitle>
+                            <CardDescription>
+                                Cada bolsa se reparte por su propio inductor, no
+                                por un porcentaje del costo directo. La cuenta
+                                queda a la vista para poder auditarla sin
+                                consultar el catálogo.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="overflow-x-auto p-0">
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="border-b text-left text-muted-foreground">
+                                        <th className="p-3 font-medium">
+                                            Bolsa
+                                        </th>
+                                        <th className="p-3 font-medium">
+                                            Cómo se reparte
+                                        </th>
+                                        <th className="p-3 text-right font-medium">
+                                            Costo
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {detalle.indirecto.bolsas.map((bolsa) => (
+                                        <tr
+                                            key={
+                                                bolsa.concepto_costo_indirecto_id
+                                            }
+                                            className="border-b last:border-0"
+                                        >
+                                            <td className="p-3">
+                                                {bolsa.nombre}
+                                                <span className="block text-xs text-muted-foreground">
+                                                    {bolsa.categoria.replace(
+                                                        /_/g,
+                                                        ' ',
+                                                    )}
+                                                </span>
+                                            </td>
+                                            <td className="p-3 text-xs text-muted-foreground">
+                                                {bolsa.denominador !== null ? (
+                                                    <>
+                                                        {cop(
+                                                            bolsa.monto_mensual ??
+                                                                0,
+                                                        )}
+                                                        /mes ÷{' '}
+                                                        {numero(
+                                                            bolsa.denominador,
+                                                        )}{' '}
+                                                        min = {cop(bolsa.tasa)}
+                                                        /min ×{' '}
+                                                        {numero(
+                                                            bolsa.unidades,
+                                                        )}{' '}
+                                                        min
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        {(
+                                                            bolsa.tasa * 100
+                                                        ).toFixed(2)}{' '}
+                                                        % del costo directo (
+                                                        {cop(bolsa.unidades)})
+                                                    </>
+                                                )}
+                                            </td>
+                                            <td className="p-3 text-right tabular-nums">
+                                                {cop(bolsa.monto)}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </CardContent>
+                    </Card>
+                )}
 
             {detalle && (
                 <div className="grid gap-4 lg:grid-cols-2">

@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Enums\BaseAsignacionCif;
 use App\Enums\CategoriaCif;
 use App\Enums\OrigenComponente;
+use App\Enums\RolQuirurgico;
 use App\Models\Concerns\Auditable;
 use Carbon\CarbonInterface;
 use Database\Factories\HospitalFactory;
@@ -119,6 +121,50 @@ class Hospital extends Model
     public function minutosDisponiblesMes(): int
     {
         return $this->horas_dia * $this->dias_mes * $this->minutos_efectivos_hora;
+    }
+
+    /**
+     * Capacidad mensual de TODOS los quirófanos activos del hospital.
+     *
+     * Es el denominador de las bolsas repartidas por minuto de quirófano.
+     * Ojo con la diferencia frente a `minutosDisponiblesMes()`: aquella es la
+     * capacidad de UN recurso —correcta para el costo/minuto de una persona—
+     * y usarla aquí inflaría la tasa tantas veces como salas activas haya,
+     * porque la bolsa mensual cubre todas las salas a la vez.
+     */
+    public function capacidadQuirofanosMes(): int
+    {
+        return $this->salasOperatorias()->where('activa', true)->count()
+            * $this->minutosDisponiblesMes();
+    }
+
+    /**
+     * Capacidad mensual sumada del personal quirúrgico activo.
+     *
+     * Denominador de las bolsas por minuto de personal. Solo cuenta los roles
+     * que entran a sala: la bolsa de personal indirecto se reparte entre
+     * quienes generan la actividad, no entre toda la nómina.
+     */
+    public function capacidadPersonalQuirurgicoMes(): int
+    {
+        return $this->recursosHumanos()
+            ->where('activo', true)
+            ->whereIn('rol', RolQuirurgico::values())
+            ->count() * $this->minutosDisponiblesMes();
+    }
+
+    /**
+     * Denominador de cada base de asignación, para congelarlo en la cirugía.
+     * `porcentaje_directo` no divide nada y queda fuera del mapa.
+     *
+     * @return array<string, int>
+     */
+    public function denominadoresCif(): array
+    {
+        return [
+            BaseAsignacionCif::MinutoQuirofano->value => $this->capacidadQuirofanosMes(),
+            BaseAsignacionCif::MinutoPersonal->value => $this->capacidadPersonalQuirurgicoMes(),
+        ];
     }
 
     /**

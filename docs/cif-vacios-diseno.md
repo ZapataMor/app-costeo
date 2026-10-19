@@ -1,7 +1,8 @@
 # CIF — cierre de vacíos de diseño previos a la fase 1
 
-Estado: **decisiones cerradas, pendiente de aprobación para implementar**.
-No se ha escrito código todavía.
+Estado: **implementado**. Ver [`cif-implementacion.md`](cif-implementacion.md) para
+cómo quedó y qué cambió respecto a lo planeado aquí.
+Este documento se conserva como registro de las decisiones y su porqué.
 Alcance: los 3 bloqueantes + los 3 menores del encargo.
 
 ---

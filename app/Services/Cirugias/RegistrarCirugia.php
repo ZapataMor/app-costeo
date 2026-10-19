@@ -2,12 +2,14 @@
 
 namespace App\Services\Cirugias;
 
+use App\Enums\CategoriaCif;
 use App\Models\Cirugia;
 use App\Models\ConsumoInsumo;
 use App\Models\EquipoMedico;
 use App\Models\Insumo;
 use App\Models\MiembroEquipoQuirurgico;
 use App\Models\RecursoHumano;
+use App\Services\Costing\AsignadorCif;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -24,6 +26,8 @@ use Illuminate\Support\Facades\DB;
  */
 class RegistrarCirugia
 {
+    public function __construct(protected AsignadorCif $asignador) {}
+
     /**
      * @param  array<string, mixed>  $datos  datos validados de StoreCirugiaRequest
      */
@@ -54,6 +58,13 @@ class RegistrarCirugia
 
             // Snapshot de los parámetros TDABC del hospital y la sala
             $cirugia->loadMissing(['hospital', 'sala']);
+
+            // Cómo se costeará el indirecto: qué bolsas rigen a esta fecha,
+            // con qué tasa y qué componentes directos quedan cubiertos por
+            // ellas. Congelarlo aquí es lo que hace que activar o retocar una
+            // bolsa mañana no reescriba el costo de lo ya registrado.
+            $parametrosCif = $this->asignador->congelar($cirugia->hospital, $cirugia->fecha);
+
             $cirugia->forceFill([
                 'minutos_disponibles_mes_registrado' => $cirugia->hospital->minutosDisponiblesMes(),
                 // Congelar solo el producto dejaba sin explicación de dónde
@@ -62,7 +73,16 @@ class RegistrarCirugia
                 'minutos_efectivos_hora_registrado' => $cirugia->hospital->minutos_efectivos_hora,
                 'factor_indirecto_registrado' => $cirugia->hospital->factor_indirecto,
                 'costo_hora_sala_registrado' => $cirugia->sala?->costo_hora,
+                'parametros_cif_registrados' => $parametrosCif,
             ])->save();
+
+            // Si la bolsa de personal indirecto está activa, el costo mensual
+            // congelado del equipo va SIN esos indirectos: ya viajan dentro
+            // de la bolsa.
+            $indirectosDePersonal = ! AsignadorCif::derivadoDeCif(
+                $parametrosCif,
+                CategoriaCif::PersonalIndirecto,
+            );
 
             // Procedimientos: garantiza exactamente un principal
             $hayPrincipal = array_any(
@@ -91,7 +111,7 @@ class RegistrarCirugia
                     'hora_inicio' => $miembro['hora_inicio'] ?? null,
                     'hora_fin' => $miembro['hora_fin'] ?? null,
                     'minutos_participacion' => $miembro['minutos_participacion'],
-                    'costo_mensual_registrado' => $recurso->costoMensualTotal(),
+                    'costo_mensual_registrado' => $recurso->costoMensualTotal($indirectosDePersonal),
                 ]);
             }
 

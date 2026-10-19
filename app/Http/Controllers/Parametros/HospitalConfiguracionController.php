@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Parametros;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateHospitalRequest;
+use App\Models\ConceptoCostoIndirecto;
 use App\Models\Hospital;
 use App\Support\HospitalContext;
 use Illuminate\Http\RedirectResponse;
@@ -37,6 +38,10 @@ class HospitalConfiguracionController extends Controller
                 'horas_dia', 'dias_mes', 'minutos_efectivos_hora', 'factor_indirecto',
             ]),
             'minutosDisponiblesMes' => $hospital->minutosDisponiblesMes(),
+            // Con bolsas activas el factor no se aplica, y sin bolsas un
+            // factor en cero significa costear sin indirectos: las dos cosas
+            // hay que decirlas donde se edita el campo.
+            'bolsasActivas' => ConceptoCostoIndirecto::query()->where('activo', true)->count(),
         ]);
     }
 

@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Parametros;
 
+use App\Models\ConceptoCostoIndirecto;
+use App\Models\Scopes\HospitalScope;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -16,6 +18,22 @@ class HospitalConfiguracionTest extends ParametrosTestCase
                 ->component('parametros/hospital')
                 ->where('configuracion.id', $this->hospitalA->id)
                 ->where('minutosDisponiblesMes', $this->hospitalA->minutosDisponiblesMes()));
+    }
+
+    /**
+     * Con bolsas activas el factor indirecto no se aplica. La pantalla que lo
+     * edita tiene que poder decirlo, o el usuario seguirá creyendo que ese
+     * campo manda.
+     */
+    public function test_avisa_cuantas_bolsas_activas_dejan_sin_efecto_el_factor(): void
+    {
+        ConceptoCostoIndirecto::factory()->create(['hospital_id' => $this->hospitalA->id]);
+        ConceptoCostoIndirecto::withoutGlobalScope(HospitalScope::class)->update(['activo' => true]);
+
+        $this->actingAs($this->adminA)
+            ->get('/parametros/hospital')
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('bolsasActivas', 1));
     }
 
     public function test_actualiza_horas_dias_y_factor_indirecto(): void

@@ -13,6 +13,7 @@ use App\Models\Hospital;
 use App\Models\Paciente;
 use App\Models\RecursoHumano;
 use App\Models\SalaOperatoria;
+use App\Models\User;
 use App\Services\Costing\ActivarCategoriaCif;
 use App\Services\Costing\DesactivarCategoriaCif;
 use App\Services\Costing\TdabcCostingService;
@@ -134,6 +135,9 @@ class ActivarCategoriaCifTest extends TestCase
             'costo_hora' => 180_000,
             'activa' => false,
         ]);
+        // La bolsa se reparte por minuto de quirófano: hace falta capacidad
+        // activa contra la cual repartirla, aunque no tenga costo propio.
+        $this->salaActivaSinCosto($hospital);
         ConceptoCostoIndirecto::factory()->create(['hospital_id' => $hospital->id]);
 
         app(ActivarCategoriaCif::class)->ejecutar($hospital, CategoriaCif::Infraestructura);
@@ -148,6 +152,8 @@ class ActivarCategoriaCifTest extends TestCase
     {
         $hospital = Hospital::factory()->create();
         HospitalContext::set($hospital->id);
+
+        $this->salaActivaSinCosto($hospital);
 
         // Administración no duplica ningún campo del costo directo.
         ConceptoCostoIndirecto::factory()
@@ -190,6 +196,7 @@ class ActivarCategoriaCifTest extends TestCase
         $hospital = Hospital::factory()->create();
         HospitalContext::set($hospital->id);
 
+        $this->salaActivaSinCosto($hospital);
         $concepto = ConceptoCostoIndirecto::factory()->create(['hospital_id' => $hospital->id]);
 
         app(ActivarCategoriaCif::class)
@@ -209,6 +216,7 @@ class ActivarCategoriaCifTest extends TestCase
         $hospitalA = Hospital::factory()->create();
         $hospitalB = Hospital::factory()->create();
 
+        $this->salaActivaSinCosto($hospitalA);
         $conceptoA = ConceptoCostoIndirecto::factory()->create(['hospital_id' => $hospitalA->id]);
         $conceptoB = ConceptoCostoIndirecto::factory()->create(['hospital_id' => $hospitalB->id]);
 
@@ -224,10 +232,12 @@ class ActivarCategoriaCifTest extends TestCase
     }
 
     /**
-     * La garantía del corte: mientras el motor de asignación no exista, tener
-     * conceptos —activos o no— no puede mover ninguna cifra.
+     * Activar bolsas no reescribe lo ya registrado: la cirugía se costeó con
+     * la foto de parámetros de su día, y esa foto decía «factor plano». El
+     * efecto de las bolsas se prueba en MotorCifTest, sobre cirugías
+     * registradas después de encenderlas.
      */
-    public function test_el_catalogo_no_altera_el_costeo(): void
+    public function test_el_catalogo_no_altera_el_costeo_de_lo_ya_registrado(): void
     {
         $hospital = Hospital::factory()->create(['factor_indirecto' => 0.10]);
         HospitalContext::set($hospital->id);
@@ -250,6 +260,67 @@ class ActivarCategoriaCifTest extends TestCase
             (float) $despues->costo_indirecto,
             0.01,
         );
+    }
+
+    /**
+     * La activación tiene que ser alcanzable desde la UI: mientras no lo
+     * fuera, el invariante se sostenía por ausencia de ruta y no por diseño,
+     * y el catálogo era captura sin efecto.
+     */
+    public function test_la_ruta_de_activacion_enciende_las_bolsas_y_marca_el_origen(): void
+    {
+        $hospital = Hospital::factory()->create();
+        HospitalContext::set($hospital->id);
+        $this->salaActivaSinCosto($hospital);
+        $concepto = ConceptoCostoIndirecto::factory()->create(['hospital_id' => $hospital->id]);
+
+        $this->actingAs(User::factory()->create(['hospital_id' => $hospital->id]))
+            ->post('/parametros/costos-indirectos/activar', [
+                'categoria' => CategoriaCif::Infraestructura->value,
+                'confirmado' => true,
+            ]);
+
+        $this->assertTrue($concepto->fresh()->activo);
+        $this->assertSame(
+            OrigenComponente::DerivadoDeCif,
+            $hospital->fresh()->origen_infraestructura,
+        );
+    }
+
+    /** Sin confirmar, el doble conteo se avisa y no se activa nada. */
+    public function test_la_ruta_de_activacion_no_activa_sin_confirmacion_si_hay_solape(): void
+    {
+        $hospital = Hospital::factory()->create();
+        HospitalContext::set($hospital->id);
+        SalaOperatoria::factory()->create([
+            'hospital_id' => $hospital->id,
+            'costo_hora' => 180_000,
+        ]);
+        $concepto = ConceptoCostoIndirecto::factory()->create(['hospital_id' => $hospital->id]);
+
+        $this->actingAs(User::factory()->create(['hospital_id' => $hospital->id]))
+            ->post('/parametros/costos-indirectos/activar', [
+                'categoria' => CategoriaCif::Infraestructura->value,
+            ]);
+
+        $this->assertFalse($concepto->fresh()->activo);
+        $this->assertSame(
+            OrigenComponente::Digitado,
+            $hospital->fresh()->origen_infraestructura,
+        );
+    }
+
+    /**
+     * Capacidad de quirófano sin costo propio que duplicar: lo que necesitan
+     * las bolsas por minuto para tener denominador, sin activar el bloqueo
+     * por componente digitado.
+     */
+    private function salaActivaSinCosto(Hospital $hospital): SalaOperatoria
+    {
+        return SalaOperatoria::factory()->create([
+            'hospital_id' => $hospital->id,
+            'costo_hora' => 0,
+        ]);
     }
 
     private function cirugiaCosteable(Hospital $hospital): Cirugia

@@ -4,6 +4,7 @@ namespace App\Services\Costing;
 
 use App\Enums\CategoriaCif;
 use App\Enums\OrigenComponente;
+use App\Exceptions\CapacidadCifNoDisponibleException;
 use App\Exceptions\SolapeDeCostoIndirectoException;
 use App\Models\ConceptoCostoIndirecto;
 use App\Models\EquipoMedico;
@@ -11,6 +12,7 @@ use App\Models\Hospital;
 use App\Models\RecursoHumano;
 use App\Models\SalaOperatoria;
 use App\Models\Scopes\HospitalScope;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
@@ -40,14 +42,28 @@ class ActivarCategoriaCif
      */
     public function ejecutar(Hospital $hospital, CategoriaCif $categoria, bool $confirmado = false): int
     {
-        $ids = $this->idsDeConceptos($hospital, $categoria);
+        $conceptos = $this->conceptosDe($hospital, $categoria);
 
-        if ($ids === []) {
+        if ($conceptos->isEmpty()) {
             throw new RuntimeException(
                 "El hospital {$hospital->id} no tiene conceptos de «{$categoria->value}» que activar.",
             );
         }
 
+        // Una bolsa por minuto sin capacidad activa contra la cual repartirse
+        // sería una división por cero al costear. Se corta aquí, que es donde
+        // el usuario puede arreglarlo, y no en mitad de un registro.
+        $denominadores = $hospital->denominadoresCif();
+
+        foreach ($conceptos as $concepto) {
+            $base = $concepto->base_asignacion;
+
+            if (! $base->usaPorcentaje() && ($denominadores[$base->value] ?? 0) <= 0) {
+                throw CapacidadCifNoDisponibleException::porBase($hospital, $base, $concepto->nombre);
+            }
+        }
+
+        $ids = $conceptos->modelKeys();
         $columnaOrigen = $categoria->columnaOrigen();
 
         // Categorías sin equivalente en el directo (administración, servicios
@@ -114,23 +130,15 @@ class ActivarCategoriaCif
     }
 
     /**
-     * Ids de los conceptos de la categoría en ese hospital.
+     * Conceptos de la categoría en ese hospital.
      *
-     * @return list<int>
+     * @return Collection<int, ConceptoCostoIndirecto>
      */
-    private function idsDeConceptos(Hospital $hospital, CategoriaCif $categoria): array
+    private function conceptosDe(Hospital $hospital, CategoriaCif $categoria): Collection
     {
-        $ids = [];
-
-        $conceptos = ConceptoCostoIndirecto::withoutGlobalScope(HospitalScope::class)
+        return ConceptoCostoIndirecto::withoutGlobalScope(HospitalScope::class)
             ->where('hospital_id', $hospital->id)
             ->where('categoria', $categoria->value)
-            ->get(['id']);
-
-        foreach ($conceptos as $concepto) {
-            $ids[] = (int) $concepto->getKey();
-        }
-
-        return $ids;
+            ->get(['id', 'nombre', 'base_asignacion']);
     }
 }

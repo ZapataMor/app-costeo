@@ -118,8 +118,20 @@ minutos disp. = horas_dia × dias_mes × minutos_efectivos_hora   (12 × 26 × 6
   los porcentajes históricos de ocupación de salas. Los costos no cambian, porque cada
   cirugía lleva su capacidad congelada.
 - Sala y equipos médicos se costean por tarifa/hora prorrateada a minutos.
-- `costo_indirecto = costo_directo × hospitales.factor_indirecto` (asignación adicional).
 - El desglose línea a línea queda en `costos_cirugia.detalle` (JSON).
+
+**Costo indirecto — dos vías excluyentes** (ver [`docs/cif-implementacion.md`](docs/cif-implementacion.md)):
+
+| Vía | Cuándo | Fórmula |
+|---|---|---|
+| `factor` | el hospital no tiene bolsas CIF activas | `costo_directo × hospitales.factor_indirecto` |
+| `bolsas` | hay bolsas activas y vigentes a la fecha | Σ de cada bolsa por su inductor (minuto de quirófano, minuto de personal o % del directo) |
+
+- Activar una categoría de bolsas **excluye del costo directo el componente
+  equivalente** (`costo_hora` de sala o equipos, indirectos del personal) para no
+  contarlo dos veces, y el `factor_indirecto` deja de aplicarse.
+- Cada cirugía congela sus parámetros CIF en `cirugias.parametros_cif_registrados`,
+  y guarda el reparto línea a línea en `cirugia_concepto_indirecto`.
 
 ### Validaciones automáticas (Form Requests)
 
