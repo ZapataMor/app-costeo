@@ -17,7 +17,7 @@ class HospitalFactory extends Factory
         return [
             'nombre' => 'Hospital '.fake()->company(),
             'nit' => fake()->unique()->numerify('8########-#'),
-            'nivel_complejidad' => 'mediana',
+            'nivel_complejidad' => 'media',
             'municipio' => fake()->randomElement(['Riohacha', 'Maicao', 'San Juan del Cesar', 'Fonseca']),
             'departamento' => 'La Guajira',
             'horas_dia' => 12,

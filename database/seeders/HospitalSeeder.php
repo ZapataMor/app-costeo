@@ -27,7 +27,7 @@ class HospitalSeeder extends Seeder
         [
             'nit' => '800100200-1',
             'nombre' => 'Hospital San Rafael de Maicao',
-            'nivel_complejidad' => 'mediana',
+            'nivel_complejidad' => 'media',
             'municipio' => 'Maicao',
             'departamento' => 'La Guajira',
             'horas_dia' => 12,
@@ -38,7 +38,7 @@ class HospitalSeeder extends Seeder
         [
             'nit' => '800300400-2',
             'nombre' => 'Hospital Nuestra Señora de Riohacha',
-            'nivel_complejidad' => 'mediana',
+            'nivel_complejidad' => 'media',
             'municipio' => 'Riohacha',
             'departamento' => 'La Guajira',
             'horas_dia' => 12,

@@ -14,6 +14,7 @@ use App\Http\Controllers\DigitadorController;
 use App\Http\Controllers\ExportacionController;
 use App\Http\Controllers\HistorialController;
 use App\Http\Controllers\HospitalActivoController;
+use App\Http\Controllers\Instituciones;
 use App\Http\Controllers\Pacientes;
 use App\Http\Controllers\Parametros;
 use Illuminate\Support\Facades\Route;
@@ -47,6 +48,29 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         // Switcher de hospital del super_admin
         Route::post('hospital-activo', [HospitalActivoController::class, 'store'])->name('hospital-activo.store');
+
+        // ── Instituciones (solo super_admin) ────────────────────────────
+        // Alta y administración de hospitales/centros médicos (tenants) y
+        // de sus usuarios. Va sin `hospital.contexto`: opera sobre todos.
+        Route::prefix('instituciones')->name('instituciones.')
+            ->middleware('rol:super_admin')->group(function () {
+                Route::get('/', [Instituciones\InstitucionController::class, 'index'])->name('index');
+                Route::get('create', [Instituciones\InstitucionController::class, 'create'])->name('create');
+                Route::post('/', [Instituciones\InstitucionController::class, 'store'])->name('store');
+                Route::get('{hospital}', [Instituciones\InstitucionController::class, 'show'])->name('show');
+                Route::get('{hospital}/edit', [Instituciones\InstitucionController::class, 'edit'])->name('edit');
+                Route::put('{hospital}', [Instituciones\InstitucionController::class, 'update'])->name('update');
+                Route::delete('{hospital}', [Instituciones\InstitucionController::class, 'destroy'])->name('destroy');
+
+                Route::post('{hospital}/usuarios', [Instituciones\UsuarioInstitucionController::class, 'store'])
+                    ->name('usuarios.store');
+                Route::put('{hospital}/usuarios/{usuario}', [Instituciones\UsuarioInstitucionController::class, 'update'])
+                    ->name('usuarios.update');
+                Route::patch('{hospital}/usuarios/{usuario}/activo', [Instituciones\UsuarioInstitucionController::class, 'toggleActivo'])
+                    ->name('usuarios.toggle-activo');
+                Route::delete('{hospital}/usuarios/{usuario}', [Instituciones\UsuarioInstitucionController::class, 'destroy'])
+                    ->name('usuarios.destroy');
+            });
 
         // Historial de actividad (auditoría)
         Route::get('historial', [HistorialController::class, 'index'])->name('historial.index');

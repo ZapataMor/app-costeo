@@ -1,5 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
+    Building2,
     History,
     LayoutGrid,
     SlidersHorizontal,
@@ -81,6 +82,16 @@ const parametrosNavItems: NavItem[] = [
     },
 ];
 
+// Alta de hospitales/centros médicos y de sus usuarios: es el módulo con el
+// que el super_admin da de alta un tenant, así que solo él lo ve.
+const institucionesNavItems: NavItem[] = [
+    {
+        title: 'Instituciones',
+        href: '/instituciones',
+        icon: Building2,
+    },
+];
+
 const digitadoresNavItems: NavItem[] = [
     {
         title: 'Digitadores',
@@ -142,7 +153,17 @@ export function AppSidebar() {
                 ) : (
                     <>
                         {esSuperAdmin && (
-                            <NavMain items={generalNavItems} label="General" />
+                            <>
+                                <NavMain
+                                    items={generalNavItems}
+                                    label="General"
+                                />
+                                <NavMain
+                                    items={institucionesNavItems}
+                                    label="Administración"
+                                    className="mt-[14px]"
+                                />
+                            </>
                         )}
                         <NavMain
                             items={parametrosNavItems}
