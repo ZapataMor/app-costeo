@@ -1,6 +1,6 @@
 ---
 tags: [moc, resumen]
-actualizado: 2026-10-19
+actualizado: 2026-10-21
 ---
 
 # 🧠 app-costeo (SICOPH) — Resumen
@@ -27,7 +27,7 @@ Es la materialización tecnológica de la tesis doctoral del profesor **Orlando 
 | Frontend | **React 19** + **Inertia.js 3** · TypeScript · Tailwind 4 · Radix UI · Recharts 3 · lucide · sonner |
 | Build | Vite 8 |
 | BD | **MySQL 8** (desarrollo local vía `.env` y producción) · SQLite en memoria solo para tests (`phpunit.xml`) |
-| Calidad | PHPUnit (**323 tests**, 2026-10-19) · PHPStan/Larastan nivel 7 · Pint · ESLint · Prettier · GitHub Actions (lint + tests en PHP 8.3/8.4/8.5) |
+| Calidad | PHPUnit (**357 tests**, 2026-10-21) · PHPStan/Larastan nivel 7 · Pint · ESLint · Prettier · GitHub Actions (lint + tests en PHP 8.3/8.4/8.5) |
 | Repo | `github.com/ZapataMor/app-costeo` — **PÚBLICO** ⚠️ (ver [[cliente-y-negocio#Confidencialidad]]) |
 
 Servidores locales definidos en `.claude/launch.json`: `app-costeo` (`php artisan serve --port=8801`) y `vite` (`npm run dev`, puerto 5173). Sembrado de datos: `php artisan migrate:fresh --seed` (dos hospitales ficticios marcados `[SEMILLA]`; la cesárea de referencia da exactamente **$520.000 COP**). Carga de volumen opcional de la Capa 1 para San Rafael: `php artisan db:seed --class=SanRafaelCargaSeeder` y luego `--class=SanRafaelMovimientoSeeder` (2.169 cirugías abr–oct 2026 costeadas, bolsas CIF desde el 1 de julio; [[2026-10-19]]).
@@ -67,7 +67,9 @@ app/
 
 **Frontend** (`resources/js/pages/`): `cirugias/` (inicio, create, edit, index, show), `costeo/` (index, componentes, outliers, rentabilidad, variabilidad, alertas, personal/, procedimientos/), `parametros/` (hospital, recursos-humanos, insumos, equipos-medicos, salas-operatorias, procedimientos + plantilla, costos-indirectos), `pacientes/`, `digitadores/`, `historial/`, `dashboard`, `auth/`, `settings/`.
 
-**Roles**: `super_admin` (todos los hospitales, switcher, dashboard consolidado) · `admin_hospital` (parámetros, costeo, digitadores de su hospital) · `digitador` (solo registra cirugías y corrige las suyas).
+**Roles**: `super_admin` (todos los hospitales, switcher, dashboard consolidado) · `admin_hospital` (parámetros, costeo, digitadores y profesionales de su hospital; curador del conocimiento) · `digitador` (solo registra cirugías y corrige las suyas) · `profesional` (personal quirúrgico atado a su recurso humano: lecciones, comunidades y mejores prácticas, sin costos ajenos).
+
+**Capa 4 — Conocimiento** (`app/Services/Conocimiento/`, `app/Http/Controllers/Conocimiento/`, `resources/js/pages/conocimiento/`): `CatalogoReglas` + `MotorReglas` (8 reglas por cirugía y por mes, alertas con impacto en COP), `GestorLecciones` (borrador → revisión → publicada, red de hospitales), `GeneradorRecomendaciones` (6 tipos con ahorro mensual estimado), `AnalizadorMejoresPracticas` (mejor desempeño y benchmarking anónimo), `GestorComunidades` (foros por especialidad), `TableroConocimiento`. Costo estándar vs. real en `Costing/CalculadorCostoEstandar` con clasificación de desviación por hospital. Diseño en [[2026-10-21-capa-4-conocimiento]].
 
 ## Mapa contra la arquitectura de la tesis (Kerschberg, 5 capas)
 
@@ -76,13 +78,14 @@ app/
 | 1 Objetos (repositorio documental, protocolos) | ❌ No iniciada. *Nota: el README y las rutas llaman "Capa 1" a los parámetros del hospital, que en rigor son captura.* |
 | 2 Datos (captura estructurada) | ✅ Completa: modelo multi-hospital, validaciones, ciclo por fases, plantillas de protocolo, trazabilidad del dato (`fuente`, `nivel_confiabilidad`) |
 | 3 Información/BI | ✅ Completa: motor TDABC + CIF por bolsas, outliers, KPIs Donabedian, 4 dashboards + explorador por procedimiento y por persona, exportación CSV |
-| 4 Conocimiento (reglas, alertas, lecciones aprendidas) | 🟡 Parcial: alertas de sobrecosto con causa y revisión. Faltan lecciones aprendidas, comunidades de práctica, recomendaciones |
-| 5 Presentación (portales por usuario) | 🟡 Parcial: 3 roles y vistas por rol. Faltan portal del cirujano (benchmarking anónimo), portal ejecutivo consolidado, portal público, puesta en producción |
+| 4 Conocimiento (reglas, alertas, lecciones aprendidas) | ✅ Completa (2026-10-21): costo estándar vs. real con clasificación −5/5/20 %, reglas configurables con alertas valoradas en COP, lecciones aprendidas con validación y red de hospitales, recomendaciones con ahorro estimado y seguimiento, mejores prácticas derivadas de datos con benchmarking anónimo, comunidades de práctica por especialidad, tablero contra la meta de la tesis. Pendiente: notificaciones (#24) y evaluación programada (#25) |
+| 5 Presentación (portales por usuario) | 🟡 Parcial: 4 roles y vistas por rol (el profesional ya tiene cuenta y ve su fila marcada en el benchmarking). Faltan portal del cirujano (benchmarking anónimo), portal ejecutivo consolidado, portal público, puesta en producción |
 
-## Estado actual (2026-09-15)
+## Estado actual (2026-10-21)
 
-- Último cambio de código: **2026-09-07** — motor de asignación de bolsas CIF completo ([[2026-09-04-cif-bolsas-vs-factor-vias-excluyentes]], [[2026-09-04-anti-doble-conteo-marcar-origen]]). Documentación técnica en `docs/cif-implementacion.md` y `docs/cif-vacios-diseno.md`.
-- Tests: **299 pasando, 1.521 aserciones** — verificado el 2026-09-15 ejecutando `php artisan test` (el README aún dice 61 — desactualizado, [[backlog-mejoras]] #14).
+- Último cambio de código: **2026-10-21** — Capa 4 completa ([[2026-10-21]], [[2026-10-21-capa-4-conocimiento]]); antes, PHPStan en verde y costo estándar vs. real (#1, #3). Carga de volumen de San Rafael en [[2026-10-19]].
+- Tests: **357 pasando, 2.240 aserciones** — verificado el 2026-10-21 ejecutando `php artisan test`. PHPStan nivel 7, Pint, ESLint, Prettier y `tsc` en verde.
+- Datos de prueba de San Rafael: `SanRafaelCargaSeeder` → `SanRafaelMovimientoSeeder` → `SanRafaelConocimientoSeeder` (12 profesionales, 22 lecciones, 9 comunidades, 737 alertas de reglas, 41 recomendaciones).
 - Sin despliegue en producción [VERIFICAR]. Sin datos reales de hospitales aún [VERIFICAR]: los seeders son ficticios.
 - La cotización de julio 2026 al profesor cubre capas 1-5; capas 4 y 5 quedaron "por desarrollar" ([[cliente-y-negocio#Acuerdo comercial]]). [VERIFICAR] si fue aceptada y si se recibió el anticipo.
 - Visita institucional al hospital con cuestionario de 50 preguntas prevista para el **2026-07-22** ([[preguntas-levantamiento-hospital]]). [VERIFICAR] si ocurrió y qué se respondió — nada de eso está registrado en el cerebro.
@@ -92,8 +95,8 @@ app/
 
 1. Confirmar con el cliente el estado del contrato y del levantamiento en los hospitales (ver [VERIFICAR] arriba).
 2. Resolver las preguntas abiertas del CIF con el profesor ([[preguntas-abiertas]]): de dónde sale el monto mensual de cada bolsa, si el factor de ineficiencia institucional (1,15–1,28) entra al aplicativo.
-3. Atacar el [[backlog-mejoras]] priorizado: alinear umbrales de desviación con la tesis, horas extra, capacidad no utilizada como reporte, portal del cirujano.
-4. Capa 4 y 5 de la tesis (lecciones aprendidas, portales por usuario, producción).
+3. Atacar el [[backlog-mejoras]] priorizado: insumos facturables aparte (#22), horas extra, capacidad no utilizada como reporte, portal del cirujano.
+4. Capa 5 de la tesis (portal del cirujano sobre el rol profesional, portal ejecutivo, portal público, producción) y separar los implantes facturables aparte (#22) antes de presentar márgenes de ortopedia.
 5. Correr `analiza con los agentes` (ver `CLAUDE.md`) para poblar el backlog con hallazgos de los siete roles en [[agentes/arquitecto|agentes/]].
 
 ## Mapa del cerebro

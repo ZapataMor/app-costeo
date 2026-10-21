@@ -2,8 +2,13 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\EstadoAlerta;
+use App\Enums\EstadoLeccion;
+use App\Enums\SeveridadAlerta;
+use App\Models\AlertaConocimiento;
 use App\Models\AlertaSobrecosto;
 use App\Models\Hospital;
+use App\Models\LeccionAprendida;
 use App\Models\Scopes\HospitalScope;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -54,6 +59,7 @@ class HandleInertiaRequests extends Middleware
             // cualquier pantalla: una alerta que solo existe dentro de su
             // propia página nadie la descubre.
             'alertasPendientes' => fn (): int => $this->alertasPendientes($request),
+            'conocimientoPendientes' => fn (): array => $this->conocimientoPendientes($request),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }
@@ -87,7 +93,7 @@ class HandleInertiaRequests extends Middleware
         $user = $request->user();
         $hospitalId = $this->hospitalActivoId($request);
 
-        if ($user === null || $user->isDigitador() || $hospitalId === null) {
+        if ($user === null || $user->isDigitador() || $user->isProfesional() || $hospitalId === null) {
             return 0;
         }
 
@@ -98,6 +104,48 @@ class HandleInertiaRequests extends Middleware
             ->where('hospital_id', $hospitalId)
             ->pendientes()
             ->count();
+    }
+
+    /**
+     * Pendientes de la Capa 4 para los contadores del menú: alertas críticas
+     * y lecciones por validar (gestión), o borradores devueltos (profesional).
+     *
+     * @return array{alertas: int, revision: int, devueltas: int}
+     */
+    protected function conocimientoPendientes(Request $request): array
+    {
+        /** @var User|null $user */
+        $user = $request->user();
+        $hospitalId = $this->hospitalActivoId($request);
+        $vacio = ['alertas' => 0, 'revision' => 0, 'devueltas' => 0];
+
+        if ($user === null || $user->isDigitador() || $hospitalId === null) {
+            return $vacio;
+        }
+
+        $devueltas = LeccionAprendida::withoutGlobalScope(HospitalScope::class)
+            ->where('hospital_id', $hospitalId)
+            ->where('autor_id', $user->id)
+            ->where('estado', EstadoLeccion::Borrador->value)
+            ->whereNotNull('motivo_devolucion')
+            ->count();
+
+        if (! $user->gestionaConocimiento()) {
+            return ['devueltas' => $devueltas] + $vacio;
+        }
+
+        return [
+            'alertas' => AlertaConocimiento::withoutGlobalScope(HospitalScope::class)
+                ->where('hospital_id', $hospitalId)
+                ->where('estado', EstadoAlerta::Pendiente->value)
+                ->where('severidad', SeveridadAlerta::Critica->value)
+                ->count(),
+            'revision' => LeccionAprendida::withoutGlobalScope(HospitalScope::class)
+                ->where('hospital_id', $hospitalId)
+                ->where('estado', EstadoLeccion::EnRevision->value)
+                ->count(),
+            'devueltas' => $devueltas,
+        ];
     }
 
     /** Id del hospital activo, con la misma regla por rol que el switcher. */

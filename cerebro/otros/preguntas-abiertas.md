@@ -12,7 +12,7 @@ Dudas para resolver con el profesor [[cliente-y-negocio|Orlando Ruiz]] o con los
 - [ ] ¿Se acepta que activar o desactivar una sala cambie las tasas por minuto futuras de todo el hospital? (denominador = capacidad sumada, [[2026-09-06-denominador-capacidad-sumada]])
 - [ ] ¿El **factor de ineficiencia institucional** del pipeline (1,15–1,28) debe modelarse en el aplicativo o es solo del análisis de la tesis?
 - [ ] ¿Se modelan las **horas extra** (sobrecosto 50 % después de las 15:00, campo `tdabc_overtime_cop` del pipeline)?
-- [ ] ¿Alineamos los umbrales de la alerta de sobrecosto con la clasificación del pipeline (−5 / 5 / 20 %)?
+- [ ] ¿Alineamos los umbrales de la alerta de sobrecosto con la clasificación del pipeline (−5 / 5 / 20 %)? → *2026-10-21: implementados como valores por defecto, configurables por hospital ([[2026-10-21-capa-4-conocimiento]]). Falta que el profesor confirme los valores.*
 - [ ] **Doble parametrización**: la cesárea del capítulo 5 cuesta $520.000 (cirujano $50.000/h) y la del pipeline ~$1.100.000 (cirujano 1.550 COP/min ≈ $93.000/h). ¿Cuál juego de tasas es la referencia para los hospitales? ([[Fuente - Base de Datos 3100 Cirugias TDABC+MILP]])
 - [ ] ¿Existe una versión completa de la *Fundamentación* con las secciones 5.4 y 5.5 (TDABC y modelo de optimización)? En la recibida están vacías.
 - [ ] ¿Cuáles de los campos clínicos del segundo modelo de datos (ASA, comorbilidades, servicios de apoyo) deben capturarse en el aplicativo para la base de 3.000 cirugías reales? ([[backlog-mejoras]] #20)

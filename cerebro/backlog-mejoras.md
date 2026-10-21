@@ -1,6 +1,6 @@
 ---
 tags: [backlog]
-actualizado: 2026-09-15
+actualizado: 2026-10-21
 ---
 
 # Backlog de mejoras
@@ -12,16 +12,13 @@ actualizado: 2026-09-15
 
 | # | Mejora | Agente | Prioridad | Estado |
 |---|---|---|---|---|
-| 1 | **Alinear los umbrales de la alerta de sobrecosto** con la clasificación del pipeline doctoral: `Subejecucion` ≤ −5 %, `En_Rango`, `Sobrecosto_Leve` 5-20 %, `Sobrecosto_Alto` > 20 % (`DetectorSobrecostos`). Fuente: [[Fuente - Guia de Campos Base de Datos TDABC+MILP]]. | [[experto-contabilidad-costos]] | P1 | pendiente |
 | 2 | **Reporte de capacidad no utilizada** por sala y por recurso (capacidad práctica − minutos usados, valorada en COP). Es el KPI gerencial propio del TDABC y equivale a `costo_capacidad_ociosa_cop` del pipeline. Fuente: [[Fuente - Ebook TDABC (Kaplan y Anderson)]]. | [[experto-contabilidad-costos]] | P1 | pendiente |
-| 3 | **Costo estándar vs. costo real por cirugía**: calcular el costo con la duración planificada del procedimiento (`duracion_estimada_minutos`, tiempos por fase de la plantilla) y mostrar la desviación junto al real. Base para #1 y #2. | [[experto-contabilidad-costos]] | P1 | pendiente |
 | 4 | **Horas extra**: sobrecosto del 50 % en el costo de capacidad para cirugías que pasan de una hora de corte configurable por hospital (el pipeline usa las 15:00). Requiere confirmar con el profesor ([[preguntas-abiertas]]). | [[experto-contabilidad-costos]] | P2 | pendiente |
 | 5 | **Factor de ineficiencia institucional** configurable por hospital (1,28 · 1,20 · 1,15 en el pipeline) que multiplica el costo de capacidad, no los materiales. Solo si el profesor confirma que va en el aplicativo. | [[experto-contabilidad-costos]] | P2 | pendiente |
 | 6 | **Ecuaciones de tiempo** por procedimiento: tiempo base + términos aditivos condicionales (complicación, conversión laparoscópica → abierta, reintervención) en la plantilla del protocolo, en vez de crear procedimientos distintos. | [[experto-procedimientos-medicos]] | P2 | pendiente |
 | 7 | **Punto de equilibrio quirúrgico mensual**: nº mínimo de cirugías según la mezcla histórica, a partir de costos fijos/variables y márgenes de contribución. Fuente: [[Fuente - Tesis Gestion Costos Cirugias Hospital del Nino y la Mujer (Cuenca)]]. | [[analista-negocio]] | P2 | pendiente |
 | 8 | **Tiempos de espera del paciente** como subproducto de las marcas de fase (entrada a sala, incisión, cierre, salida de recuperación): esperas de alistamiento y aseo entre cirugías, cancelaciones. Fuente: [[Fuente - Caso ABC Hospital Regional de Talca (Chile)]]. | [[experto-procesos-hospitalarios]] | P2 | pendiente |
 | 9 | **Portal individual del cirujano** (capa 5 de la tesis): indicadores propios con benchmarking **anónimo** y enfoque no punitivo. Hoy el cirujano no es usuario del sistema. | [[ux-ui]] | P2 | pendiente |
-| 10 | **Capa 4 — lecciones aprendidas**: al cerrar una alerta de sobrecosto con causa, permitir registrar la lección y consultarla por procedimiento. Primer paso de las "comunidades de práctica" de la tesis. | [[analista-negocio]] | P2 | pendiente |
 | 11 | **Captura en sala con tablet y modo offline** (botones grandes, marcas de tiempo con un toque, sincronización posterior). La tesis lo pide explícitamente; el contexto real tiene conectividad inestable. | [[ux-ui]] | P3 | pendiente |
 | 12 | **Integración con el HIS/HCE de cada hospital** (importación de archivos planos periódica como primer paso; HL7/API después). Depende de las respuestas del bloque 5 de [[preguntas-levantamiento-hospital]]. | [[arquitecto]] | P3 | pendiente |
 | 13 | **Catálogo de insumos con código de barras / CUM** y autocompletado; manejo de consignación, desperdicio y devoluciones. Fuente: [[Fuente - Tesis Herramienta Digital Compras Biomedicas HAMA (Medellin)]] y bloque 2 del cuestionario. | [[experto-procesos-hospitalarios]] | P3 | pendiente |
@@ -33,7 +30,15 @@ actualizado: 2026-09-15
 | 19 | **Dataset de validación con las 3.100 cirugías simuladas**: seeder/fixture opcional que importe `Base_Datos_3000_Cirugias_TDABC_MILP.xlsx` (15 procedimientos, tres hospitales, 36 meses) y test que compare el costo del motor con `costo_tdabc_real_cop` usando las tasas del pipeline. Prueba el motor con volumen realista y fija la equivalencia con la tesis. Fuente: [[Fuente - Base de Datos 3100 Cirugias TDABC+MILP]]. | [[qa-seguridad]] | P2 | pendiente |
 | 20 | **Campos clínicos del segundo modelo de datos**: clasificación ASA, comorbilidades, peso/talla/IMC, prioridad electiva/urgente/emergente, diagnóstico postoperatorio, hora programada vs. real, tiempo de anestesia, y entidad de **servicios de apoyo** (laboratorio, imágenes, banco de sangre, patología) por cirugía. Fuente: [[Fuente - Fundamentacion Optimizacion Costos Quirurgicos La Guajira]] §5.1. Validar con [[experto-procedimientos-medicos]] qué es imprescindible. | [[experto-procedimientos-medicos]] | P3 | pendiente |
 | 21 | **Aclarar en la UI y docs la numeración de capas**: el aplicativo dice "Capa 1 = parámetros", la tesis "Capa 1 = objetos" y Kerschberg tiene tres capas. Unificar con la numeración de la tesis y citar el artículo original. Fuente: [[Fuente - Articulo Kerschberg Knowledge Management Data Warehouse]]. Se puede resolver junto con #14. | [[arquitecto]] | P3 | pendiente |
+| 22 | **Insumos facturables aparte (implantes de osteosíntesis)**: marcar en el catálogo los insumos que se facturan fuera de la tarifa del procedimiento y excluirlos de la comparación costo vs. tarifa (y de la regla de margen negativo), comparándolos contra lo facturado por ellos. Hoy fémur, tibia y radio distal salen con margen de −87 % a −101 %. | [[experto-contabilidad-costos]] | P1 | pendiente — [VERIFICAR] con el cliente |
+| 23 | **Desajuste de hidratación del botón de tema** (claro/oscuro) en `AppSidebarHeader`: el SSR pinta «modo oscuro» y el cliente «modo claro». Inofensivo pero ensucia la consola en todas las páginas. | [[ux-ui]] | P3 | pendiente |
+| 24 | **Notificaciones de la Capa 4**: avisar por correo o en la app al autor cuando su lección se publica o se devuelve, y a los miembros cuando hay respuesta en un hilo que siguen (suscripciones, idea de Kerschberg). | [[ux-ui]] | P2 | pendiente |
+| 25 | **Evaluación programada de reglas y recomendaciones** (scheduler mensual el día 1 y semanal para recomendaciones); hoy se disparan al costear o a mano. | [[arquitecto]] | P2 | pendiente |
 
 ## Hechas
 
-*(ninguna todavía — las mejoras cerradas se mueven aquí con su enlace a la bitácora)*
+| # | Mejora | Agente | Prioridad | Estado |
+|---|---|---|---|---|
+| 1 | **Alinear los umbrales de la alerta de sobrecosto** con la clasificación del pipeline doctoral: `Subejecucion` ≤ −5 %, `En_Rango`, `Sobrecosto_Leve` 5-20 %, `Sobrecosto_Alto` > 20 % (`DetectorSobrecostos`). Fuente: [[Fuente - Guia de Campos Base de Datos TDABC+MILP]]. | [[experto-contabilidad-costos]] | P1 | ✅ hecha [[2026-10-21]] |
+| 3 | **Costo estándar vs. costo real por cirugía**: calcular el costo con la duración planificada del procedimiento (`duracion_estimada_minutos`, tiempos por fase de la plantilla) y mostrar la desviación junto al real. Base para #1 y #2. | [[experto-contabilidad-costos]] | P1 | ✅ hecha [[2026-10-21]] |
+| 10 | **Capa 4 — lecciones aprendidas**: al cerrar una alerta de sobrecosto con causa, permitir registrar la lección y consultarla por procedimiento. Primer paso de las "comunidades de práctica" de la tesis. | [[analista-negocio]] | P2 | ✅ hecha [[2026-10-21]] |

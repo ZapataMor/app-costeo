@@ -42,6 +42,7 @@ export type UsuarioInstitucion = {
 export const etiquetasRol: Record<RolUsuario, string> = {
     super_admin: 'Super administrador',
     admin_hospital: 'Administrador',
+    profesional: 'Profesional',
     digitador: 'Digitador',
 };
 

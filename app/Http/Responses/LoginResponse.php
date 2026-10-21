@@ -30,6 +30,11 @@ class LoginResponse implements LoginResponseContract
             return redirect()->route('cirugias.index');
         }
 
+        // El profesional solo usa la Capa 4: entra al repositorio de lecciones.
+        if ($user->isProfesional()) {
+            return redirect()->route('conocimiento.lecciones.index');
+        }
+
         return $user->isSuperAdmin()
             ? redirect()->intended(config('fortify.home'))
             : redirect()->intended(route('parametros.index'));

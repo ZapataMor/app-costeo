@@ -1,3 +1,4 @@
+import { ClasificacionBadge } from '@/components/conocimiento/clasificacion-badge';
 import {
     Card,
     CardContent,
@@ -5,7 +6,6 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { ClasificacionBadge } from '@/components/conocimiento/clasificacion-badge';
 import { cop, etiqueta, fechaHora, numero, pctVariacion } from '@/lib/formato';
 import type { CostoCirugia, CostoEstandar } from '@/types/cirugias';
 

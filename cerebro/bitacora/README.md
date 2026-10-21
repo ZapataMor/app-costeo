@@ -24,3 +24,4 @@ Una nota por fecha (`AAAA-MM-DD.md`) con **qué cambió, por qué y qué queda p
 | [[2026-09-19]] | Documentación técnica completa del aplicativo en `docs/SICOPH-Documentacion-Tecnica.pdf` |
 | [[2026-09-23]] | Diagrama de flujo de las cinco capas de Kerschberg y diagrama de casos de uso con el movimiento de los datos (`docs/SICOPH-Capas-Kerschberg-Flujo.pdf`, `docs/SICOPH-Casos-de-Uso-Datos.pdf`) |
 | [[2026-10-19]] | Carga de volumen en San Rafael: Capa 1 (`SanRafaelCargaSeeder`: 5 salas, 62 personas, 206 insumos, 61 equipos, 52 procedimientos, 12 bolsas CIF) y movimiento abr–oct 2026 (`SanRafaelMovimientoSeeder`: 2.169 cirugías costeadas, transición a bolsas CIF el 1 de julio) |
+| [[2026-10-21]] | Capa 4 completa: PHPStan en verde, costo estándar vs. real y clasificación de desviación (#1, #3), reglas con alertas valoradas, lecciones con validación y red, recomendaciones con ahorro, mejores prácticas, comunidades, rol profesional; 357 tests |

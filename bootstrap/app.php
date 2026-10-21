@@ -4,6 +4,7 @@ use App\Http\Middleware\EnsureRole;
 use App\Http\Middleware\EnsureUsuarioActivo;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\RequiereHospitalActivo;
 use App\Http\Middleware\SetHospitalContext;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -30,6 +31,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'hospital.contexto' => SetHospitalContext::class,
             'rol' => EnsureRole::class,
+            'hospital.requerido' => RequiereHospitalActivo::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

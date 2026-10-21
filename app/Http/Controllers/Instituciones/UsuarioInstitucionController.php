@@ -149,6 +149,7 @@ class UsuarioInstitucionController extends Controller
             RolUsuario::AdminHospital => 'administrador',
             RolUsuario::Digitador => 'digitador',
             RolUsuario::SuperAdmin => 'super administrador',
+            RolUsuario::Profesional => 'profesional',
         };
     }
 }

@@ -21,5 +21,6 @@ Una nota por decisión: **contexto → decisión → por qué → consecuencias*
 | 2026-09-06 | [[2026-09-06-denominador-capacidad-sumada]] |
 | 2026-09-06 | [[2026-09-06-redondeo-una-vez-mayor-resto]] |
 | 2026-09-15 | [[2026-09-15-cerebro-en-el-repo]] |
+| 2026-10-21 | [[2026-10-21-capa-4-conocimiento]] |
 
 Cuando una decisión se revierta, no borres la nota: agrega una sección "Revertida el …" y enlaza la nueva.

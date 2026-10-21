@@ -11,7 +11,6 @@ import { NivelConfiabilidadBadge } from '@/components/parametros/nivel-confiabil
 import { Paginacion } from '@/components/parametros/paginacion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { opcionesDesdeValores } from '@/lib/filtros';
 import { cop } from '@/lib/formato';
 import type {
     BaseAsignacionOpcion,

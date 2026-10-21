@@ -12,26 +12,30 @@ use Illuminate\Support\Facades\DB;
  *
  * La clasificación es una lente de gestión, no parte del costo: el costo
  * estándar y la desviación siguen congelados; solo cambia la etiqueta. Por
- * eso se reescribe en bloque con un CASE en vez de recostear cada cirugía.
+ * eso se reescribe en bloque, una banda por sentencia, en vez de recostear
+ * cada cirugía.
  */
 class ReclasificadorDesviaciones
 {
     public function ejecutar(Hospital $hospital): int
     {
-        return DB::table('costos_cirugia')
+        $base = fn () => DB::table('costos_cirugia')
             ->where('hospital_id', $hospital->id)
-            ->whereNotNull('desviacion_pct')
-            ->update([
-                'clasificacion_desviacion' => DB::raw(sprintf(
-                    'case when desviacion_pct <= %F then \'%s\' when desviacion_pct > %F then \'%s\' when desviacion_pct >= %F then \'%s\' else \'%s\' end',
-                    $hospital->umbral_subejecucion,
-                    ClasificacionDesviacion::Subejecucion->value,
-                    $hospital->umbral_sobrecosto_alto,
-                    ClasificacionDesviacion::SobrecostoAlto->value,
-                    $hospital->umbral_sobrecosto_leve,
-                    ClasificacionDesviacion::SobrecostoLeve->value,
-                    ClasificacionDesviacion::EnRango->value,
-                )),
-            ]);
+            ->whereNotNull('desviacion_pct');
+
+        return DB::transaction(fn (): int => $base()
+            ->where('desviacion_pct', '<=', $hospital->umbral_subejecucion)
+            ->update(['clasificacion_desviacion' => ClasificacionDesviacion::Subejecucion->value])
+            + $base()
+                ->where('desviacion_pct', '>', $hospital->umbral_sobrecosto_alto)
+                ->update(['clasificacion_desviacion' => ClasificacionDesviacion::SobrecostoAlto->value])
+            + $base()
+                ->where('desviacion_pct', '>=', $hospital->umbral_sobrecosto_leve)
+                ->where('desviacion_pct', '<=', $hospital->umbral_sobrecosto_alto)
+                ->update(['clasificacion_desviacion' => ClasificacionDesviacion::SobrecostoLeve->value])
+            + $base()
+                ->where('desviacion_pct', '>', $hospital->umbral_subejecucion)
+                ->where('desviacion_pct', '<', $hospital->umbral_sobrecosto_leve)
+                ->update(['clasificacion_desviacion' => ClasificacionDesviacion::EnRango->value]));
     }
 }

@@ -20,6 +20,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
 /**
  * @property int $id
  * @property int|null $hospital_id
+ * @property int|null $recurso_humano_id
  * @property RolUsuario $role
  * @property bool $activo
  * @property string $name
@@ -75,5 +76,25 @@ class User extends Authenticatable implements PasskeyUser
     public function isDigitador(): bool
     {
         return $this->role === RolUsuario::Digitador;
+    }
+
+    public function isProfesional(): bool
+    {
+        return $this->role === RolUsuario::Profesional;
+    }
+
+    /**
+     * Quien administra el conocimiento del hospital: valida lecciones,
+     * gestiona reglas y recomendaciones, modera las comunidades.
+     */
+    public function gestionaConocimiento(): bool
+    {
+        return $this->isSuperAdmin() || $this->isAdminHospital();
+    }
+
+    /** @return BelongsTo<RecursoHumano, $this> */
+    public function recursoHumano(): BelongsTo
+    {
+        return $this->belongsTo(RecursoHumano::class);
     }
 }

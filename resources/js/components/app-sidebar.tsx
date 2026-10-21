@@ -1,7 +1,14 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
+    BookOpen,
+    Brain,
     Building2,
     History,
+    Lightbulb,
+    MessagesSquare,
+    ShieldAlert,
+    Sparkles,
+    UserRoundCheck,
     LayoutGrid,
     SlidersHorizontal,
     Stethoscope,
@@ -100,10 +107,77 @@ const digitadoresNavItems: NavItem[] = [
     },
 ];
 
+// Capa 4 — Conocimiento. El profesional (personal quirúrgico) ve solo el
+// repositorio, las comunidades y las mejores prácticas; la gestión —tablero,
+// alertas de las reglas, recomendaciones— es del administrador.
+const conocimientoNavItems = (
+    gestiona: boolean,
+    pendientes: { alertas: number; revision: number; devueltas: number },
+): NavItem[] => [
+    ...(gestiona
+        ? [
+              {
+                  title: 'Tablero de conocimiento',
+                  href: '/conocimiento',
+                  icon: Brain,
+              },
+              {
+                  title: 'Alertas y reglas',
+                  href: '/conocimiento/alertas',
+                  icon: ShieldAlert,
+                  badge:
+                      pendientes.alertas > 0 ? pendientes.alertas : undefined,
+              },
+          ]
+        : []),
+    {
+        title: 'Lecciones aprendidas',
+        href: '/conocimiento/lecciones',
+        icon: BookOpen,
+        badge:
+            pendientes.revision + pendientes.devueltas > 0
+                ? pendientes.revision + pendientes.devueltas
+                : undefined,
+    },
+    ...(gestiona
+        ? [
+              {
+                  title: 'Recomendaciones',
+                  href: '/conocimiento/recomendaciones',
+                  icon: Lightbulb,
+              },
+          ]
+        : []),
+    {
+        title: 'Mejores prácticas',
+        href: '/conocimiento/mejores-practicas',
+        icon: Sparkles,
+    },
+    {
+        title: 'Comunidades',
+        href: '/conocimiento/comunidades',
+        icon: MessagesSquare,
+    },
+];
+
+const profesionalesNavItems: NavItem[] = [
+    {
+        title: 'Profesionales',
+        href: '/conocimiento/profesionales',
+        icon: UserRoundCheck,
+    },
+];
+
 export function AppSidebar() {
-    const { auth, alertasPendientes } = usePage().props;
+    const { auth, alertasPendientes, conocimientoPendientes } = usePage().props;
     const role = auth.user?.role;
     const esDigitador = role === 'digitador';
+    const esProfesional = role === 'profesional';
+    const pendientesConocimiento = conocimientoPendientes ?? {
+        alertas: 0,
+        revision: 0,
+        devueltas: 0,
+    };
     const esAdminHospital = role === 'admin_hospital';
     // El dashboard es consolidado multi-hospital: solo tiene sentido para el
     // super_admin, así que el resto de roles ni siquiera lo ven en el menú.
@@ -127,9 +201,11 @@ export function AppSidebar() {
                                 href={
                                     esDigitador
                                         ? '/cirugias'
-                                        : esSuperAdmin
-                                          ? dashboard()
-                                          : '/parametros'
+                                        : esProfesional
+                                          ? '/conocimiento/lecciones'
+                                          : esSuperAdmin
+                                            ? dashboard()
+                                            : '/parametros'
                                 }
                                 prefetch
                             >
@@ -150,6 +226,14 @@ export function AppSidebar() {
                     // El digitador solo registra: su índice es la pantalla con
                     // el botón, sin histórico ni costos.
                     <NavMain items={registroNavItems} label="Registro" />
+                ) : esProfesional ? (
+                    <NavMain
+                        items={conocimientoNavItems(
+                            false,
+                            pendientesConocimiento,
+                        )}
+                        label="Conocimiento"
+                    />
                 ) : (
                     <>
                         {esSuperAdmin && (
@@ -180,9 +264,20 @@ export function AppSidebar() {
                             label="Análisis"
                             className="mt-[14px]"
                         />
+                        <NavMain
+                            items={conocimientoNavItems(
+                                true,
+                                pendientesConocimiento,
+                            )}
+                            label="Conocimiento"
+                            className="mt-[14px]"
+                        />
                         {esAdminHospital && (
                             <NavMain
-                                items={digitadoresNavItems}
+                                items={[
+                                    ...digitadoresNavItems,
+                                    ...profesionalesNavItems,
+                                ]}
                                 label="Equipo"
                                 className="mt-[14px]"
                             />

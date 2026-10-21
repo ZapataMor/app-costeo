@@ -10,6 +10,7 @@ use App\Models\Cirugia;
 use App\Models\CirugiaConceptoIndirecto;
 use App\Models\CostoCirugia;
 use App\Models\Scopes\HospitalScope;
+use App\Services\Conocimiento\MotorReglas;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 
@@ -53,6 +54,9 @@ class TdabcCostingService
         protected DetectorSobrecostos $detector,
         protected AsignadorCif $asignador,
         protected CalculadorCostoEstandar $estandar,
+        // Las reglas de conocimiento de alcance «cirugía» (desviación,
+        // tiempo, consumo) se evalúan en el mismo punto que el detector.
+        protected MotorReglas $reglas,
     ) {}
 
     public function calcular(Cirugia $cirugia): CostoCirugia
@@ -282,6 +286,7 @@ class TdabcCostingService
 
         $costo->setRelation('cirugia', $cirugia);
         $this->detector->evaluar($costo);
+        $this->reglas->evaluarCirugia($costo);
 
         return $costo;
     }

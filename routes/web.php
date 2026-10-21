@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\PacienteController;
 use App\Http\Controllers\Api\V1\ProcedimientoQuirurgicoController;
 use App\Http\Controllers\Api\V1\RecursoHumanoController;
 use App\Http\Controllers\Cirugias;
+use App\Http\Controllers\Conocimiento;
 use App\Http\Controllers\Costeo;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DashboardCosteoController;
@@ -30,6 +31,11 @@ Route::get('/', function () {
 
     if ($user->isDigitador()) {
         return redirect()->route('cirugias.index');
+    }
+
+    // El profesional entra al repositorio de lecciones: su módulo es la Capa 4.
+    if ($user->isProfesional()) {
+        return redirect()->route('conocimiento.lecciones.index');
     }
 
     return $user->isSuperAdmin()
@@ -211,6 +217,64 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('variabilidad', [DashboardCosteoController::class, 'variabilidad'])->name('variabilidad');
         });
 });
+
+// ── Conocimiento (Capa 4) ───────────────────────────────────────────────
+// Reglas, alertas, lecciones aprendidas, recomendaciones, mejores prácticas
+// y comunidades de práctica. El profesional (personal quirúrgico) participa
+// en lecciones, comunidades y mejores prácticas; la gestión —reglas,
+// alertas, recomendaciones, validación de lecciones, cuentas— es del
+// administrador del hospital.
+Route::middleware(['auth', 'verified', 'hospital.contexto', 'hospital.requerido'])
+    ->prefix('conocimiento')->name('conocimiento.')->group(function () {
+        Route::middleware('rol:super_admin,admin_hospital,profesional')->group(function () {
+            Route::get('lecciones', [Conocimiento\LeccionAprendidaController::class, 'index'])->name('lecciones.index');
+            Route::get('lecciones/create', [Conocimiento\LeccionAprendidaController::class, 'create'])->name('lecciones.create');
+            Route::post('lecciones', [Conocimiento\LeccionAprendidaController::class, 'store'])->name('lecciones.store');
+            Route::get('lecciones/red/{leccion}', [Conocimiento\LeccionAprendidaController::class, 'showRed'])
+                ->whereNumber('leccion')->name('lecciones.red');
+            Route::get('lecciones/{leccion}', [Conocimiento\LeccionAprendidaController::class, 'show'])->name('lecciones.show');
+            Route::get('lecciones/{leccion}/edit', [Conocimiento\LeccionAprendidaController::class, 'edit'])->name('lecciones.edit');
+            Route::put('lecciones/{leccion}', [Conocimiento\LeccionAprendidaController::class, 'update'])->name('lecciones.update');
+            Route::post('lecciones/{leccion}/enviar', [Conocimiento\LeccionAprendidaController::class, 'enviar'])->name('lecciones.enviar');
+            Route::post('lecciones/{leccion}/valorar', [Conocimiento\LeccionAprendidaController::class, 'valorar'])->name('lecciones.valorar');
+
+            Route::get('mejores-practicas', [Conocimiento\MejoresPracticasController::class, 'index'])->name('mejores-practicas.index');
+            Route::get('mejores-practicas/{procedimiento}', [Conocimiento\MejoresPracticasController::class, 'show'])->name('mejores-practicas.show');
+
+            Route::get('comunidades', [Conocimiento\ComunidadController::class, 'index'])->name('comunidades.index');
+            Route::get('comunidades/{comunidad}', [Conocimiento\ComunidadController::class, 'show'])->name('comunidades.show');
+            Route::post('comunidades/{comunidad}/hilos', [Conocimiento\ComunidadController::class, 'storeHilo'])->name('comunidades.hilos.store');
+            Route::get('hilos/{hilo}', [Conocimiento\HiloComunidadController::class, 'show'])->name('hilos.show');
+            Route::post('hilos/{hilo}/respuestas', [Conocimiento\HiloComunidadController::class, 'responder'])->name('hilos.responder');
+            Route::patch('hilos/{hilo}/respuestas/{respuesta}/solucion', [Conocimiento\HiloComunidadController::class, 'marcarSolucion'])->name('hilos.solucion');
+            Route::patch('hilos/{hilo}', [Conocimiento\HiloComunidadController::class, 'moderar'])->name('hilos.moderar');
+        });
+
+        Route::middleware('rol:super_admin,admin_hospital')->group(function () {
+            Route::get('/', [Conocimiento\TableroConocimientoController::class, 'index'])->name('index');
+
+            Route::get('reglas', [Conocimiento\ReglaConocimientoController::class, 'index'])->name('reglas.index');
+            Route::put('reglas/{regla}', [Conocimiento\ReglaConocimientoController::class, 'update'])->name('reglas.update');
+            Route::post('reglas/evaluar', [Conocimiento\ReglaConocimientoController::class, 'evaluar'])->name('reglas.evaluar');
+
+            Route::get('alertas', [Conocimiento\AlertaConocimientoController::class, 'index'])->name('alertas.index');
+            Route::patch('alertas/{alerta}', [Conocimiento\AlertaConocimientoController::class, 'revisar'])->name('alertas.revisar');
+
+            Route::get('recomendaciones', [Conocimiento\RecomendacionController::class, 'index'])->name('recomendaciones.index');
+            Route::post('recomendaciones/generar', [Conocimiento\RecomendacionController::class, 'generar'])->name('recomendaciones.generar');
+            Route::patch('recomendaciones/{recomendacion}', [Conocimiento\RecomendacionController::class, 'gestionar'])->name('recomendaciones.gestionar');
+
+            Route::post('lecciones/{leccion}/publicar', [Conocimiento\LeccionAprendidaController::class, 'publicar'])->name('lecciones.publicar');
+            Route::post('lecciones/{leccion}/devolver', [Conocimiento\LeccionAprendidaController::class, 'devolver'])->name('lecciones.devolver');
+            Route::post('lecciones/{leccion}/archivar', [Conocimiento\LeccionAprendidaController::class, 'archivar'])->name('lecciones.archivar');
+            Route::post('lecciones/{leccion}/compartir', [Conocimiento\LeccionAprendidaController::class, 'compartir'])->name('lecciones.compartir');
+
+            Route::get('profesionales', [Conocimiento\ProfesionalController::class, 'index'])->name('profesionales.index');
+            Route::get('profesionales/create', [Conocimiento\ProfesionalController::class, 'create'])->name('profesionales.create');
+            Route::post('profesionales', [Conocimiento\ProfesionalController::class, 'store'])->name('profesionales.store');
+            Route::patch('profesionales/{usuario}/activo', [Conocimiento\ProfesionalController::class, 'toggleActivo'])->name('profesionales.toggle-activo');
+        });
+    });
 
 // ── API v1 (sesión web; consumida por los dashboards y tests) ───────────
 Route::middleware(['auth', 'rol:super_admin,admin_hospital', 'hospital.contexto'])

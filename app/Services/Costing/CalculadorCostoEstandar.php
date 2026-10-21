@@ -170,7 +170,7 @@ class CalculadorCostoEstandar
     }
 
     /**
-     * @param  list<ProcedimientoQuirurgico>  $procedimientos
+     * @param  array<int, ProcedimientoQuirurgico>  $procedimientos
      */
     protected function equipos(Cirugia $cirugia, array $procedimientos, int $minutosSala): float
     {
@@ -201,7 +201,7 @@ class CalculadorCostoEstandar
     }
 
     /**
-     * @param  list<ProcedimientoQuirurgico>  $procedimientos
+     * @param  array<int, ProcedimientoQuirurgico>  $procedimientos
      */
     protected function insumos(Cirugia $cirugia, array $procedimientos): float
     {
