@@ -88,6 +88,9 @@ export type HospitalConfig = {
     dias_mes: number;
     minutos_efectivos_hora: number;
     factor_indirecto: string;
+    umbral_subejecucion: string;
+    umbral_sobrecosto_leve: string;
+    umbral_sobrecosto_alto: string;
 };
 
 export type ConceptoCostoIndirectoParam = {

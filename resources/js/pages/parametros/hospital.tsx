@@ -213,9 +213,123 @@ export default function HospitalConfiguracion({
                         </Form>
                     </CardContent>
                 </Card>
+
+                <Card className="max-w-2xl">
+                    <CardHeader>
+                        <CardTitle className="text-base">
+                            Clasificación de la desviación
+                        </CardTitle>
+                        <CardDescription>
+                            Cada cirugía costeada se compara con su{' '}
+                            <strong>costo estándar</strong>: lo que debió costar
+                            según su protocolo (duración estimada, plantilla de
+                            personal, equipos e insumos) con las mismas tarifas.
+                            La diferencia se clasifica con estos umbrales; los
+                            valores por defecto son los del pipeline de la tesis
+                            (−5 %, 5 %, 20 %).
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Form
+                            {...HospitalConfiguracionController.umbrales.form()}
+                            options={{ preserveScroll: true }}
+                            className="space-y-6"
+                        >
+                            {({ processing, errors }) => (
+                                <>
+                                    <div className="grid gap-4 sm:grid-cols-3">
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="subejecucion_pct">
+                                                Subejecución (≤ %)
+                                            </Label>
+                                            <Input
+                                                id="subejecucion_pct"
+                                                name="subejecucion_pct"
+                                                type="number"
+                                                step="0.1"
+                                                min="-90"
+                                                max="0"
+                                                defaultValue={porcentaje(
+                                                    hospital.umbral_subejecucion,
+                                                )}
+                                                required
+                                            />
+                                            <InputError
+                                                message={
+                                                    errors.subejecucion_pct
+                                                }
+                                            />
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="sobrecosto_leve_pct">
+                                                Sobrecosto leve (≥ %)
+                                            </Label>
+                                            <Input
+                                                id="sobrecosto_leve_pct"
+                                                name="sobrecosto_leve_pct"
+                                                type="number"
+                                                step="0.1"
+                                                min="0"
+                                                max="100"
+                                                defaultValue={porcentaje(
+                                                    hospital.umbral_sobrecosto_leve,
+                                                )}
+                                                required
+                                            />
+                                            <InputError
+                                                message={
+                                                    errors.sobrecosto_leve_pct
+                                                }
+                                            />
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="sobrecosto_alto_pct">
+                                                Sobrecosto alto (&gt; %)
+                                            </Label>
+                                            <Input
+                                                id="sobrecosto_alto_pct"
+                                                name="sobrecosto_alto_pct"
+                                                type="number"
+                                                step="0.1"
+                                                min="0"
+                                                max="500"
+                                                defaultValue={porcentaje(
+                                                    hospital.umbral_sobrecosto_alto,
+                                                )}
+                                                required
+                                            />
+                                            <InputError
+                                                message={
+                                                    errors.sobrecosto_alto_pct
+                                                }
+                                            />
+                                        </div>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                        Entre la subejecución y el sobrecosto
+                                        leve la cirugía queda{' '}
+                                        <strong>en rango</strong>. Una
+                                        subejecución fuerte casi nunca es
+                                        ahorro: suele ser captura incompleta. Al
+                                        guardar se reclasifican las cirugías ya
+                                        costeadas; su costo no cambia.
+                                    </p>
+                                    <Button disabled={processing}>
+                                        Guardar umbrales
+                                    </Button>
+                                </>
+                            )}
+                        </Form>
+                    </CardContent>
+                </Card>
             </div>
         </>
     );
+}
+
+/** Proporción guardada (−0.05) → porcentaje del formulario (−5). */
+function porcentaje(valor: string): number {
+    return Math.round(Number(valor) * 1000) / 10;
 }
 
 HospitalConfiguracion.layout = {

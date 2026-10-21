@@ -5,8 +5,9 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { cop, etiqueta, fechaHora, numero } from '@/lib/formato';
-import type { CostoCirugia } from '@/types/cirugias';
+import { ClasificacionBadge } from '@/components/conocimiento/clasificacion-badge';
+import { cop, etiqueta, fechaHora, numero, pctVariacion } from '@/lib/formato';
+import type { CostoCirugia, CostoEstandar } from '@/types/cirugias';
 
 function FilaTotal({
     etiqueta,
@@ -87,6 +88,13 @@ export function DesgloseCosto({ costo }: { costo: CostoCirugia }) {
                     />
                 </CardContent>
             </Card>
+
+            {detalle?.estandar && (
+                <ComparacionEstandar
+                    costo={costo}
+                    estandar={detalle.estandar}
+                />
+            )}
 
             {detalle?.por_fase && (
                 <Card>
@@ -413,5 +421,98 @@ export function DesgloseCosto({ costo }: { costo: CostoCirugia }) {
                 </div>
             )}
         </div>
+    );
+}
+
+/**
+ * Real frente al estándar del protocolo, componente por componente.
+ */
+function ComparacionEstandar({
+    costo,
+    estandar,
+}: {
+    costo: CostoCirugia;
+    estandar: CostoEstandar;
+}) {
+    const filas: [string, number, number][] = [
+        [
+            'Recurso humano',
+            estandar.recurso_humano,
+            Number(costo.costo_recurso_humano),
+        ],
+        ['Sala operatoria', estandar.sala, Number(costo.costo_sala)],
+        ['Equipos médicos', estandar.equipos, Number(costo.costo_equipos)],
+        ['Insumos', estandar.insumos, Number(costo.costo_insumos)],
+        ['Indirecto', estandar.indirecto, Number(costo.costo_indirecto)],
+        ['Total', estandar.total, Number(costo.costo_total)],
+    ];
+
+    return (
+        <Card>
+            <CardHeader>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                    <CardTitle className="text-base">
+                        Real frente al estándar del protocolo
+                    </CardTitle>
+                    <ClasificacionBadge
+                        clasificacion={costo.clasificacion_desviacion}
+                    />
+                </div>
+                <CardDescription>
+                    Lo que debió costar con la duración estimada (
+                    {estandar.minutos_sala} min) y la plantilla del
+                    procedimiento, a las mismas tarifas. La diferencia mide uso
+                    de tiempo, personal e insumos, no cambios de precio.
+                </CardDescription>
+            </CardHeader>
+            <CardContent className="overflow-x-auto p-0">
+                <table className="w-full text-sm">
+                    <thead>
+                        <tr className="border-b text-left text-muted-foreground">
+                            <th className="p-3 font-medium">Componente</th>
+                            <th className="p-3 text-right font-medium">
+                                Estándar
+                            </th>
+                            <th className="p-3 text-right font-medium">Real</th>
+                            <th className="p-3 text-right font-medium">
+                                Diferencia
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {filas.map(([nombre, esperado, real]) => (
+                            <tr
+                                key={nombre}
+                                className={`border-b last:border-0 ${nombre === 'Total' ? 'font-semibold' : ''}`}
+                            >
+                                <td className="p-3">{nombre}</td>
+                                <td className="p-3 text-right tabular-nums">
+                                    {cop(esperado)}
+                                </td>
+                                <td className="p-3 text-right tabular-nums">
+                                    {cop(real)}
+                                </td>
+                                <td
+                                    className={`p-3 text-right tabular-nums ${real - esperado > 0 ? 'text-red-700 dark:text-red-400' : 'text-emerald-700 dark:text-emerald-400'}`}
+                                >
+                                    {cop(real - esperado)}
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+                <p className="p-3 text-xs text-muted-foreground">
+                    Desviación total:{' '}
+                    <strong>
+                        {pctVariacion(
+                            costo.desviacion_pct === null
+                                ? null
+                                : Number(costo.desviacion_pct),
+                        )}
+                    </strong>{' '}
+                    sobre el estándar.
+                </p>
+            </CardContent>
+        </Card>
     );
 }

@@ -246,6 +246,23 @@ export type DetalleCosto = {
         costo_unitario: number;
         costo: number;
     }[];
+    /** Costo según el protocolo, con las mismas tarifas congeladas. */
+    estandar?: CostoEstandar | null;
+};
+
+export type ClasificacionDesviacion =
+    'subejecucion' | 'en_rango' | 'sobrecosto_leve' | 'sobrecosto_alto';
+
+export type CostoEstandar = {
+    total: number;
+    directo: number;
+    indirecto: number;
+    recurso_humano: number;
+    sala: number;
+    equipos: number;
+    insumos: number;
+    minutos_sala: number;
+    minutos_personal: number;
 };
 
 export type Facturacion = {
@@ -280,6 +297,10 @@ export type CostoCirugia = {
     costo_directo: string;
     costo_indirecto: string;
     costo_total: string;
+    costo_estandar: string | null;
+    desviacion: string | null;
+    desviacion_pct: string | null;
+    clasificacion_desviacion: ClasificacionDesviacion | null;
     detalle: DetalleCosto | null;
     calculado_en: string | null;
 };

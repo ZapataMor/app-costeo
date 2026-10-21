@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ClasificacionDesviacion;
 use App\Models\Concerns\Auditable;
 use App\Models\Concerns\BelongsToHospital;
 use Database\Factories\CostoCirugiaFactory;
@@ -24,6 +25,10 @@ use Illuminate\Support\Carbon;
  * @property string $costo_directo
  * @property string $costo_indirecto
  * @property string $costo_total
+ * @property string|null $costo_estandar
+ * @property string|null $desviacion
+ * @property string|null $desviacion_pct
+ * @property ClasificacionDesviacion|null $clasificacion_desviacion
  * @property array<string, mixed>|null $detalle
  * @property Carbon|null $calculado_en
  */
@@ -44,6 +49,10 @@ class CostoCirugia extends Model
         'costo_directo',
         'costo_indirecto',
         'costo_total',
+        'costo_estandar',
+        'desviacion',
+        'desviacion_pct',
+        'clasificacion_desviacion',
         'detalle',
         'calculado_en',
     ];
@@ -58,6 +67,10 @@ class CostoCirugia extends Model
             'costo_directo' => 'decimal:2',
             'costo_indirecto' => 'decimal:2',
             'costo_total' => 'decimal:2',
+            'costo_estandar' => 'decimal:2',
+            'desviacion' => 'decimal:2',
+            'desviacion_pct' => 'decimal:4',
+            'clasificacion_desviacion' => ClasificacionDesviacion::class,
             'detalle' => 'array',
             'calculado_en' => 'datetime',
         ];

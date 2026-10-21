@@ -3,6 +3,7 @@
 namespace Tests\Feature\Parametros;
 
 use App\Models\ConceptoCostoIndirecto;
+use App\Models\CostoCirugia;
 use App\Models\Scopes\HospitalScope;
 use App\Models\User;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -34,6 +35,40 @@ class HospitalConfiguracionTest extends ParametrosTestCase
             ->get('/parametros/hospital')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page->where('bolsasActivas', 1));
+    }
+
+    /**
+     * Los umbrales se capturan en porcentaje, se guardan como proporción y
+     * reetiquetan el histórico sin tocar la desviación ya calculada.
+     */
+    public function test_actualizar_los_umbrales_reclasifica_las_desviaciones(): void
+    {
+        $costo = CostoCirugia::factory()->create([
+            'hospital_id' => $this->hospitalA->id,
+            'desviacion_pct' => 0.12,
+            'clasificacion_desviacion' => 'sobrecosto_leve',
+        ]);
+
+        $this->actingAs($this->adminA)->put('/parametros/hospital/umbrales', [
+            'subejecucion_pct' => -5,
+            'sobrecosto_leve_pct' => 5,
+            'sobrecosto_alto_pct' => 10,
+        ])->assertRedirect('/parametros/hospital');
+
+        $this->assertEqualsWithDelta(0.10, $this->hospitalA->fresh()?->umbral_sobrecosto_alto, 0.0001);
+        $this->assertSame(
+            'sobrecosto_alto',
+            CostoCirugia::withoutGlobalScope(HospitalScope::class)->find($costo->id)?->clasificacion_desviacion?->value,
+        );
+    }
+
+    public function test_el_sobrecosto_alto_debe_superar_al_leve(): void
+    {
+        $this->actingAs($this->adminA)->put('/parametros/hospital/umbrales', [
+            'subejecucion_pct' => -5,
+            'sobrecosto_leve_pct' => 20,
+            'sobrecosto_alto_pct' => 10,
+        ])->assertSessionHasErrors('sobrecosto_alto_pct');
     }
 
     public function test_actualiza_horas_dias_y_factor_indirecto(): void

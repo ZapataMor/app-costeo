@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Parametros;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\UpdateHospitalRequest;
+use App\Http\Requests\UpdateUmbralesDesviacionRequest;
 use App\Models\ConceptoCostoIndirecto;
 use App\Models\Hospital;
+use App\Services\Costing\ReclasificadorDesviaciones;
 use App\Support\HospitalContext;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -36,6 +38,7 @@ class HospitalConfiguracionController extends Controller
             'configuracion' => $hospital->only([
                 'id', 'nombre', 'nit', 'municipio', 'departamento',
                 'horas_dia', 'dias_mes', 'minutos_efectivos_hora', 'factor_indirecto',
+                'umbral_subejecucion', 'umbral_sobrecosto_leve', 'umbral_sobrecosto_alto',
             ]),
             'minutosDisponiblesMes' => $hospital->minutosDisponiblesMes(),
             // Con bolsas activas el factor no se aplica, y sin bolsas un
@@ -50,6 +53,26 @@ class HospitalConfiguracionController extends Controller
         $this->hospitalActivo()->update($request->validated());
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Configuración del hospital actualizada.']);
+
+        return redirect()->route('parametros.hospital.edit');
+    }
+
+    /**
+     * Umbrales de la clasificación de desviación (estándar vs. real). Al
+     * cambiarlos se reetiqueta el histórico: la desviación no cambia, solo
+     * la banda en la que cae.
+     */
+    public function umbrales(UpdateUmbralesDesviacionRequest $request, ReclasificadorDesviaciones $reclasificador): RedirectResponse
+    {
+        $hospital = $this->hospitalActivo();
+        $hospital->update($request->umbrales());
+
+        $reclasificadas = $reclasificador->ejecutar($hospital);
+
+        Inertia::flash('toast', [
+            'type' => 'success',
+            'message' => "Umbrales actualizados; {$reclasificadas} cirugías reclasificadas.",
+        ]);
 
         return redirect()->route('parametros.hospital.edit');
     }

@@ -52,6 +52,7 @@ class TdabcCostingService
         // tarde o temprano uno se quedara sin alertar.
         protected DetectorSobrecostos $detector,
         protected AsignadorCif $asignador,
+        protected CalculadorCostoEstandar $estandar,
     ) {}
 
     public function calcular(Cirugia $cirugia): CostoCirugia
@@ -234,7 +235,26 @@ class TdabcCostingService
         ];
         $detalle['indirecto_por_fase'] = $this->indirectoPorFase($detalle['por_fase'], $costoIndirecto);
 
-        $costo = DB::transaction(function () use ($cirugia, $detalle, $asignacion, $costoRecursoHumano, $costoSala, $costoEquipos, $costoInsumos, $costoDirecto, $costoIndirecto, $costoTotal): CostoCirugia {
+        // 6. Estándar del protocolo con las mismas tarifas congeladas, y la
+        //    desviación clasificada con los umbrales del hospital.
+        $estandar = $this->estandar->calcular($cirugia, [
+            'minutos_disponibles' => $minutosDisponibles,
+            'factor_indirecto' => (float) $factorIndirecto,
+            'via_bolsas' => $viaBolsas,
+            'parametros_cif' => $parametrosCif,
+            'sala_derivada' => $salaDerivada,
+            'equipos_derivados' => $equiposDerivados,
+            'personal_derivado' => $personalDerivado,
+        ]);
+        $detalle['estandar'] = $estandar;
+
+        $desviacion = $estandar !== null ? round($costoTotal - $estandar['total'], 2) : null;
+        $desviacionPct = $estandar !== null && $estandar['total'] > 0 && $desviacion !== null
+            ? round($desviacion / $estandar['total'], 4)
+            : null;
+        $clasificacion = $desviacionPct !== null ? $hospital->clasificarDesviacion($desviacionPct) : null;
+
+        $costo = DB::transaction(function () use ($cirugia, $detalle, $asignacion, $costoRecursoHumano, $costoSala, $costoEquipos, $costoInsumos, $costoDirecto, $costoIndirecto, $costoTotal, $estandar, $desviacion, $desviacionPct, $clasificacion): CostoCirugia {
             $costo = CostoCirugia::withoutGlobalScope(HospitalScope::class)->updateOrCreate(
                 ['cirugia_id' => $cirugia->id],
                 [
@@ -246,6 +266,10 @@ class TdabcCostingService
                     'costo_directo' => $costoDirecto,
                     'costo_indirecto' => $costoIndirecto,
                     'costo_total' => $costoTotal,
+                    'costo_estandar' => $estandar['total'] ?? null,
+                    'desviacion' => $desviacion,
+                    'desviacion_pct' => $desviacionPct,
+                    'clasificacion_desviacion' => $clasificacion,
                     'detalle' => $detalle,
                     'calculado_en' => now(),
                 ],

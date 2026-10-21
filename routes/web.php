@@ -91,6 +91,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('/', [Parametros\ParametrosController::class, 'index'])->name('index');
             Route::get('hospital', [Parametros\HospitalConfiguracionController::class, 'edit'])->name('hospital.edit');
             Route::put('hospital', [Parametros\HospitalConfiguracionController::class, 'update'])->name('hospital.update');
+            Route::put('hospital/umbrales', [Parametros\HospitalConfiguracionController::class, 'umbrales'])->name('hospital.umbrales');
 
             Route::resource('recursos-humanos', Parametros\RecursoHumanoController::class)
                 ->except('show')->parameters(['recursos-humanos' => 'recursoHumano']);

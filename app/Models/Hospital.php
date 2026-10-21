@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\BaseAsignacionCif;
 use App\Enums\CategoriaCif;
+use App\Enums\ClasificacionDesviacion;
 use App\Enums\OrigenComponente;
 use App\Enums\RolQuirurgico;
 use App\Models\Concerns\Auditable;
@@ -27,6 +28,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $dias_mes
  * @property int $minutos_efectivos_hora
  * @property float $factor_indirecto
+ * @property float $umbral_subejecucion
+ * @property float $umbral_sobrecosto_leve
+ * @property float $umbral_sobrecosto_alto
  * @property OrigenComponente $origen_infraestructura
  * @property OrigenComponente $origen_depreciacion_equipos
  * @property OrigenComponente $origen_personal_indirecto
@@ -62,6 +66,9 @@ class Hospital extends Model
         'dias_mes',
         'minutos_efectivos_hora',
         'factor_indirecto',
+        'umbral_subejecucion',
+        'umbral_sobrecosto_leve',
+        'umbral_sobrecosto_alto',
     ];
 
     protected function casts(): array
@@ -71,10 +78,27 @@ class Hospital extends Model
             'dias_mes' => 'integer',
             'minutos_efectivos_hora' => 'integer',
             'factor_indirecto' => 'float',
+            'umbral_subejecucion' => 'float',
+            'umbral_sobrecosto_leve' => 'float',
+            'umbral_sobrecosto_alto' => 'float',
             'origen_infraestructura' => OrigenComponente::class,
             'origen_depreciacion_equipos' => OrigenComponente::class,
             'origen_personal_indirecto' => OrigenComponente::class,
         ];
+    }
+
+    /**
+     * Clasifica una desviación (real − estándar) ÷ estándar con los umbrales
+     * de este hospital.
+     */
+    public function clasificarDesviacion(float $desviacionPct): ClasificacionDesviacion
+    {
+        return ClasificacionDesviacion::clasificar(
+            $desviacionPct,
+            $this->umbral_subejecucion,
+            $this->umbral_sobrecosto_leve,
+            $this->umbral_sobrecosto_alto,
+        );
     }
 
     /**
