@@ -131,10 +131,10 @@ class HandleInertiaRequests extends Middleware
             return [];
         }
 
-        return Hospital::query()
+        return array_values(Hospital::query()
             ->orderBy('nombre')
             ->get(['id', 'nombre'])
-            ->map(fn (Hospital $h): array => $h->only(['id', 'nombre']))
-            ->all();
+            ->map(fn (Hospital $h): array => ['id' => $h->id, 'nombre' => $h->nombre])
+            ->all());
     }
 }

@@ -370,7 +370,7 @@ class CirugiaController extends Controller
      */
     protected function registrosPropios(int $usuarioId): array
     {
-        return Cirugia::query()
+        return array_values(Cirugia::query()
             ->with(['paciente', 'procedimientos'])
             ->where('registrado_por', $usuarioId)
             ->where(fn (Builder $q) => $q
@@ -392,7 +392,7 @@ class CirugiaController extends Controller
                 'hora_inicio' => $cirugia->hora_inicio->format('Y-m-d\TH:i'),
                 'hora_fin' => $cirugia->hora_fin?->format('Y-m-d\TH:i'),
             ])
-            ->all();
+            ->all());
     }
 
     /**

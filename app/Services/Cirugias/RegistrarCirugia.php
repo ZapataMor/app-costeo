@@ -40,10 +40,10 @@ class RegistrarCirugia
         /** @var list<array{id: int, es_principal?: bool}> $procedimientos */
         $procedimientos = $datos['procedimientos'] ?? [];
 
-        /** @var list<array{recurso_humano_id: int, rol: string, minutos_participacion: int}> $equipo */
+        /** @var list<array{recurso_humano_id: int, rol: string, fase: string, minutos_participacion: int, hora_inicio?: string|null, hora_fin?: string|null}> $equipo */
         $equipo = $datos['equipo'] ?? [];
 
-        /** @var list<array{insumo_id: int, cantidad: float|int}> $consumos */
+        /** @var list<array{insumo_id: int, fase: string, cantidad: float|int}> $consumos */
         $consumos = $datos['consumos'] ?? [];
 
         /** @var list<array{id: int, minutos_uso: int}> $equiposMedicos */

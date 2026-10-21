@@ -3,7 +3,6 @@
 namespace App\Models\Concerns;
 
 use App\Models\RegistroActividad;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 
 /**
@@ -16,20 +15,20 @@ trait Auditable
 {
     protected static function bootAuditable(): void
     {
-        static::created(function (Model $model): void {
+        static::created(function (self $model): void {
             static::auditar('creó', $model);
         });
 
-        static::updated(function (Model $model): void {
+        static::updated(function (self $model): void {
             static::auditar('actualizó', $model);
         });
 
-        static::deleted(function (Model $model): void {
+        static::deleted(function (self $model): void {
             static::auditar('eliminó', $model);
         });
     }
 
-    protected static function auditar(string $accion, Model $model): void
+    protected static function auditar(string $accion, self $model): void
     {
         if (Auth::guest()) {
             return;
@@ -65,7 +64,6 @@ trait Auditable
     /** Identificador legible del registro para la descripción. */
     public function nombreAuditable(): string
     {
-        /** @var Model $this */
         // Pacientes: nombre completo + id. NUNCA el documento: está cifrado
         // en la BD y aquí quedaría en texto plano dentro del historial.
         if ($this->getAttribute('nombres') !== null) {

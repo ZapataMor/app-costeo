@@ -95,15 +95,25 @@ class ParametrosController extends Controller
      * Conteo + primeros registros de un catálogo (ya filtrado al hospital
      * activo por el HospitalScope global).
      *
+     * `$fila` recibe el modelo concreto de cada catálogo; se declara como
+     * Closure sin firma porque un callable(Model) no admitiría los cierres
+     * tipados con la subclase.
+     *
      * @param  Builder<covariant Model>  $query
-     * @param  callable(Model): array{id: int, nombre: string, detalle: string|null, valor: float|null, unidad: string|null}  $fila
      * @return array{total: int, items: list<array{id: int, nombre: string, detalle: string|null, valor: float|null, unidad: string|null}>}
      */
-    protected function resumen($query, callable $fila): array
+    protected function resumen(Builder $query, \Closure $fila): array
     {
-        return [
-            'total' => (clone $query)->count(),
-            'items' => $query->limit(5)->get()->map($fila)->values()->all(),
-        ];
+        $total = (clone $query)->count();
+        $items = [];
+
+        // El límite va sobre la consulta base para conservar el tipo del modelo.
+        $query->getQuery()->limit(5);
+
+        foreach ($query->get() as $modelo) {
+            $items[] = $fila($modelo);
+        }
+
+        return ['total' => $total, 'items' => $items];
     }
 }

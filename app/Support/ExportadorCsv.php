@@ -27,6 +27,10 @@ class ExportadorCsv
             function () use ($encabezados, $filas): void {
                 $salida = fopen('php://output', 'w');
 
+                if ($salida === false) {
+                    throw new \RuntimeException('No se pudo abrir la salida del CSV.');
+                }
+
                 // BOM: sin él Excel interpreta el archivo como ANSI.
                 fwrite($salida, "\xEF\xBB\xBF");
 

@@ -163,7 +163,11 @@ class Cirugia extends Model
         return $this->belongsTo(Paciente::class);
     }
 
-    /** Quién capturó el registro; nulo en datos sembrados o migrados. */
+    /**
+     * Quién capturó el registro; nulo en datos sembrados o migrados.
+     *
+     * @return BelongsTo<User, $this>
+     */
     public function registradoPor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'registrado_por');

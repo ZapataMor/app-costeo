@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Throwable;
@@ -19,8 +20,8 @@ use Throwable;
 readonly class Periodo
 {
     public function __construct(
-        public ?Carbon $desde = null,
-        public ?Carbon $hasta = null,
+        public ?CarbonInterface $desde = null,
+        public ?CarbonInterface $hasta = null,
     ) {}
 
     /** Lee `?desde=` y `?hasta=` (Y-m-d) de la petición. */

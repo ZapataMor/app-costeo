@@ -18,7 +18,7 @@ class EnsureRole
         /** @var User|null $user */
         $user = $request->user();
 
-        if ($user === null || ! in_array($user->role?->value, $roles, true)) {
+        if ($user === null || ! in_array($user->role->value, $roles, true)) {
             abort(403, 'No tienes permiso para acceder a esta sección.');
         }
 

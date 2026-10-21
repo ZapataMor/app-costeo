@@ -70,7 +70,7 @@ class RegistroActividad extends Model
             'descripcion' => $descripcion,
             'auditable_type' => $auditable?->getMorphClass(),
             'auditable_id' => $auditable?->getKey(),
-            'ip' => request()?->ip(),
+            'ip' => request()->ip(),
             'created_at' => now(),
         ]);
     }

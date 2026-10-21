@@ -33,7 +33,7 @@ class HistorialController extends Controller
             ->withQueryString()
             ->through(fn (RegistroActividad $r): array => [
                 'id' => $r->id,
-                'usuario' => $r->user?->name ?? 'Usuario eliminado',
+                'usuario' => $r->user->name ?? 'Usuario eliminado',
                 'email' => $r->user?->email,
                 'accion' => $r->accion,
                 'descripcion' => $r->descripcion,

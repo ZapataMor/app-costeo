@@ -175,6 +175,10 @@ class Hospital extends Model
      * punto único la capacidad quedaba escrita dos veces —una en PHP y otra
      * como literal en el SQL— y ya se habían separado una vez.
      */
+    /**
+     * @param  literal-string  $tabla
+     * @return literal-string
+     */
     public static function expresionMinutosDisponiblesMes(string $tabla = 'hospitales'): string
     {
         return "{$tabla}.horas_dia * {$tabla}.dias_mes * {$tabla}.minutos_efectivos_hora";

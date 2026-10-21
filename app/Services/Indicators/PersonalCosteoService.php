@@ -80,7 +80,7 @@ class PersonalCosteoService
         $propios = $this->costosPropios();
         $inducidos = $this->costosInducidos();
 
-        return RecursoHumano::query()
+        return array_values(RecursoHumano::query()
             ->when($q !== '', fn (Builder $query) => $query->where(
                 fn (Builder $sub) => $sub
                     ->where('nombre', 'like', "%{$q}%")
@@ -96,7 +96,7 @@ class PersonalCosteoService
             ])
             ->sortByDesc('costo_propio_total')
             ->values()
-            ->all();
+            ->all());
     }
 
     /**
@@ -144,7 +144,7 @@ class PersonalCosteoService
     {
         $filas = $this->filasDeParticipacion($recurso->id);
 
-        $agrupar = fn (string $campo): array => $filas
+        $agrupar = fn (string $campo): array => array_values($filas
             ->groupBy($campo)
             ->map(fn (Collection $grupo, $valor): array => [
                 'clave' => (string) $valor,
@@ -154,7 +154,7 @@ class PersonalCosteoService
             ])
             ->sortByDesc('costo_propio')
             ->values()
-            ->all();
+            ->all());
 
         return [
             'por_rol' => $agrupar('rol'),
@@ -173,10 +173,10 @@ class PersonalCosteoService
     {
         $promedios = $this->promediosPorProcedimiento();
 
-        return $this->cirugiasComoCirujano($recurso->id)
+        return array_values($this->cirugiasComoCirujano($recurso->id)
             ->groupBy(fn (stdClass $fila): int => (int) $fila->procedimiento_id)
             ->map(function (Collection $grupo, int $procedimientoId) use ($promedios): array {
-                $referencia = $promedios->get($procedimientoId);
+                $referencia = $promedios[$procedimientoId] ?? null;
                 $propio = Estadistica::media(
                     $grupo->map(fn (stdClass $f): float => (float) $f->costo_total)->values()->all(),
                 );
@@ -201,7 +201,7 @@ class PersonalCosteoService
             })
             ->sortByDesc('n')
             ->values()
-            ->all();
+            ->all());
     }
 
     /**
@@ -209,7 +209,7 @@ class PersonalCosteoService
      * los minutos que estuvo, lo que costaron esos minutos y lo que costó la
      * cirugía completa.
      *
-     * @return LengthAwarePaginator<int, array<string, mixed>>
+     * @return LengthAwarePaginator<array-key, array<string, mixed>>
      */
     public function historial(RecursoHumano $recurso, int $porPagina = 15): LengthAwarePaginator
     {
@@ -227,7 +227,7 @@ class PersonalCosteoService
                 '=',
                 'cirugia_procedimiento.procedimiento_quirurgico_id',
             )
-            ->selectRaw(implode(', ', [
+            ->select(DB::raw(implode(', ', [
                 'miembros_equipo_quirurgico.cirugia_id',
                 'miembros_equipo_quirurgico.rol',
                 'miembros_equipo_quirurgico.fase',
@@ -239,41 +239,92 @@ class PersonalCosteoService
                 'procedimientos_quirurgicos.nombre as procedimiento_nombre',
                 $this->expresionCostoPropio().' as costo_propio',
                 $this->expresionDuracion().' as duracion_cirugia',
-            ]))
+            ])))
             ->orderByDesc('cirugias.fecha')
             ->orderByDesc('cirugias.id')
             ->toBase()
             ->paginate($porPagina)
             ->withQueryString()
-            ->through(function (stdClass $fila) use ($promedios): array {
-                $referencia = $promedios->get((int) $fila->procedimiento_id);
-                $costoTotal = $fila->costo_total !== null ? (float) $fila->costo_total : null;
+            ->through(fn (stdClass $fila): array => $this->filaHistorial($fila, $promedios));
+    }
 
-                return [
-                    'cirugia_id' => (int) $fila->cirugia_id,
-                    'fecha' => $fila->fecha,
-                    'procedimiento' => $fila->procedimiento_id !== null ? [
-                        'id' => (int) $fila->procedimiento_id,
-                        'codigo_cups' => $fila->codigo_cups,
-                        'nombre' => $fila->procedimiento_nombre,
-                    ] : null,
-                    'rol' => $fila->rol,
-                    'fase' => $fila->fase,
-                    'minutos' => (int) $fila->minutos_participacion,
-                    'duracion_cirugia' => $fila->duracion_cirugia !== null
-                        ? (int) round((float) $fila->duracion_cirugia)
-                        : null,
-                    'costo_propio' => round((float) $fila->costo_propio, 2),
-                    'costo_total_cirugia' => $costoTotal,
-                    'indice_costo' => $costoTotal !== null
-                        ? $this->indice(
-                            $costoTotal,
-                            $referencia['costo_promedio'] ?? null,
-                            $referencia['n'] ?? 0,
-                        )
-                        : null,
-                ];
-            });
+    /**
+     * Una fila del historial de participaciones.
+     *
+     * @param  array<int, array{n: int, costo_promedio: float, duracion_promedio: float|null}>  $promedios
+     * @return array<string, mixed>
+     */
+    protected function filaHistorial(stdClass $fila, array $promedios): array
+    {
+        $referencia = $promedios[(int) $fila->procedimiento_id] ?? null;
+        $costoTotal = $fila->costo_total !== null ? (float) $fila->costo_total : null;
+
+        return [
+            'cirugia_id' => (int) $fila->cirugia_id,
+            'fecha' => $fila->fecha,
+            'procedimiento' => $fila->procedimiento_id !== null ? [
+                'id' => (int) $fila->procedimiento_id,
+                'codigo_cups' => $fila->codigo_cups,
+                'nombre' => $fila->procedimiento_nombre,
+            ] : null,
+            'rol' => $fila->rol,
+            'fase' => $fila->fase,
+            'minutos' => (int) $fila->minutos_participacion,
+            'duracion_cirugia' => $fila->duracion_cirugia !== null
+                ? (int) round((float) $fila->duracion_cirugia)
+                : null,
+            'costo_propio' => round((float) $fila->costo_propio, 2),
+            'costo_total_cirugia' => $costoTotal,
+            'indice_costo' => $costoTotal !== null
+                ? $this->indice(
+                    $costoTotal,
+                    $referencia['costo_promedio'] ?? null,
+                    $referencia['n'] ?? 0,
+                )
+                : null,
+        ];
+    }
+
+    /**
+     * Costo inducido de un cirujano: lo que costaron sus cirugías y cómo se
+     * comparan con el promedio de cada procedimiento.
+     *
+     * @param  Collection<int, stdClass>  $grupo
+     * @param  array<int, array{n: int, costo_promedio: float, duracion_promedio: float|null}>  $promedios
+     * @param  callable(stdClass): bool  $comparable
+     * @return array<string, mixed>
+     */
+    protected function resumenInducido(Collection $grupo, array $promedios, callable $comparable): array
+    {
+        $costos = $grupo->map(fn (stdClass $f): float => (float) $f->costo_total)
+            ->values()->all();
+
+        $comparables = $grupo->filter($comparable);
+
+        $razonesCosto = $comparables
+            ->map(fn (stdClass $f): float => (float) $f->costo_total
+                / $promedios[(int) $f->procedimiento_id]['costo_promedio'])
+            ->values()->all();
+
+        $razonesDuracion = $comparables
+            ->filter(fn (stdClass $f): bool => (float) $f->duracion_minutos > 0
+                && ($promedios[(int) $f->procedimiento_id]['duracion_promedio'] ?? 0) > 0)
+            ->map(fn (stdClass $f): float => (float) $f->duracion_minutos
+                / $promedios[(int) $f->procedimiento_id]['duracion_promedio'])
+            ->values()->all();
+
+        return [
+            'n' => $grupo->count(),
+            'costo_total' => round(array_sum($costos), 2),
+            'costo_promedio' => round(Estadistica::media($costos), 2),
+            'n_comparables' => count($razonesCosto),
+            'indice_costo' => $razonesCosto === []
+                ? null
+                : round(Estadistica::media($razonesCosto), 3),
+            'indice_duracion' => $razonesDuracion === []
+                ? null
+                : round(Estadistica::media($razonesDuracion), 3),
+        ];
     }
 
     /**
@@ -312,7 +363,7 @@ class PersonalCosteoService
     }
 
     /**
-     * @param  Collection<int, array<string, mixed>>  $inducidos
+     * @param  Collection<array-key, array<string, mixed>>  $inducidos
      * @return array<string, mixed>
      */
     protected function inducidoDe(Collection $inducidos, int $recursoId): array
@@ -340,13 +391,13 @@ class PersonalCosteoService
     {
         return $this->baseParticipaciones($recursoId)
             ->groupBy('recursos_humanos.id')
-            ->selectRaw(implode(', ', [
+            ->select(DB::raw(implode(', ', [
                 'recursos_humanos.id as recurso_humano_id',
                 'count(distinct miembros_equipo_quirurgico.cirugia_id) as n_cirugias',
                 'count(*) as n_participaciones',
                 'sum(miembros_equipo_quirurgico.minutos_participacion) as minutos_total',
                 'sum('.$this->expresionCostoPropio().') as costo_propio',
-            ]))
+            ])))
             ->toBase()
             ->get()
             ->keyBy(fn (stdClass $fila): int => (int) $fila->recurso_humano_id);
@@ -360,13 +411,13 @@ class PersonalCosteoService
     protected function filasDeParticipacion(int $recursoId): Collection
     {
         return $this->baseParticipaciones($recursoId)
-            ->selectRaw(implode(', ', [
+            ->select(DB::raw(implode(', ', [
                 'miembros_equipo_quirurgico.cirugia_id',
                 'miembros_equipo_quirurgico.rol',
                 'miembros_equipo_quirurgico.fase',
                 'miembros_equipo_quirurgico.minutos_participacion',
                 $this->expresionCostoPropio().' as costo_propio',
-            ]))
+            ])))
             ->toBase()
             ->get();
     }
@@ -375,48 +426,17 @@ class PersonalCosteoService
      * Costo inducido e índices ajustados por case-mix, solo sobre cirugías en
      * las que la persona figura como cirujano.
      *
-     * @return Collection<int, array<string, mixed>>
+     * @return Collection<array-key, array<string, mixed>>
      */
     protected function costosInducidos(?int $recursoId = null): Collection
     {
         $promedios = $this->promediosPorProcedimiento();
 
-        $comparable = fn (stdClass $fila): bool => ($promedios
-            ->get((int) $fila->procedimiento_id)['n'] ?? 0) >= self::MINIMO_PARA_COMPARAR;
+        $comparable = fn (stdClass $fila): bool => ($promedios[(int) $fila->procedimiento_id]['n'] ?? 0) >= self::MINIMO_PARA_COMPARAR;
 
         return $this->cirugiasComoCirujano($recursoId)
             ->groupBy(fn (stdClass $fila): int => (int) $fila->recurso_humano_id)
-            ->map(function (Collection $grupo) use ($promedios, $comparable): array {
-                $costos = $grupo->map(fn (stdClass $f): float => (float) $f->costo_total)
-                    ->values()->all();
-
-                $comparables = $grupo->filter($comparable);
-
-                $razonesCosto = $comparables
-                    ->map(fn (stdClass $f): float => (float) $f->costo_total
-                        / $promedios->get((int) $f->procedimiento_id)['costo_promedio'])
-                    ->values()->all();
-
-                $razonesDuracion = $comparables
-                    ->filter(fn (stdClass $f): bool => (float) $f->duracion_minutos > 0
-                        && ($promedios->get((int) $f->procedimiento_id)['duracion_promedio'] ?? 0) > 0)
-                    ->map(fn (stdClass $f): float => (float) $f->duracion_minutos
-                        / $promedios->get((int) $f->procedimiento_id)['duracion_promedio'])
-                    ->values()->all();
-
-                return [
-                    'n' => $grupo->count(),
-                    'costo_total' => round(array_sum($costos), 2),
-                    'costo_promedio' => round(Estadistica::media($costos), 2),
-                    'n_comparables' => count($razonesCosto),
-                    'indice_costo' => $razonesCosto === []
-                        ? null
-                        : round(Estadistica::media($razonesCosto), 3),
-                    'indice_duracion' => $razonesDuracion === []
-                        ? null
-                        : round(Estadistica::media($razonesDuracion), 3),
-                ];
-            });
+            ->map(fn (Collection $grupo): array => $this->resumenInducido($grupo, $promedios, $comparable));
     }
 
     /**
@@ -440,7 +460,7 @@ class PersonalCosteoService
                 '=',
                 'cirugia_procedimiento.procedimiento_quirurgico_id',
             )
-            ->selectRaw(implode(', ', [
+            ->select(DB::raw(implode(', ', [
                 'recursos_humanos.id as recurso_humano_id',
                 'cirugias.id as cirugia_id',
                 'costos_cirugia.costo_total',
@@ -448,7 +468,7 @@ class PersonalCosteoService
                 'procedimientos_quirurgicos.codigo_cups',
                 'procedimientos_quirurgicos.nombre as procedimiento_nombre',
                 $this->expresionDuracion().' as duracion_minutos',
-            ]))
+            ])))
             ->toBase()
             ->get();
     }
@@ -459,11 +479,11 @@ class PersonalCosteoService
      * de agrupación que KpiService (procedimiento principal, solo cirugías
      * contabilizables) para que los números coincidan entre pantallas.
      *
-     * @return Collection<int, array{n: int, costo_promedio: float, duracion_promedio: float|null}>
+     * @return array<int, array{n: int, costo_promedio: float, duracion_promedio: float|null}>
      */
-    protected function promediosPorProcedimiento(): Collection
+    protected function promediosPorProcedimiento(): array
     {
-        return $this->acotarAlPeriodo(
+        $filas = $this->acotarAlPeriodo(
             CostoCirugia::query()
                 ->join('cirugias', 'cirugias.id', '=', 'costos_cirugia.cirugia_id')
                 ->where('cirugias.estado', EstadoCirugia::Realizada->value)
@@ -474,23 +494,27 @@ class PersonalCosteoService
                     ->where('cirugia_procedimiento.es_principal', true);
             })
             ->groupBy('cirugia_procedimiento.procedimiento_quirurgico_id')
-            ->selectRaw(implode(', ', [
+            ->select(DB::raw(implode(', ', [
                 'cirugia_procedimiento.procedimiento_quirurgico_id as procedimiento_id',
                 'count(*) as n',
                 'avg(costos_cirugia.costo_total) as costo_promedio',
                 'avg('.$this->expresionDuracion().') as duracion_promedio',
-            ]))
+            ])))
             ->toBase()
-            ->get()
-            ->mapWithKeys(fn (stdClass $fila): array => [
-                (int) $fila->procedimiento_id => [
-                    'n' => (int) $fila->n,
-                    'costo_promedio' => (float) $fila->costo_promedio,
-                    'duracion_promedio' => $fila->duracion_promedio !== null
-                        ? (float) $fila->duracion_promedio
-                        : null,
-                ],
-            ]);
+            ->get();
+
+        $promedios = [];
+        foreach ($filas as $fila) {
+            $promedios[(int) $fila->procedimiento_id] = [
+                'n' => (int) $fila->n,
+                'costo_promedio' => (float) $fila->costo_promedio,
+                'duracion_promedio' => $fila->duracion_promedio !== null
+                    ? (float) $fila->duracion_promedio
+                    : null,
+            ];
+        }
+
+        return $promedios;
     }
 
     /**
@@ -525,6 +549,7 @@ class PersonalCosteoService
      * redondeo por línea de TdabcCostingService. Los `coalesce` cubren las
      * cirugías anteriores al snapshot, que caen en las tarifas vigentes.
      */
+    /** @return literal-string */
     protected function expresionCostoPropio(): string
     {
         $costoMensual = 'coalesce(miembros_equipo_quirurgico.costo_mensual_registrado, '
@@ -541,6 +566,7 @@ class PersonalCosteoService
     }
 
     /** Duración real de la cirugía en minutos, en el dialecto activo. */
+    /** @return literal-string */
     protected function expresionDuracion(): string
     {
         return match (DB::connection()->getDriverName()) {

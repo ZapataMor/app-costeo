@@ -57,7 +57,7 @@ class KpiService
     /**
      * Costo promedio por cirugía (global) y por procedimiento principal.
      *
-     * @return array<string, mixed>
+     * @return array{global: array<string, int|float|null>, por_procedimiento: list<array<string, mixed>>}
      */
     public function costos(): array
     {
@@ -76,6 +76,7 @@ class KpiService
             ])
             ->values()
             ->all();
+        $porProcedimiento = array_values($porProcedimiento);
 
         return [
             'global' => [
@@ -91,7 +92,7 @@ class KpiService
     /**
      * Coeficiente de variación de costos por procedimiento principal.
      *
-     * @return array<string, mixed>
+     * @return array{por_procedimiento: list<array<string, mixed>>}
      */
     public function variabilidad(): array
     {
@@ -112,7 +113,7 @@ class KpiService
             ->values()
             ->all();
 
-        return ['por_procedimiento' => $porProcedimiento];
+        return ['por_procedimiento' => array_values($porProcedimiento)];
     }
 
     /**
@@ -120,7 +121,7 @@ class KpiService
      * referencia SOAT − 25 %. Solo compara cirugías facturadas: mezclar
      * costeadas-sin-factura con facturadas compararía poblaciones distintas.
      *
-     * @return array<string, mixed>
+     * @return array{factor_referencia_soat: float, por_procedimiento: list<array<string, mixed>>}
      */
     public function margen(): array
     {
@@ -178,7 +179,7 @@ class KpiService
 
         return [
             'factor_referencia_soat' => self::FACTOR_REFERENCIA_SOAT,
-            'por_procedimiento' => $porProcedimiento,
+            'por_procedimiento' => array_values($porProcedimiento),
         ];
     }
 
