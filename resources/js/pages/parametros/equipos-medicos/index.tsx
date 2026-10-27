@@ -64,7 +64,9 @@ export default function EquiposMedicosIndex({
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="border-b bg-muted/50 text-left text-muted-foreground">
-                                <th className="p-3 font-medium">Nombre</th>
+                                <th className="min-w-[200px] p-3 font-medium">
+                                    Nombre
+                                </th>
                                 <th className="p-3 font-medium">Código</th>
                                 <th className="p-3 text-right font-medium">
                                     Valor adquisición
@@ -102,7 +104,7 @@ export default function EquiposMedicosIndex({
                                     className="border-b last:border-0"
                                 >
                                     <td className="p-3">{equipo.nombre}</td>
-                                    <td className="p-3 font-mono text-xs">
+                                    <td className="p-3 font-mono text-xs whitespace-nowrap">
                                         {equipo.codigo ?? '—'}
                                     </td>
                                     <td className="p-3 text-right tabular-nums">

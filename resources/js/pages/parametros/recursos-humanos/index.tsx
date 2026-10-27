@@ -72,7 +72,9 @@ export default function RecursosHumanosIndex({
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="border-b bg-muted/50 text-left text-muted-foreground">
-                                <th className="p-3 font-medium">Nombre</th>
+                                <th className="min-w-[200px] p-3 font-medium">
+                                    Nombre
+                                </th>
                                 <th className="p-3 font-medium">Rol</th>
                                 <th className="p-3 font-medium">
                                     Especialidad

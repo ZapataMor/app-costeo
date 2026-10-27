@@ -121,7 +121,9 @@ export default function CostosIndirectosIndex({
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="border-b bg-muted/50 text-left text-muted-foreground">
-                                <th className="p-3 font-medium">Concepto</th>
+                                <th className="min-w-[200px] p-3 font-medium">
+                                    Concepto
+                                </th>
                                 <th className="p-3 font-medium">Categoría</th>
                                 <th className="p-3 font-medium">Base</th>
                                 <th className="p-3 text-right font-medium">

@@ -74,7 +74,9 @@ export default function InsumosIndex({
                         <thead>
                             <tr className="border-b bg-muted/50 text-left text-muted-foreground">
                                 <th className="p-3 font-medium">Código</th>
-                                <th className="p-3 font-medium">Nombre</th>
+                                <th className="min-w-[200px] p-3 font-medium">
+                                    Nombre
+                                </th>
                                 <th className="p-3 font-medium">Categoría</th>
                                 <th className="p-3 font-medium">Unidad</th>
                                 <th className="p-3 text-right font-medium">
@@ -107,7 +109,7 @@ export default function InsumosIndex({
                                     key={insumo.id}
                                     className="border-b last:border-0"
                                 >
-                                    <td className="p-3 font-mono text-xs">
+                                    <td className="p-3 font-mono text-xs whitespace-nowrap">
                                         {insumo.codigo}
                                     </td>
                                     <td className="p-3">{insumo.nombre}</td>

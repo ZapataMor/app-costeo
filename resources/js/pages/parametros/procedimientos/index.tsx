@@ -83,7 +83,9 @@ export default function ProcedimientosIndex({
                         <thead>
                             <tr className="border-b bg-muted/50 text-left text-muted-foreground">
                                 <th className="p-3 font-medium">CUPS</th>
-                                <th className="p-3 font-medium">Nombre</th>
+                                <th className="min-w-[200px] p-3 font-medium">
+                                    Nombre
+                                </th>
                                 <th className="p-3 font-medium">
                                     Especialidad
                                 </th>
@@ -120,7 +122,7 @@ export default function ProcedimientosIndex({
                                     key={proc.id}
                                     className="border-b last:border-0"
                                 >
-                                    <td className="p-3 font-mono text-xs">
+                                    <td className="p-3 font-mono text-xs whitespace-nowrap">
                                         {proc.codigo_cups}
                                     </td>
                                     <td className="p-3">{proc.nombre}</td>
@@ -128,7 +130,7 @@ export default function ProcedimientosIndex({
                                     <td className="p-3 capitalize">
                                         {proc.complejidad}
                                     </td>
-                                    <td className="p-3 text-right tabular-nums">
+                                    <td className="p-3 text-right whitespace-nowrap tabular-nums">
                                         {proc.duracion_estimada_minutos} min
                                     </td>
                                     <td className="p-3 text-right tabular-nums">
