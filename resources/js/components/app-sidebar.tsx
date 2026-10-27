@@ -117,7 +117,9 @@ const conocimientoNavItems = (
     ...(gestiona
         ? [
               {
-                  title: 'Tablero de conocimiento',
+                  // Va bajo el grupo «Conocimiento»: el nombre largo se
+                  // cortaba en «Tablero de conocimien…».
+                  title: 'Tablero',
                   href: '/conocimiento',
                   icon: Brain,
               },

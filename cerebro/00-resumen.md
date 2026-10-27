@@ -81,10 +81,10 @@ app/
 | 4 Conocimiento (reglas, alertas, lecciones aprendidas) | ✅ Completa (2026-10-21): costo estándar vs. real con clasificación −5/5/20 %, reglas configurables con alertas valoradas en COP, lecciones aprendidas con validación y red de hospitales, recomendaciones con ahorro estimado y seguimiento, mejores prácticas derivadas de datos con benchmarking anónimo, comunidades de práctica por especialidad, tablero contra la meta de la tesis. Pendiente: notificaciones (#24) y evaluación programada (#25) |
 | 5 Presentación (portales por usuario) | 🟡 Parcial: 4 roles y vistas por rol (el profesional ya tiene cuenta y ve su fila marcada en el benchmarking). Faltan portal del cirujano (benchmarking anónimo), portal ejecutivo consolidado, portal público, puesta en producción |
 
-## Estado actual (2026-10-21)
+## Estado actual (2026-10-27)
 
-- Último cambio de código: **2026-10-21** — Capa 4 completa ([[2026-10-21]], [[2026-10-21-capa-4-conocimiento]]); antes, PHPStan en verde y costo estándar vs. real (#1, #3). Carga de volumen de San Rafael en [[2026-10-19]].
-- Tests: **357 pasando, 2.240 aserciones** — verificado el 2026-10-21 ejecutando `php artisan test`. PHPStan nivel 7, Pint, ESLint, Prettier y `tsc` en verde.
+- Último cambio de código: **2026-10-27** — presentación de la información: lenguaje del hospital en la UI, tabla de cirugías limpia y etiquetas legibles con contraste AA (#36–#38, [[2026-10-27]]); quedan las mejoras de mayor impacto de la interfaz (#30–#35, #39). Antes, **2026-10-21** — Capa 4 completa ([[2026-10-21]], [[2026-10-21-capa-4-conocimiento]]); PHPStan en verde y costo estándar vs. real (#1, #3). Carga de volumen de San Rafael en [[2026-10-19]].
+- Tests: **357 pasando, 2.240 aserciones** — verificado el 2026-10-27 ejecutando `php artisan test`. PHPStan nivel 7, Pint, ESLint, Prettier y `tsc` en verde.
 - Datos de prueba de San Rafael: `SanRafaelCargaSeeder` → `SanRafaelMovimientoSeeder` → `SanRafaelConocimientoSeeder` (12 profesionales, 22 lecciones, 9 comunidades, 737 alertas de reglas, 41 recomendaciones). Analizados el 2026-10-27 ([[2026-10-27]]): dan una lectura útil de márgenes por especialidad, pero el reparto de la depreciación por minuto de quirófano (#26), el ruido de alertas (#27) y el ahorro mezclado (#28) distorsionan los resultados.
 - Sin despliegue en producción [VERIFICAR]. Sin datos reales de hospitales aún [VERIFICAR]: los seeders son ficticios.
 - La cotización de julio 2026 al profesor cubre capas 1-5; capas 4 y 5 quedaron "por desarrollar" ([[cliente-y-negocio#Acuerdo comercial]]). [VERIFICAR] si fue aceptada y si se recibió el anticipo.

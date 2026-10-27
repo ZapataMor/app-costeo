@@ -34,6 +34,18 @@ enum CategoriaCif: string
         return array_column(self::cases(), 'value');
     }
 
+    /** Nombre para la UI: el valor crudo salía como «Depreciacion equipos». */
+    public function etiqueta(): string
+    {
+        return match ($this) {
+            self::Infraestructura => 'Infraestructura',
+            self::DepreciacionEquipos => 'Depreciación de equipos',
+            self::PersonalIndirecto => 'Personal indirecto',
+            self::Administracion => 'Administración',
+            self::ServiciosGenerales => 'Servicios generales',
+        };
+    }
+
     /**
      * Columna de `hospitales` que marca el origen del componente directo
      * equivalente, o null si la categoría no solapa con ninguno.

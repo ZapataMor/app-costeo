@@ -1,3 +1,5 @@
+import { separarMarcaSemilla } from '@/lib/semilla';
+
 /**
  * Paleta y utilidades comunes de las gráficas.
  *
@@ -40,7 +42,7 @@ export const COLOR_POR_NIVEL: Record<string, string> = {
  */
 export function etiquetaEje(nombre: string, max = 24): string {
     // Los datos sembrados llevan el sufijo [SEMILLA]: estorba en un eje.
-    const limpio = nombre.replace(/\s*\[SEMILLA\]\s*/g, '').trim();
+    const { limpio } = separarMarcaSemilla(nombre);
 
     return limpio.length > max ? `${limpio.slice(0, max - 1)}…` : limpio;
 }

@@ -150,6 +150,12 @@ const ETIQUETAS: Record<string, string> = {
     circulante: 'Circulante',
     enfermero: 'Enfermero',
     camillero: 'Camillero',
+    // Categorías de las bolsas CIF (mismo texto que CategoriaCif::etiqueta).
+    infraestructura: 'Infraestructura',
+    depreciacion_equipos: 'Depreciación de equipos',
+    personal_indirecto: 'Personal indirecto',
+    administracion: 'Administración',
+    servicios_generales: 'Servicios generales',
 };
 
 /**
@@ -170,3 +176,21 @@ export function etiqueta(valor: string | null | undefined): string {
 
     return texto.charAt(0).toUpperCase() + texto.slice(1);
 }
+
+/**
+ * Criterios con que se marca un costo atípico. La UI decía «z-score» e «IQR»,
+ * que no le dicen nada a un gerente; el nombre técnico queda en el `title`.
+ */
+export const CRITERIO_ATIPICO: Record<
+    string,
+    { texto: string; tecnico: string }
+> = {
+    z: {
+        texto: 'Lejos del promedio',
+        tecnico: 'z-score: más de 3 desviaciones estándar de la media',
+    },
+    iqr: {
+        texto: 'Fuera del rango habitual',
+        tecnico: 'Tukey: fuera de 1,5 × el rango intercuartílico',
+    },
+};

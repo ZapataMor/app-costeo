@@ -2,6 +2,7 @@ import { Head, Link, router } from '@inertiajs/react';
 import { Eye, Search, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { EncabezadoCosteo } from '@/components/costeo/encabezado-costeo';
+import { NombreDato } from '@/components/nombre-dato';
 import { Paginacion } from '@/components/parametros/paginacion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -209,7 +210,9 @@ export default function ProcedimientosCosteoIndex({
                                             prefetch
                                             className="font-medium hover:underline"
                                         >
-                                            {procedimiento.nombre}
+                                            <NombreDato
+                                                texto={procedimiento.nombre}
+                                            />
                                         </Link>
                                     </td>
                                     <td className="p-3">

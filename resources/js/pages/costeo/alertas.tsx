@@ -2,6 +2,7 @@ import { Head, router, useForm } from '@inertiajs/react';
 import { AlertTriangle, Check, Search, X } from 'lucide-react';
 import { KpiCard } from '@/components/costeo/kpi-card';
 import InputError from '@/components/input-error';
+import { NombreDato } from '@/components/nombre-dato';
 import { Paginacion } from '@/components/parametros/paginacion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -21,7 +22,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { cop, pct } from '@/lib/formato';
+import { CRITERIO_ATIPICO, cop, pct } from '@/lib/formato';
 import type {
     AlertaSobrecosto,
     CausaCatalogo,
@@ -79,13 +80,13 @@ export default function Alertas({
                 </div>
 
                 <p className="text-sm text-muted-foreground">
-                    Cada alerta es una cirugía cuyo costo se salió del rango de
-                    su procedimiento (z-score e IQR sobre las cirugías
-                    anteriores del mismo CUPS). El exceso viene desglosado por
-                    componente para no tener que reconstruir a mano de dónde
-                    salió. Atribuirle una causa es lo que convierte el dato en
-                    conocimiento: el «exceso evitable» solo se puede calcular
-                    con alertas revisadas.
+                    Cada alerta es una cirugía que costó bastante más de lo
+                    habitual para su procedimiento, comparada contra las
+                    cirugías anteriores del mismo CUPS. El exceso viene
+                    desglosado por componente para no tener que reconstruir a
+                    mano de dónde salió. Atribuirle una causa es lo que
+                    convierte el dato en conocimiento: el «exceso evitable» solo
+                    se puede calcular con alertas revisadas.
                 </p>
 
                 <div className="flex flex-wrap gap-1">
@@ -219,7 +220,11 @@ function TarjetaAlerta({
             <CardHeader>
                 <div className="flex flex-wrap items-center gap-2">
                     <CardTitle className="text-base">
-                        {alerta.procedimiento.nombre ?? 'Procedimiento'}
+                        <NombreDato
+                            texto={
+                                alerta.procedimiento.nombre ?? 'Procedimiento'
+                            }
+                        />
                     </CardTitle>
                     <span className="font-mono text-xs text-muted-foreground">
                         {alerta.procedimiento.codigo_cups}
@@ -228,8 +233,12 @@ function TarjetaAlerta({
                         {alerta.estado_etiqueta}
                     </Badge>
                     {alerta.criterios.map((criterio) => (
-                        <Badge key={criterio} variant="outline">
-                            {criterio === 'z' ? 'z-score' : 'IQR'}
+                        <Badge
+                            key={criterio}
+                            variant="outline"
+                            title={CRITERIO_ATIPICO[criterio]?.tecnico}
+                        >
+                            {CRITERIO_ATIPICO[criterio]?.texto ?? criterio}
                         </Badge>
                     ))}
                 </div>
@@ -237,7 +246,9 @@ function TarjetaAlerta({
                     Cirugía #{alerta.cirugia_id}
                     {alerta.fecha ? ` · ${alerta.fecha}` : ''} · comparada
                     contra {alerta.n_baseline} cirugías del mismo procedimiento
-                    {alerta.z !== null ? ` · z = ${alerta.z}` : ''}
+                    {alerta.z !== null
+                        ? ` · ${alerta.z.toFixed(1).replace('.', ',')} desviaciones sobre el promedio`
+                        : ''}
                 </CardDescription>
             </CardHeader>
 
@@ -262,7 +273,7 @@ function TarjetaAlerta({
                 </div>
 
                 <div>
-                    <p className="mb-2 text-xs font-semibold tracking-[1px] text-[#5B687C] uppercase">
+                    <p className="sicoq-sobretitulo mb-2">
                         De dónde salió el exceso
                     </p>
                     <table className="w-full text-sm">

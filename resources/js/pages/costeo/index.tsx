@@ -15,6 +15,7 @@ import type { Periodo } from '@/components/costeo/selector-periodo';
 import { SelectorPeriodo } from '@/components/costeo/selector-periodo';
 import { TablaResponsive } from '@/components/costeo/tabla-responsive';
 import { TendenciaCostos } from '@/components/costeo/tendencia-costos';
+import { NombreDato } from '@/components/nombre-dato';
 import {
     Card,
     CardContent,
@@ -69,9 +70,9 @@ const paneles = [
         icono: ChartColumnBig,
     },
     {
-        titulo: 'Outliers de costo',
+        titulo: 'Costos fuera de lo normal',
         descripcion:
-            'Cirugías con costos atípicos (z-score e IQR) por procedimiento.',
+            'Cirugías que costaron mucho más o mucho menos que lo habitual para su procedimiento.',
         href: '/costeo/outliers',
         icono: AlertTriangle,
     },
@@ -267,10 +268,13 @@ export default function CosteoIndex({
                                             >
                                                 <div className="flex items-baseline justify-between gap-3 text-sm">
                                                     <span className="truncate group-hover:underline">
-                                                        {
-                                                            fila.procedimiento
-                                                                .nombre
-                                                        }
+                                                        <NombreDato
+                                                            texto={
+                                                                fila
+                                                                    .procedimiento
+                                                                    .nombre
+                                                            }
+                                                        />
                                                     </span>
                                                     <span className="shrink-0 tabular-nums">
                                                         {cop(

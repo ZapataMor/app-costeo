@@ -72,7 +72,7 @@ class ParametrosController extends Controller
                     fn (ConceptoCostoIndirecto $c): array => [
                         'id' => $c->id,
                         'nombre' => $c->nombre,
-                        'detalle' => str_replace('_', ' ', ucfirst($c->categoria->value))
+                        'detalle' => $c->categoria->etiqueta()
                             .' · '.($c->activo ? 'activo' : 'inactivo'),
                         'valor' => $c->monto_mensual !== null ? (float) $c->monto_mensual : null,
                         'unidad' => 'mes',

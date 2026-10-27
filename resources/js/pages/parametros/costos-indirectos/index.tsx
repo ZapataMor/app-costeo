@@ -11,7 +11,7 @@ import { NivelConfiabilidadBadge } from '@/components/parametros/nivel-confiabil
 import { Paginacion } from '@/components/parametros/paginacion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { cop } from '@/lib/formato';
+import { cop, etiqueta as etiquetaCategoria } from '@/lib/formato';
 import type {
     BaseAsignacionOpcion,
     CapacidadesCif,
@@ -19,9 +19,6 @@ import type {
     ConceptoCostoIndirectoParam,
     Paginado,
 } from '@/types/parametros';
-
-const etiquetaCategoria = (valor: string) =>
-    valor.charAt(0).toUpperCase() + valor.slice(1).replace(/_/g, ' ');
 
 const fecha = (valor: string | null) =>
     valor === null

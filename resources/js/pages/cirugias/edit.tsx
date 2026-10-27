@@ -12,10 +12,10 @@ export default function CirugiasEdit({
 
     return (
         <>
-            <Head title={`Corregir procedimiento #${id}`} />
+            <Head title={`Corregir cirugía #${id}`} />
             <div className="flex flex-col gap-4 p-4">
                 <Heading
-                    title={`Corregir procedimiento #${id}`}
+                    title={`Corregir cirugía #${id}`}
                     description="Al guardar se recalcula el costo TDABC. Las tarifas congeladas al registrar se conservan; solo lo que agregue ahora toma la tarifa vigente."
                 />
 

@@ -13,7 +13,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { cop, numero } from '@/lib/formato';
+import { cop, etiqueta, numero } from '@/lib/formato';
 import type {
     BaseAsignacionOpcion,
     CapacidadesCif,
@@ -25,9 +25,6 @@ type FormAction = {
     action: string;
     method: 'get' | 'post' | 'put' | 'patch' | 'delete';
 };
-
-const etiquetaCategoria = (valor: string) =>
-    valor.charAt(0).toUpperCase() + valor.slice(1).replace(/_/g, ' ');
 
 export function ConceptoCostoIndirectoForm({
     action,
@@ -112,7 +109,7 @@ export function ConceptoCostoIndirectoForm({
                                             key={c.valor}
                                             value={c.valor}
                                         >
-                                            {etiquetaCategoria(c.valor)}
+                                            {etiqueta(c.valor)}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>

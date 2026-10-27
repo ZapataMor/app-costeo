@@ -15,7 +15,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { cop, fecha, pct } from '@/lib/formato';
+import { CRITERIO_ATIPICO, cop, fecha, pct } from '@/lib/formato';
 import type { GrupoOutliers } from '@/types/costeo';
 
 export default function Outliers({
@@ -52,10 +52,10 @@ export default function Outliers({
 
     return (
         <>
-            <Head title="Outliers de costo" />
+            <Head title="Costos fuera de lo normal" />
             <div className="flex flex-col gap-4 p-4">
                 <EncabezadoCosteo
-                    titulo="Outliers de costo"
+                    titulo="Costos fuera de lo normal"
                     descripcion="Cirugías cuyo costo se sale del rango habitual de su propio procedimiento."
                     accion={
                         <Button
@@ -206,9 +206,17 @@ export default function Outliers({
                                                         <Badge
                                                             key={criterio}
                                                             variant="outline"
-                                                            className="ml-1 uppercase"
+                                                            className="ml-1"
+                                                            title={
+                                                                CRITERIO_ATIPICO[
+                                                                    criterio
+                                                                ]?.tecnico
+                                                            }
                                                         >
-                                                            {criterio}
+                                                            {CRITERIO_ATIPICO[
+                                                                criterio
+                                                            ]?.texto ??
+                                                                criterio}
                                                         </Badge>
                                                     ),
                                                 )}
@@ -314,6 +322,6 @@ export default function Outliers({
 Outliers.layout = {
     breadcrumbs: [
         { title: 'Costeo quirúrgico', href: '/costeo' },
-        { title: 'Outliers de costo', href: '/costeo/outliers' },
+        { title: 'Costos fuera de lo normal', href: '/costeo/outliers' },
     ],
 };

@@ -179,12 +179,12 @@ class CirugiaController extends Controller
         // El digitador vuelve al listado (no tiene acceso al detalle/costeo);
         // el administrador va al detalle como hasta ahora.
         if ($request->user()->isDigitador()) {
-            Inertia::flash('toast', ['type' => 'success', 'message' => 'Procedimiento registrado.']);
+            Inertia::flash('toast', ['type' => 'success', 'message' => 'Cirugía registrada.']);
 
             return redirect()->route('cirugias.index');
         }
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => 'Procedimiento registrado. Ya puedes calcular su costo.']);
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Cirugía registrada. Ya puedes calcular su costo.']);
 
         return redirect()->route('cirugias.show', $cirugia);
     }
@@ -271,7 +271,7 @@ class CirugiaController extends Controller
 
         $this->sincronizarCosto($cirugia, $motor);
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => 'Procedimiento actualizado.']);
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Cirugía actualizada.']);
 
         // El digitador no tiene detalle costeado: vuelve a su pantalla.
         return $request->user()->isDigitador()
@@ -331,7 +331,7 @@ class CirugiaController extends Controller
         // costo) están en cascada por clave foránea.
         $cirugia->delete();
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => 'Procedimiento eliminado.']);
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Cirugía eliminada.']);
 
         return redirect()->route('cirugias.index');
     }

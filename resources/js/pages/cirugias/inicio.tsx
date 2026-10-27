@@ -39,7 +39,7 @@ export default function CirugiasInicio({ mios }: { mios: RegistroPropio[] }) {
 
     return (
         <>
-            <Head title="Registrar procedimiento" />
+            <Head title="Registrar cirugía" />
             <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-4">
                 <div className="flex flex-col items-center gap-5 pt-6 text-center">
                     <div className="flex size-16 items-center justify-center rounded-2xl border border-[#5B687C]/20 text-[#5B687C]">
@@ -48,10 +48,10 @@ export default function CirugiasInicio({ mios }: { mios: RegistroPropio[] }) {
 
                     <div className="max-w-md">
                         <h1 className="text-[28px] leading-tight font-semibold text-[#161B2F] dark:text-[#EDE7E5]">
-                            Registro de procedimientos
+                            Registro de cirugías
                         </h1>
                         <p className="mt-2 text-[13.5px] text-[#737778] dark:text-[#9EA0A5]">
-                            Capture aquí cada procedimiento realizado: paciente,
+                            Capture aquí cada cirugía realizada: paciente,
                             equipo quirúrgico, insumos y equipos utilizados.
                         </p>
                     </div>
@@ -59,7 +59,7 @@ export default function CirugiasInicio({ mios }: { mios: RegistroPropio[] }) {
                     <Button asChild size="lg">
                         <Link href="/cirugias/create">
                             <Plus className="size-4" />
-                            Registrar procedimiento
+                            Registrar cirugía
                         </Link>
                     </Button>
                 </div>
@@ -80,8 +80,8 @@ export default function CirugiasInicio({ mios }: { mios: RegistroPropio[] }) {
                             {pendientes > 0 && (
                                 <p className="mb-3 rounded-lg border border-amber-300/70 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
                                     {pendientes === 1
-                                        ? 'Tiene 1 procedimiento sin cerrar. Use el botón ✓ para registrar la hora de finalización.'
-                                        : `Tiene ${pendientes} procedimientos sin cerrar. Use el botón ✓ para registrar la hora de finalización.`}
+                                        ? 'Tiene 1 cirugía sin cerrar. Use el botón ✓ para registrar la hora de finalización.'
+                                        : `Tiene ${pendientes} cirugías sin cerrar. Use el botón ✓ para registrar la hora de finalización.`}
                                 </p>
                             )}
 

@@ -11,11 +11,8 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { cop } from '@/lib/formato';
+import { cop, etiqueta } from '@/lib/formato';
 import type { CategoriaCifOpcion } from '@/types/parametros';
-
-const etiqueta = (valor: string) =>
-    valor.charAt(0).toUpperCase() + valor.slice(1).replace(/_/g, ' ');
 
 /**
  * Encendido y apagado de las bolsas por categoría.

@@ -165,10 +165,7 @@ export function DesgloseCosto({ costo }: { costo: CostoCirugia }) {
                                             <td className="p-3">
                                                 {bolsa.nombre}
                                                 <span className="block text-xs text-muted-foreground">
-                                                    {bolsa.categoria.replace(
-                                                        /_/g,
-                                                        ' ',
-                                                    )}
+                                                    {etiqueta(bolsa.categoria)}
                                                 </span>
                                             </td>
                                             <td className="p-3 text-xs text-muted-foreground">

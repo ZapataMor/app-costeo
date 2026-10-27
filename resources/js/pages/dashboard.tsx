@@ -137,7 +137,7 @@ export default function Dashboard({ hospitales }: DashboardProps) {
                                 className={`sicoq-hcard relative gap-0 py-0 ${esSuperAdmin ? 'cursor-pointer' : ''}`}
                             >
                                 {activo && (
-                                    <span className="absolute top-[18px] right-[18px] flex items-center gap-1.5 text-[9.5px] font-semibold tracking-[1.6px] text-[#5B687C] uppercase">
+                                    <span className="sicoq-sobretitulo absolute top-[18px] right-[18px] flex items-center gap-1.5">
                                         <span className="size-1.5 rounded-full bg-[#5B687C]" />
                                         Activo
                                     </span>
@@ -200,7 +200,7 @@ function Indicador({
 }) {
     return (
         <div className={className}>
-            <span className="mb-1.5 flex items-center gap-1 text-[9px] font-semibold tracking-[1px] text-[#5B687C] uppercase">
+            <span className="sicoq-sobretitulo mb-1.5 flex items-center gap-1">
                 <Icono className="size-[13px]" />
                 {etiqueta}
             </span>

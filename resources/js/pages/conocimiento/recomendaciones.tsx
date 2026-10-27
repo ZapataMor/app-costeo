@@ -393,9 +393,7 @@ function Evidencia({ evidencia }: { evidencia: Record<string, unknown> }) {
 
     return (
         <div className="rounded-md bg-muted/40 p-3 text-xs">
-            <p className="mb-1 font-semibold tracking-[1px] text-[#5B687C] uppercase">
-                Evidencia
-            </p>
+            <p className="sicoq-sobretitulo mb-1">Evidencia</p>
             <div className="grid gap-x-6 gap-y-1 sm:grid-cols-3">
                 {entradas.map(([clave, valor]) => (
                     <div key={clave}>

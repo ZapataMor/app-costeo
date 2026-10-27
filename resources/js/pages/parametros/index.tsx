@@ -186,8 +186,8 @@ export default function ParametrosIndex({
                         Parámetros
                     </h1>
                     <p className="mt-1.5 mb-1 max-w-[620px] text-[13.5px] text-[#737778] dark:text-[#9EA0A5]">
-                        Catálogos base del costeo TDABC. Entre a cada módulo
-                        para ver el listado completo y su CRUD.
+                        Catálogos base del costeo. Entre a cada uno para ver,
+                        agregar o corregir sus registros.
                     </p>
                 </div>
 
@@ -295,7 +295,7 @@ export default function ParametrosIndex({
                                             className="flex-1"
                                         >
                                             <Link href={href} prefetch>
-                                                Ver listado y CRUD
+                                                Ver todos
                                             </Link>
                                         </Button>
                                         {formulario && (

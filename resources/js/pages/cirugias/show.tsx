@@ -6,11 +6,13 @@ import { DesgloseCosto } from '@/components/cirugias/desglose-costo';
 import { FacturacionCard } from '@/components/cirugias/facturacion-card';
 import { ResultadoClinicoCard } from '@/components/cirugias/resultado-clinico-card';
 import Heading from '@/components/heading';
+import { NombreDato } from '@/components/nombre-dato';
 import { ConfirmarEliminacion } from '@/components/parametros/confirmar-eliminacion';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { etiqueta, fecha as formatearFecha } from '@/lib/formato';
 import type {
     CirugiaDetalle,
     CostoCirugia,
@@ -57,11 +59,11 @@ export default function CirugiasShow({
 
     return (
         <>
-            <Head title={`Procedimiento #${cirugia.id}`} />
+            <Head title={`Cirugía #${cirugia.id}`} />
             <div className="flex flex-col gap-4 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                     <Heading
-                        title={`Procedimiento #${cirugia.id} · ${cirugia.fecha ?? 'sin fecha'}`}
+                        title={`Cirugía #${cirugia.id} · ${cirugia.fecha ? formatearFecha(cirugia.fecha) : 'sin fecha'}`}
                         description={
                             cirugia.paciente
                                 ? `Paciente: ${cirugia.paciente.nombres} ${cirugia.paciente.apellidos}`
@@ -92,7 +94,7 @@ export default function CirugiasShow({
                         </Button>
                         <ConfirmarEliminacion
                             url={CirugiaController.destroy.url(cirugia.id)}
-                            descripcion="Se eliminará el procedimiento con su equipo quirúrgico, consumos, equipos, costo calculado, facturación y resultado clínico. Esta acción no se puede deshacer."
+                            descripcion="Se eliminará la cirugía con su equipo quirúrgico, consumos, equipos, costo calculado, facturación y resultado clínico. Esta acción no se puede deshacer."
                         />
                     </div>
                 </div>
@@ -101,8 +103,7 @@ export default function CirugiasShow({
                     <Alert className="border-amber-300/70 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
                         <TriangleAlert className="size-4" />
                         <AlertTitle>
-                            Este procedimiento no se está contando en los
-                            indicadores
+                            Esta cirugía no se está contando en los indicadores
                         </AlertTitle>
                         <AlertDescription className="text-amber-800 dark:text-amber-300/90">
                             {sinTerminar && (
@@ -114,8 +115,8 @@ export default function CirugiasShow({
                             {sinEstadoRealizada && (
                                 <p>
                                     Su estado es «
-                                    {cirugia.estado.replace('_', ' ')}»: solo
-                                    los procedimientos realizados se costean y
+                                    {etiqueta(cirugia.estado).toLowerCase()}»:
+                                    solo las cirugías realizadas se costean y
                                     entran a los indicadores.
                                 </p>
                             )}
@@ -127,7 +128,7 @@ export default function CirugiasShow({
                     <Card>
                         <CardHeader>
                             <CardTitle className="text-base">
-                                Datos del procedimiento
+                                Datos de la cirugía
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-2 text-sm">
@@ -161,9 +162,9 @@ export default function CirugiasShow({
                                 <span className="text-muted-foreground">
                                     Tipo / Estado
                                 </span>
-                                <span className="capitalize">
-                                    {cirugia.tipo} /{' '}
-                                    {cirugia.estado.replace('_', ' ')}
+                                <span>
+                                    {etiqueta(cirugia.tipo)} /{' '}
+                                    {etiqueta(cirugia.estado)}
                                 </span>
                             </div>
                             <div className="flex justify-between">
@@ -171,7 +172,13 @@ export default function CirugiasShow({
                                     Sala
                                 </span>
                                 <span>
-                                    {cirugia.sala?.nombre ?? 'Sin sala'}
+                                    {cirugia.sala ? (
+                                        <NombreDato
+                                            texto={cirugia.sala.nombre}
+                                        />
+                                    ) : (
+                                        'Sin sala'
+                                    )}
                                 </span>
                             </div>
                             <div className="flex justify-between">
@@ -184,7 +191,7 @@ export default function CirugiasShow({
                             </div>
                             {cirugia.observaciones && (
                                 <p className="pt-2 text-muted-foreground">
-                                    {cirugia.observaciones}
+                                    <NombreDato texto={cirugia.observaciones} />
                                 </p>
                             )}
                         </CardContent>
@@ -206,7 +213,9 @@ export default function CirugiasShow({
                                         <span className="font-mono text-xs text-muted-foreground">
                                             {proc.codigo_cups}
                                         </span>
-                                        <span>{proc.nombre}</span>
+                                        <span>
+                                            <NombreDato texto={proc.nombre} />
+                                        </span>
                                         {proc.es_principal && (
                                             <Badge variant="secondary">
                                                 Principal
@@ -222,9 +231,11 @@ export default function CirugiasShow({
                                         className="flex items-center justify-between py-0.5"
                                     >
                                         <span>
-                                            {miembro.nombre ?? '—'}{' '}
-                                            <span className="text-muted-foreground capitalize">
-                                                ({miembro.rol})
+                                            <NombreDato
+                                                texto={miembro.nombre ?? '—'}
+                                            />{' '}
+                                            <span className="text-muted-foreground">
+                                                ({etiqueta(miembro.rol)})
                                             </span>{' '}
                                             <Badge
                                                 variant="outline"
@@ -253,7 +264,7 @@ export default function CirugiasShow({
                 ) : (
                     <Card>
                         <CardContent className="py-8 text-center text-muted-foreground">
-                            Este procedimiento aún no tiene costo calculado. Usa
+                            Esta cirugía aún no tiene costo calculado. Usa
                             «Calcular costo TDABC» para generar el desglose.
                         </CardContent>
                     </Card>
@@ -280,6 +291,6 @@ export default function CirugiasShow({
 CirugiasShow.layout = {
     breadcrumbs: [
         { title: 'Cirugías realizadas', href: '/cirugias' },
-        { title: 'Detalle', href: '#' },
+        { title: 'Detalle de la cirugía', href: '#' },
     ],
 };

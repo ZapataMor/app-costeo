@@ -62,7 +62,7 @@ export default function MejoresPracticas({
                 {Object.entries(porEspecialidad).map(
                     ([especialidad, lista]) => (
                         <div key={especialidad} className="space-y-2">
-                            <h2 className="text-sm font-semibold tracking-[1px] text-[#5B687C] uppercase">
+                            <h2 className="sicoq-sobretitulo">
                                 {especialidad}
                             </h2>
                             <Card>

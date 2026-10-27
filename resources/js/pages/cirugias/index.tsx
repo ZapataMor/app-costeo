@@ -5,6 +5,7 @@ import CirugiaController from '@/actions/App/Http/Controllers/Cirugias/CirugiaCo
 import { BotonExportar } from '@/components/boton-exportar';
 import { CerrarCirugiaModal } from '@/components/cirugias/cerrar-cirugia-modal';
 import { FiltrosListado } from '@/components/filtros-listado';
+import { NombreDato } from '@/components/nombre-dato';
 import { EncabezadoListado } from '@/components/parametros/encabezado-listado';
 import { Paginacion } from '@/components/parametros/paginacion';
 import { Badge } from '@/components/ui/badge';
@@ -12,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { opcionesDesdeValores } from '@/lib/filtros';
 import { cop, etiqueta, fecha as formatearFecha } from '@/lib/formato';
+import { separarMarcaSemilla } from '@/lib/semilla';
 import type { PaginadoCirugias } from '@/types/cirugias';
 
 /**
@@ -60,6 +62,9 @@ function RangoFechas({ filtros }: { filtros: Record<string, string> }) {
     );
 }
 
+const claseInsigniaPendiente =
+    'border-amber-300/70 bg-amber-50 font-normal text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-400';
+
 export default function CirugiasIndex({
     cirugias,
     estados,
@@ -85,17 +90,17 @@ export default function CirugiasIndex({
             <div className="flex flex-col gap-4 p-4">
                 <EncabezadoListado
                     titulo="Cirugías realizadas"
-                    descripcion="Cada procedimiento registrado, con su equipo, insumos y tiempos. Es lo que alimenta el costeo TDABC."
+                    descripcion="Cada cirugía registrada, con su equipo, insumos y tiempos. Es lo que alimenta el costeo."
                     hrefNuevo={CirugiaController.create.url()}
-                    textoNuevo="Registrar procedimiento"
+                    textoNuevo="Registrar cirugía"
                 />
 
                 {totalPendientes > 0 && !viendoPendientes && (
                     <div className="flex flex-wrap items-center gap-3 rounded-lg border border-amber-300/70 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
                         <span>
                             {totalPendientes === 1
-                                ? 'Hay 1 procedimiento sin completar: no entra a los indicadores hasta que se cierre o se costee.'
-                                : `Hay ${totalPendientes} procedimientos sin completar: no entran a los indicadores hasta que se cierren o se costeen.`}
+                                ? 'Hay 1 cirugía sin completar: no entra a los indicadores hasta que se cierre o se costee.'
+                                : `Hay ${totalPendientes} cirugías sin completar: no entran a los indicadores hasta que se cierren o se costeen.`}
                         </span>
                         <Button asChild variant="outline" size="sm">
                             <Link href="/cirugias?pendientes=1">
@@ -164,7 +169,7 @@ export default function CirugiasIndex({
                                     Duración
                                 </th>
                                 <th className="p-3 text-right font-medium">
-                                    Costo TDABC
+                                    Costo
                                 </th>
                                 <th className="p-3 text-right font-medium">
                                     Acciones
@@ -178,124 +183,175 @@ export default function CirugiasIndex({
                                         colSpan={colSpanVacio}
                                         className="p-6 text-center text-muted-foreground"
                                     >
-                                        No hay procedimientos registrados. Usa
-                                        «Registrar procedimiento» para capturar
-                                        el primero.
+                                        No hay cirugías registradas. Usa
+                                        «Registrar cirugía» para capturar la
+                                        primera.
                                     </td>
                                 </tr>
                             )}
-                            {cirugias.data.map((cirugia) => (
-                                <tr
-                                    key={cirugia.id}
-                                    className="border-b last:border-0"
-                                >
-                                    <td className="p-3 whitespace-nowrap tabular-nums">
-                                        {formatearFecha(cirugia.fecha)}
-                                    </td>
-                                    <td className="p-3">
-                                        {cirugia.paciente
-                                            ? `${cirugia.paciente.nombres} ${cirugia.paciente.apellidos}`
-                                            : '—'}
-                                    </td>
-                                    <td className="p-3">
-                                        {cirugia.procedimiento_principal ? (
-                                            <>
-                                                <span className="font-mono text-xs text-muted-foreground">
-                                                    {
-                                                        cirugia
-                                                            .procedimiento_principal
-                                                            .codigo_cups
+                            {cirugias.data.map((cirugia) => {
+                                const procedimiento =
+                                    cirugia.procedimiento_principal;
+                                const nombrePaciente = cirugia.paciente
+                                    ? `${cirugia.paciente.nombres} ${cirugia.paciente.apellidos}`
+                                    : null;
+                                // Cerrada y realizada: lo único que le falta
+                                // es el costo (ver motivoPendiente en
+                                // CirugiaController).
+                                const faltaSoloCosto =
+                                    cirugia.motivo_pendiente != null &&
+                                    cirugia.hora_fin !== null &&
+                                    cirugia.estado === 'realizada';
+                                const pendienteDeCierre =
+                                    cirugia.motivo_pendiente != null &&
+                                    !faltaSoloCosto;
+
+                                return (
+                                    <tr
+                                        key={cirugia.id}
+                                        className="border-b last:border-0"
+                                    >
+                                        <td className="p-3 whitespace-nowrap tabular-nums">
+                                            {formatearFecha(cirugia.fecha)}
+                                        </td>
+                                        <td className="p-3">
+                                            <div
+                                                className="max-w-[10rem] truncate"
+                                                title={
+                                                    nombrePaciente ?? undefined
+                                                }
+                                            >
+                                                {nombrePaciente ?? '—'}
+                                            </div>
+                                        </td>
+                                        <td className="p-3">
+                                            {procedimiento ? (
+                                                <div
+                                                    className="max-w-[14rem] truncate"
+                                                    title={`${procedimiento.codigo_cups} · ${separarMarcaSemilla(procedimiento.nombre).limpio}`}
+                                                >
+                                                    <span className="font-mono text-xs text-muted-foreground">
+                                                        {
+                                                            procedimiento.codigo_cups
+                                                        }
+                                                    </span>{' '}
+                                                    <NombreDato
+                                                        texto={
+                                                            procedimiento.nombre
+                                                        }
+                                                    />
+                                                </div>
+                                            ) : (
+                                                '—'
+                                            )}
+                                        </td>
+                                        <td className="p-3">
+                                            {etiqueta(cirugia.tipo)}
+                                        </td>
+                                        <td className="p-3 whitespace-nowrap">
+                                            {/* Una sola señal por fila. Antes salía
+                                            «En recuperación» + «Está en «en
+                                            recuperación»» + «Sin costear»: el
+                                            estado tres veces. Si falta cerrarla,
+                                            el estado va en ámbar con el motivo
+                                            al pasar el cursor; si solo falta el
+                                            costo, la señal está en su columna. */}
+                                            {pendienteDeCierre ? (
+                                                <Badge
+                                                    variant="outline"
+                                                    className={
+                                                        claseInsigniaPendiente
                                                     }
-                                                </span>{' '}
-                                                {
-                                                    cirugia
-                                                        .procedimiento_principal
-                                                        .nombre
-                                                }
-                                            </>
-                                        ) : (
-                                            '—'
-                                        )}
-                                    </td>
-                                    <td className="p-3">
-                                        {etiqueta(cirugia.tipo)}
-                                    </td>
-                                    <td className="p-3">
-                                        <span>{etiqueta(cirugia.estado)}</span>
-                                        {/* La insignia decía solo «No
-                                            contabilizada» y había que adivinar
-                                            qué faltaba: ahora lleva el motivo. */}
-                                        {cirugia.motivo_pendiente && (
-                                            <Badge
-                                                variant="outline"
-                                                className="ml-2 border-amber-300/70 bg-amber-50 font-normal text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-400"
-                                                title="No entra a los indicadores hasta completarse"
+                                                    title={`${cirugia.motivo_pendiente}: no entra a los indicadores hasta cerrarse`}
+                                                >
+                                                    {etiqueta(cirugia.estado)}
+                                                </Badge>
+                                            ) : (
+                                                etiqueta(cirugia.estado)
+                                            )}
+                                            {cirugia.hora_fin === null && (
+                                                <span className="block text-xs text-muted-foreground">
+                                                    Falta la salida de sala
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td className="p-3 text-right whitespace-nowrap tabular-nums">
+                                            {cirugia.duracion_minutos !== null
+                                                ? `${cirugia.duracion_minutos} min`
+                                                : '—'}
+                                        </td>
+                                        <td className="p-3 text-right whitespace-nowrap tabular-nums">
+                                            {cirugia.costo_total !== null ? (
+                                                cop(Number(cirugia.costo_total))
+                                            ) : faltaSoloCosto ? (
+                                                <Badge
+                                                    variant="outline"
+                                                    className={
+                                                        claseInsigniaPendiente
+                                                    }
+                                                    title="Cerrada pero sin costo: no entra a los indicadores hasta costearse"
+                                                >
+                                                    Sin costear
+                                                </Badge>
+                                            ) : (
+                                                <span
+                                                    className="text-muted-foreground"
+                                                    title="Se costea al cerrarse"
+                                                >
+                                                    —
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td className="p-3 text-right whitespace-nowrap">
+                                            {cirugia.puede_cerrarse && (
+                                                <CerrarCirugiaModal
+                                                    cirugiaId={cirugia.id}
+                                                    paso={
+                                                        cirugia.paso_cierre ??
+                                                        'sala'
+                                                    }
+                                                    horaInicio={
+                                                        cirugia.hora_inicio
+                                                    }
+                                                    horaFin={cirugia.hora_fin}
+                                                />
+                                            )}
+                                            <Button
+                                                asChild
+                                                variant="ghost"
+                                                size="icon"
+                                                aria-label="Corregir"
+                                                title="Corregir"
                                             >
-                                                {cirugia.motivo_pendiente}
-                                            </Badge>
-                                        )}
-                                    </td>
-                                    <td className="p-3 text-right tabular-nums">
-                                        {cirugia.duracion_minutos !== null
-                                            ? `${cirugia.duracion_minutos} min`
-                                            : '—'}
-                                    </td>
-                                    <td className="p-3 text-right tabular-nums">
-                                        {cirugia.costo_total !== null ? (
-                                            cop(Number(cirugia.costo_total))
-                                        ) : (
-                                            <Badge variant="outline">
-                                                Sin costear
-                                            </Badge>
-                                        )}
-                                    </td>
-                                    <td className="p-3 text-right whitespace-nowrap">
-                                        {cirugia.puede_cerrarse && (
-                                            <CerrarCirugiaModal
-                                                cirugiaId={cirugia.id}
-                                                paso={
-                                                    cirugia.paso_cierre ??
-                                                    'sala'
-                                                }
-                                                horaInicio={cirugia.hora_inicio}
-                                                horaFin={cirugia.hora_fin}
-                                            />
-                                        )}
-                                        <Button
-                                            asChild
-                                            variant="ghost"
-                                            size="icon"
-                                            aria-label="Corregir"
-                                            title="Corregir"
-                                        >
-                                            <Link
-                                                href={CirugiaController.edit.url(
-                                                    cirugia.id,
-                                                )}
-                                                prefetch
+                                                <Link
+                                                    href={CirugiaController.edit.url(
+                                                        cirugia.id,
+                                                    )}
+                                                    prefetch
+                                                >
+                                                    <Pencil className="size-4" />
+                                                </Link>
+                                            </Button>
+                                            <Button
+                                                asChild
+                                                variant="ghost"
+                                                size="icon"
+                                                aria-label="Ver detalle"
+                                                title="Ver detalle"
                                             >
-                                                <Pencil className="size-4" />
-                                            </Link>
-                                        </Button>
-                                        <Button
-                                            asChild
-                                            variant="ghost"
-                                            size="icon"
-                                            aria-label="Ver detalle"
-                                            title="Ver detalle"
-                                        >
-                                            <Link
-                                                href={CirugiaController.show.url(
-                                                    cirugia.id,
-                                                )}
-                                                prefetch
-                                            >
-                                                <Eye className="size-4" />
-                                            </Link>
-                                        </Button>
-                                    </td>
-                                </tr>
-                            ))}
+                                                <Link
+                                                    href={CirugiaController.show.url(
+                                                        cirugia.id,
+                                                    )}
+                                                    prefetch
+                                                >
+                                                    <Eye className="size-4" />
+                                                </Link>
+                                            </Button>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>

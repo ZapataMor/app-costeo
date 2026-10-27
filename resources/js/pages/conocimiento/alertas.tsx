@@ -4,6 +4,7 @@ import { AreaTexto } from '@/components/conocimiento/area-texto';
 import { SeveridadBadge } from '@/components/conocimiento/severidad-badge';
 import { KpiCard } from '@/components/costeo/kpi-card';
 import InputError from '@/components/input-error';
+import { NombreDato } from '@/components/nombre-dato';
 import { Paginacion } from '@/components/parametros/paginacion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -222,7 +223,9 @@ function TarjetaAlerta({
                         </Badge>
                     )}
                 </div>
-                <CardTitle className="text-base">{alerta.titulo}</CardTitle>
+                <CardTitle className="text-base">
+                    <NombreDato texto={alerta.titulo} />
+                </CardTitle>
                 <CardDescription>{alerta.descripcion}</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
