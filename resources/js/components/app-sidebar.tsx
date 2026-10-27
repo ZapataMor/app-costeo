@@ -82,17 +82,20 @@ const pacientesNavItems: NavItem[] = [
 // Costeo y reglas en Conocimiento) para dos pantallas casi iguales; ahora el
 // número cuenta casos —procedimientos con algo prioritario—, no alertas
 // sueltas. Viaja en las props compartidas para verse desde cualquier pantalla.
-const analisisNavItems = (casos: number): NavItem[] => [
-    {
-        title: 'Costeo quirúrgico',
-        href: '/costeo',
-        icon: Stethoscope,
-    },
+const alertasNavItems = (casos: number): NavItem[] => [
     {
         title: 'Alertas',
         href: '/alertas',
         icon: BellRing,
         badge: casos > 0 ? casos : undefined,
+    },
+];
+
+const costeoNavItems: NavItem[] = [
+    {
+        title: 'Costeo quirúrgico',
+        href: '/costeo',
+        icon: Stethoscope,
     },
 ];
 
@@ -244,8 +247,11 @@ export function AppSidebar() {
             {/* Colapsada, cada SidebarGroupLabel se oculta con un `-mt-8` que
                 arrastra su grupo hacia arriba; en el primero eso metía el ícono
                 debajo del logo (y el overflow oculto lo recortaba). El padding
-                superior devuelve esos 32px y deja algo de aire. */}
-            <SidebarContent className="px-2 group-data-[collapsible=icon]:pt-10">
+                superior devuelve esos 32px y deja algo de aire. El primer grupo
+                del administrador no lleva etiqueta: ahí basta un poco de aire. */}
+            <SidebarContent
+                className={`px-2 ${esDigitador || esProfesional ? 'group-data-[collapsible=icon]:pt-10' : 'group-data-[collapsible=icon]:pt-2'}`}
+            >
                 {esDigitador ? (
                     // El digitador solo registra: su índice es la pantalla con
                     // el botón, sin histórico ni costos.
@@ -259,24 +265,24 @@ export function AppSidebar() {
                         label="Conocimiento"
                     />
                 ) : (
-                    // Del uso diario a lo ocasional: cómo vamos, qué
-                    // revisar, qué registrar y, al final, la configuración.
+                    // De lo primordial a lo ocasional: arriba lo de todos los
+                    // días (cómo vamos y qué pide acción), luego el costeo y,
+                    // plegados, Conocimiento y Administración.
                     <>
                         <NavMain
                             items={[
                                 ...inicioNavItems,
                                 ...(esSuperAdmin ? generalNavItems : []),
+                                ...alertasNavItems(alertasPorRevisar ?? 0),
                             ]}
-                            label="General"
                         />
                         <NavMain
-                            items={analisisNavItems(alertasPorRevisar ?? 0)}
-                            label="Análisis"
-                            className="mt-[14px]"
-                        />
-                        <NavMain
-                            items={[...pacientesNavItems, ...registroNavItems]}
-                            label="Captura"
+                            items={[
+                                ...costeoNavItems,
+                                ...registroNavItems,
+                                ...pacientesNavItems,
+                            ]}
+                            label="Costeo"
                             className="mt-[14px]"
                         />
                         <NavMain
@@ -286,32 +292,23 @@ export function AppSidebar() {
                             )}
                             label="Conocimiento"
                             className="mt-[14px]"
+                            plegable
                         />
                         <NavMain
-                            items={parametrosNavItems}
-                            label="Configuración"
+                            items={[
+                                ...parametrosNavItems,
+                                ...(esAdminHospital
+                                    ? [
+                                          ...digitadoresNavItems,
+                                          ...profesionalesNavItems,
+                                      ]
+                                    : []),
+                                ...(esSuperAdmin ? institucionesNavItems : []),
+                                ...historialNavItems,
+                            ]}
+                            label="Administración"
                             className="mt-[14px]"
-                        />
-                        {esSuperAdmin && (
-                            <NavMain
-                                items={institucionesNavItems}
-                                label="Administración"
-                                className="mt-[14px]"
-                            />
-                        )}
-                        {esAdminHospital && (
-                            <NavMain
-                                items={[
-                                    ...digitadoresNavItems,
-                                    ...profesionalesNavItems,
-                                ]}
-                                label="Equipo"
-                                className="mt-[14px]"
-                            />
-                        )}
-                        <NavMain
-                            items={historialNavItems}
-                            className="mt-[14px]"
+                            plegable
                         />
                     </>
                 )}
