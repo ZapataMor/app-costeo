@@ -1,11 +1,19 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { ArrowLeft, Eye, X } from 'lucide-react';
+import { BarraComposicion } from '@/components/costeo/barra-composicion';
 import { DispersionProcedimiento } from '@/components/costeo/dispersion-procedimiento';
 import { KpiCard } from '@/components/costeo/kpi-card';
 import Heading from '@/components/heading';
 import { Paginacion } from '@/components/parametros/paginacion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import {
     Select,
@@ -14,10 +22,21 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { cop, etiqueta, fecha as formatearFecha } from '@/lib/formato';
+import {
+    cop,
+    etiqueta,
+    fecha as formatearFecha,
+    numero,
+    pct,
+    pctVariacion,
+} from '@/lib/formato';
+import { tonoMayorEsMejor, tonoMenorEsMejor, UMBRALES } from '@/lib/semaforo';
+import type { Tono } from '@/lib/semaforo';
+import { separarMarcaSemilla } from '@/lib/semilla';
 import type {
     EstadisticasProcedimiento,
     FiltrosInstanciasCirugia,
+    IndicadoresProcedimiento,
     PaginadoInstanciasCirugia,
     ProcedimientoCosteoInfo,
     PuntoSerieProcedimiento,
@@ -25,9 +44,16 @@ import type {
 
 const TODOS = 'todos';
 
+const TONO_VARIABILIDAD: Record<string, Tono> = {
+    alta: 'alerta',
+    media: 'atencion',
+    baja: 'bien',
+};
+
 export default function ProcedimientoCosteoShow({
     procedimiento,
     estadisticas,
+    indicadores,
     cirugias,
     serie,
     filtros,
@@ -35,6 +61,7 @@ export default function ProcedimientoCosteoShow({
 }: {
     procedimiento: ProcedimientoCosteoInfo;
     estadisticas: EstadisticasProcedimiento;
+    indicadores: IndicadoresProcedimiento | null;
     cirugias: PaginadoInstanciasCirugia;
     serie: PuntoSerieProcedimiento[];
     filtros: FiltrosInstanciasCirugia;
@@ -54,40 +81,95 @@ export default function ProcedimientoCosteoShow({
     const hayFiltros =
         filtros.desde !== '' || filtros.hasta !== '' || filtros.estado !== '';
 
+    const nombre = separarMarcaSemilla(procedimiento.nombre).limpio;
+    const ventana =
+        filtros.desde || filtros.hasta
+            ? `${filtros.desde ? formatearFecha(filtros.desde) : 'el inicio'} a ${filtros.hasta ? formatearFecha(filtros.hasta) : 'hoy'}`
+            : 'toda la historia';
+
     return (
         <>
-            <Head title={`${procedimiento.nombre} · Costeo`} />
+            <Head title={`${nombre} · Costeo`} />
             <div className="flex flex-col gap-4 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                     <Heading
-                        title={procedimiento.nombre}
+                        title={nombre}
                         description={`CUPS ${procedimiento.codigo_cups} · ${procedimiento.especialidad} · complejidad ${procedimiento.complejidad} · duración estimada ${procedimiento.duracion_estimada_minutos} min`}
                     />
                     <Button asChild variant="outline">
-                        <Link href="/costeo/procedimientos">
+                        <Link
+                            href={`/costeo/procedimientos${filtros.desde || filtros.hasta ? `?${new URLSearchParams(Object.entries({ desde: filtros.desde, hasta: filtros.hasta }).filter(([, v]) => v !== '')).toString()}` : ''}`}
+                        >
                             <ArrowLeft className="size-4" />
                             Volver
                         </Link>
                     </Button>
                 </div>
 
-                <div className="grid gap-[18px] md:grid-cols-3 xl:grid-cols-5">
-                    <KpiCard
-                        titulo="Cirugías realizadas"
-                        valor={String(estadisticas.n_realizadas)}
-                        detalle={`${estadisticas.n_costeadas} con costo TDABC`}
-                    />
+                <p className="-mt-2 text-sm text-muted-foreground">
+                    Indicadores de {ventana}
+                    {indicadores === null &&
+                        ': ninguna cirugía costeada en esas fechas'}
+                    .
+                </p>
+
+                <div className="grid gap-[18px] sm:grid-cols-2 xl:grid-cols-5">
                     <KpiCard
                         titulo="Costo promedio"
-                        valor={cop(estadisticas.costo_promedio)}
+                        valor={cop(indicadores?.costo_promedio)}
+                        detalle={`${numero(indicadores?.n ?? 0)} cirugías costeadas${indicadores?.mediana != null ? ` · mediana ${cop(indicadores.mediana)}` : ''}`}
                     />
                     <KpiCard
-                        titulo="Costo mínimo"
-                        valor={cop(estadisticas.costo_minimo)}
+                        titulo="Frente al estándar"
+                        valor={
+                            indicadores?.desviacion_pct != null
+                                ? pctVariacion(indicadores.desviacion_pct)
+                                : '—'
+                        }
+                        tono={tonoMenorEsMejor(
+                            indicadores?.desviacion_pct,
+                            UMBRALES.desviacionEstandar,
+                        )}
+                        detalle={
+                            indicadores && indicadores.n_con_estandar > 0
+                                ? `sobre lo que marca el protocolo · ${numero(indicadores.n_con_estandar)} cirugías`
+                                : 'sin plantilla de protocolo: configúrela en Parámetros'
+                        }
                     />
                     <KpiCard
-                        titulo="Costo máximo"
-                        valor={cop(estadisticas.costo_maximo)}
+                        titulo="Margen sobre lo facturado"
+                        valor={
+                            indicadores?.margen_pct != null
+                                ? pct(indicadores.margen_pct)
+                                : '—'
+                        }
+                        tono={tonoMayorEsMejor(
+                            indicadores?.margen_pct,
+                            UMBRALES.margen,
+                        )}
+                        detalle={
+                            indicadores && indicadores.n_facturadas > 0
+                                ? `resultado ${cop(indicadores.resultado)} · ${numero(indicadores.n_facturadas)} facturadas`
+                                : 'sin cirugías facturadas'
+                        }
+                    />
+                    <KpiCard
+                        titulo="Variabilidad del costo"
+                        valor={
+                            indicadores?.coeficiente_variacion != null
+                                ? pct(indicadores.coeficiente_variacion, 0)
+                                : '—'
+                        }
+                        tono={
+                            TONO_VARIABILIDAD[
+                                indicadores?.nivel_variabilidad ?? ''
+                            ] ?? 'neutro'
+                        }
+                        detalle={
+                            indicadores
+                                ? `${indicadores.nivel_variabilidad ?? 'sin dato'} · ${numero(indicadores.atipicos)} ${indicadores.atipicos === 1 ? 'cirugía atípica' : 'cirugías atípicas'}`
+                                : undefined
+                        }
                     />
                     <KpiCard
                         titulo="Duración promedio"
@@ -96,9 +178,28 @@ export default function ProcedimientoCosteoShow({
                                 ? `${estadisticas.duracion_promedio_minutos} min`
                                 : '—'
                         }
-                        detalle={`estimada: ${procedimiento.duracion_estimada_minutos} min`}
+                        detalle={`estimada en el protocolo: ${procedimiento.duracion_estimada_minutos} min`}
                     />
                 </div>
+
+                {indicadores && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-base">
+                                De qué está hecho el costo
+                            </CardTitle>
+                            <CardDescription>
+                                Costo promedio por cirugía separado por
+                                componente
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <BarraComposicion
+                                componentes={indicadores.componentes}
+                            />
+                        </CardContent>
+                    </Card>
+                )}
 
                 <DispersionProcedimiento
                     serie={serie}
@@ -270,7 +371,7 @@ export default function ProcedimientoCosteoShow({
 ProcedimientoCosteoShow.layout = {
     breadcrumbs: [
         { title: 'Costeo quirúrgico', href: '/costeo' },
-        { title: 'Costo por procedimiento', href: '/costeo/procedimientos' },
+        { title: 'Procedimientos', href: '/costeo/procedimientos' },
         { title: 'Detalle del procedimiento', href: '#' },
     ],
 };

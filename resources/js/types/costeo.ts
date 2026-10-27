@@ -14,6 +14,30 @@ export type FiltrosProcedimientosCosteo = {
     complejidad: string;
 };
 
+/** Indicadores de un procedimiento en el periodo (AnalisisProcedimientos). */
+export type IndicadoresProcedimiento = {
+    n: number;
+    costo_promedio: number;
+    componentes: Record<
+        'recurso_humano' | 'sala' | 'equipos' | 'insumos' | 'indirectos',
+        number
+    >;
+    n_con_estandar: number;
+    desviacion_pct: number | null;
+    n_facturadas: number;
+    facturado_promedio: number | null;
+    margen_pct: number | null;
+    resultado: number | null;
+    coeficiente_variacion: number | null;
+    nivel_variabilidad: 'alta' | 'media' | 'baja' | null;
+    mediana: number | null;
+    atipicos: number;
+};
+
+export type AnalisisProcedimiento = IndicadoresProcedimiento & {
+    procedimiento: ProcedimientoResumen;
+};
+
 export type ProcedimientoCosteoFila = {
     id: number;
     codigo_cups: string;
@@ -22,16 +46,8 @@ export type ProcedimientoCosteoFila = {
     complejidad: string;
     duracion_estimada_minutos: number;
     n_realizadas: number;
-    n_costeadas: number;
-    costo_promedio: number | null;
-};
-
-export type PaginadoProcedimientosCosteo = {
-    data: ProcedimientoCosteoFila[];
-    links: LinkPaginacion[];
-    total: number;
-    from: number | null;
-    to: number | null;
+    /** null: sin cirugías costeadas en el periodo. */
+    indicadores: IndicadoresProcedimiento | null;
 };
 
 /** Un punto de la serie de costos de un procedimiento. */
@@ -162,6 +178,7 @@ export type GrupoOutliers = {
     };
     total_outliers: number;
     puntos: PuntoOutlier[];
+    nivel_variabilidad?: 'alta' | 'media' | 'baja' | null;
 };
 
 export type MargenProcedimiento = {
@@ -212,6 +229,11 @@ export type MesTendencia = {
     n: number;
     costo_promedio: number;
     costo_total: number;
+    n_facturadas: number;
+    facturado: number;
+    costo_facturadas: number;
+    margen: number;
+    margen_pct: number | null;
     recurso_humano: number;
     sala: number;
     equipos: number;
@@ -223,6 +245,63 @@ export type TendenciaMensual = {
     meses: MesTendencia[];
     ultimo: MesTendencia | null;
     variacion_ultimo_mes: number | null;
+};
+
+/** Lo facturado frente al costo de las mismas cirugías. */
+export type ResultadoKpi = {
+    n: number;
+    costo: number;
+    facturado: number;
+    margen: number;
+    margen_pct: number | null;
+};
+
+/** Costo real frente al estándar del protocolo. */
+export type DesviacionKpi = {
+    n: number;
+    n_costeadas: number;
+    costo_real: number;
+    costo_estandar: number;
+    desviacion: number;
+    desviacion_pct: number | null;
+    por_clasificacion: Record<string, number>;
+};
+
+/** Capacidad pagada y no usada, en minutos y en pesos (backlog #2). */
+export type CapacidadNoUtilizada = {
+    ventana: { desde: string; hasta: string; dias: number; etiqueta: string };
+    salas: {
+        minutos_ociosos: number;
+        valor_ocioso: number;
+        por_sala: {
+            sala: { id: number; nombre: string };
+            minutos_usados: number;
+            minutos_disponibles: number;
+            minutos_ociosos: number;
+            utilizacion_pct: number | null;
+            costo_derivado_de_cif: boolean;
+            valor_ocioso: number | null;
+        }[];
+    };
+    bolsas: {
+        monto: number;
+        absorbido: number;
+        no_absorbido: number;
+        absorcion_pct: number | null;
+    };
+    total: number;
+};
+
+/** Los mismos indicadores del Resumen en el periodo anterior. */
+export type ComparacionResumen = {
+    costos: CostosKpi['global'];
+    resultado: ResultadoKpi;
+    desviacion: DesviacionKpi;
+    mezcla: {
+        variacion: number | null;
+        cirugias_comparadas: number;
+        cirugias_total: number;
+    };
 };
 
 export type UtilizacionSalas = {

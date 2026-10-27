@@ -1,11 +1,16 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import { ArrowDown, ArrowUp, Eye, Search, X } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { EncabezadoCosteo } from '@/components/costeo/encabezado-costeo';
 import { IndiceBadge } from '@/components/costeo/indice-badge';
 import { KpiCard } from '@/components/costeo/kpi-card';
 import type { Periodo } from '@/components/costeo/selector-periodo';
-import { SelectorPeriodo } from '@/components/costeo/selector-periodo';
+import {
+    periodoDeLaUrl,
+    SelectorPeriodo,
+} from '@/components/costeo/selector-periodo';
+import { NombreDato } from '@/components/nombre-dato';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -15,7 +20,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { cop, etiqueta } from '@/lib/formato';
+import { cop, etiqueta, minutos, numero } from '@/lib/formato';
 import type {
     FiltrosPersonalCosteo,
     PersonalCosteoFila,
@@ -28,28 +33,97 @@ type Columna = {
     clave: keyof PersonalCosteoFila;
     titulo: string;
     numerica?: boolean;
+    /** Solo con «Ver todas las columnas»: la tabla tenía 12 columnas. */
+    detallada?: boolean;
+    ayuda?: string;
+    celda: (persona: PersonalCosteoFila) => ReactNode;
 };
 
 const columnas: Columna[] = [
-    { clave: 'nombre', titulo: 'Persona' },
-    { clave: 'rol', titulo: 'Rol' },
-    { clave: 'n_cirugias', titulo: 'Cirugías', numerica: true },
-    { clave: 'minutos_total', titulo: 'Minutos', numerica: true },
-    { clave: 'minutos_promedio', titulo: 'Min/cirugía', numerica: true },
-    { clave: 'costo_propio_total', titulo: 'Costo propio', numerica: true },
+    {
+        clave: 'nombre',
+        titulo: 'Persona',
+        celda: (persona) => (
+            <>
+                <Link
+                    href={`/costeo/personal/${persona.id}`}
+                    prefetch
+                    className="font-medium hover:underline"
+                >
+                    <NombreDato texto={persona.nombre} />
+                </Link>
+                {persona.especialidad && (
+                    <span className="block text-xs text-muted-foreground">
+                        {persona.especialidad}
+                    </span>
+                )}
+            </>
+        ),
+    },
+    { clave: 'rol', titulo: 'Rol', celda: (p) => etiqueta(p.rol) },
+    {
+        clave: 'n_cirugias',
+        titulo: 'Cirugías',
+        numerica: true,
+        celda: (p) => numero(p.n_cirugias),
+    },
+    {
+        clave: 'minutos_total',
+        titulo: 'Minutos',
+        numerica: true,
+        detallada: true,
+        celda: (p) => numero(p.minutos_total),
+    },
+    {
+        clave: 'minutos_promedio',
+        titulo: 'Min/cirugía',
+        numerica: true,
+        celda: (p) => minutos(p.minutos_promedio),
+    },
+    {
+        clave: 'costo_propio_total',
+        titulo: 'Costo propio',
+        numerica: true,
+        ayuda: 'Lo que cuestan sus minutos al hospital; sumable entre personas',
+        celda: (p) => (
+            <span className="font-medium">{cop(p.costo_propio_total)}</span>
+        ),
+    },
     {
         clave: 'costo_propio_promedio',
         titulo: 'Propio/cirugía',
         numerica: true,
+        celda: (p) => cop(p.costo_propio_promedio),
     },
-    { clave: 'n_como_cirujano', titulo: 'Como cirujano', numerica: true },
-    { clave: 'costo_inducido_total', titulo: 'Costo inducido', numerica: true },
+    {
+        clave: 'n_como_cirujano',
+        titulo: 'Como cirujano',
+        numerica: true,
+        detallada: true,
+        celda: (p) => numero(p.n_como_cirujano),
+    },
+    {
+        clave: 'costo_inducido_total',
+        titulo: 'Costo inducido',
+        numerica: true,
+        detallada: true,
+        ayuda: 'Costo completo de las cirugías donde figura como cirujano; no es sumable entre personas',
+        celda: (p) => cop(p.costo_inducido_total),
+    },
     {
         clave: 'costo_inducido_promedio',
         titulo: 'Inducido/cirugía',
         numerica: true,
+        detallada: true,
+        celda: (p) => cop(p.costo_inducido_promedio),
     },
-    { clave: 'indice_costo', titulo: 'Índice', numerica: true },
+    {
+        clave: 'indice_costo',
+        titulo: 'Índice',
+        numerica: true,
+        ayuda: 'Costo de sus cirugías frente al promedio del mismo procedimiento (1,00× = igual)',
+        celda: (p) => <IndiceBadge valor={p.indice_costo} />,
+    },
 ];
 
 /** Los nulos siempre al final, sea cual sea el sentido del orden. */
@@ -103,12 +177,15 @@ export default function PersonalCosteoIndex({
         clave: keyof PersonalCosteoFila;
         ascendente: boolean;
     }>({ clave: 'costo_propio_total', ascendente: false });
+    const [detallada, setDetallada] = useState(false);
     const primeraCarga = useRef(true);
+    const periodoUrl = periodoDeLaUrl(usePage().url);
+    const visibles = columnas.filter((c) => detallada || !c.detallada);
 
     const aplicar = (parcial: Partial<FiltrosPersonalCosteo>) => {
-        const datos = { ...filtros, q, ...parcial, ...periodo };
+        const datos = { ...filtros, q, ...parcial, ...periodoUrl };
         const query = Object.fromEntries(
-            Object.entries(datos).filter(([, v]) => v !== '' && v !== null),
+            Object.entries(datos).filter(([, v]) => v !== ''),
         );
         router.get('/costeo/personal', query, {
             preserveState: true,
@@ -155,6 +232,9 @@ export default function PersonalCosteoIndex({
                     url="/costeo/personal"
                     periodo={periodo}
                     etiqueta={periodoEtiqueta}
+                    conservar={Object.fromEntries(
+                        Object.entries(filtros).filter(([, v]) => v !== ''),
+                    )}
                 />
 
                 <div className="grid gap-[18px] md:grid-cols-3">
@@ -170,27 +250,30 @@ export default function PersonalCosteoIndex({
                     />
                     <KpiCard
                         titulo="Minutos registrados"
-                        valor={totales.minutos_total.toLocaleString('es-CO')}
+                        valor={numero(totales.minutos_total)}
                         detalle="tiempo de participación acumulado"
                     />
                 </div>
 
-                <div className="rounded-lg border border-dashed p-3 text-[13px] text-muted-foreground">
-                    <strong className="font-medium text-foreground">
-                        Cómo leer estas cifras.
-                    </strong>{' '}
-                    El <em>costo propio</em> es el de sus minutos: lo que la
-                    persona le cuesta al hospital, y es sumable entre personas.
-                    El <em>costo inducido</em> es el costo completo de las
-                    cirugías donde figura como cirujano —sala, insumos, equipos
-                    y el resto del equipo incluidos—; mide lo que moviliza, se
-                    le atribuye íntegro a cada cirujano de la cirugía y por eso{' '}
-                    <em>no</em> es sumable entre personas. El <em>índice</em>{' '}
-                    compara cada cirugía contra el promedio de su mismo
-                    procedimiento, de modo que operar casos complejos no
-                    penaliza; solo se calcula sobre procedimientos con al menos{' '}
-                    {minimoParaComparar} cirugías costeadas.
-                </div>
+                <details className="rounded-lg border border-dashed px-3 py-2 text-[13px] text-muted-foreground">
+                    <summary className="cursor-pointer font-medium text-foreground">
+                        Cómo leer estas cifras
+                    </summary>
+                    <p className="mt-2">
+                        El <em>costo propio</em> es el de sus minutos: lo que la
+                        persona le cuesta al hospital, y es sumable entre
+                        personas. El <em>costo inducido</em> es el costo
+                        completo de las cirugías donde figura como cirujano
+                        —sala, insumos, equipos y el resto del equipo
+                        incluidos—; mide lo que moviliza, se le atribuye íntegro
+                        a cada cirujano de la cirugía y por eso <em>no</em> es
+                        sumable entre personas. El <em>índice</em> compara cada
+                        cirugía contra el promedio de su mismo procedimiento, de
+                        modo que operar casos complejos no penaliza; solo se
+                        calcula sobre procedimientos con al menos{' '}
+                        {minimoParaComparar} cirugías costeadas.
+                    </p>
+                </details>
 
                 <div className="flex flex-wrap items-center gap-2">
                     <div className="relative w-full max-w-xs">
@@ -239,19 +322,31 @@ export default function PersonalCosteoIndex({
                             Limpiar filtros
                         </Button>
                     )}
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="ml-auto"
+                        aria-pressed={detallada}
+                        onClick={() => setDetallada(!detallada)}
+                    >
+                        {detallada
+                            ? 'Ver menos columnas'
+                            : 'Ver todas las columnas'}
+                    </Button>
                 </div>
 
                 <div className="overflow-x-auto rounded-lg border">
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="border-b bg-muted/50 text-left text-muted-foreground">
-                                {columnas.map((columna) => (
+                                {visibles.map((columna) => (
                                     <th
                                         key={columna.clave}
                                         className={`p-3 font-medium ${columna.numerica ? 'text-right' : ''}`}
                                     >
                                         <button
                                             type="button"
+                                            title={columna.ayuda}
                                             onClick={() =>
                                                 ordenar(columna.clave)
                                             }
@@ -276,7 +371,7 @@ export default function PersonalCosteoIndex({
                             {filas.length === 0 && (
                                 <tr>
                                     <td
-                                        colSpan={columnas.length + 1}
+                                        colSpan={visibles.length + 1}
                                         className="p-6 text-center text-muted-foreground"
                                     >
                                         {hayFiltros
@@ -290,56 +385,14 @@ export default function PersonalCosteoIndex({
                                     key={persona.id}
                                     className="border-b last:border-0"
                                 >
-                                    <td className="p-3">
-                                        <Link
-                                            href={`/costeo/personal/${persona.id}`}
-                                            prefetch
-                                            className="font-medium hover:underline"
+                                    {visibles.map((columna) => (
+                                        <td
+                                            key={columna.clave}
+                                            className={`p-3 ${columna.numerica ? 'text-right tabular-nums' : ''}`}
                                         >
-                                            {persona.nombre}
-                                        </Link>
-                                        {persona.especialidad && (
-                                            <span className="block text-xs text-muted-foreground">
-                                                {persona.especialidad}
-                                            </span>
-                                        )}
-                                    </td>
-                                    <td className="p-3">
-                                        {etiqueta(persona.rol)}
-                                    </td>
-                                    <td className="p-3 text-right tabular-nums">
-                                        {persona.n_cirugias}
-                                    </td>
-                                    <td className="p-3 text-right tabular-nums">
-                                        {persona.minutos_total.toLocaleString(
-                                            'es-CO',
-                                        )}
-                                    </td>
-                                    <td className="p-3 text-right tabular-nums">
-                                        {persona.minutos_promedio !== null
-                                            ? `${persona.minutos_promedio} min`
-                                            : '—'}
-                                    </td>
-                                    <td className="p-3 text-right font-medium tabular-nums">
-                                        {cop(persona.costo_propio_total)}
-                                    </td>
-                                    <td className="p-3 text-right tabular-nums">
-                                        {cop(persona.costo_propio_promedio)}
-                                    </td>
-                                    <td className="p-3 text-right tabular-nums">
-                                        {persona.n_como_cirujano}
-                                    </td>
-                                    <td className="p-3 text-right tabular-nums">
-                                        {cop(persona.costo_inducido_total)}
-                                    </td>
-                                    <td className="p-3 text-right tabular-nums">
-                                        {cop(persona.costo_inducido_promedio)}
-                                    </td>
-                                    <td className="p-3 text-right">
-                                        <IndiceBadge
-                                            valor={persona.indice_costo}
-                                        />
-                                    </td>
+                                            {columna.celda(persona)}
+                                        </td>
+                                    ))}
                                     <td className="p-3 text-right">
                                         <Button
                                             asChild

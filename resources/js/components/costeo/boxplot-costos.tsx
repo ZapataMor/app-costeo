@@ -1,4 +1,5 @@
 import { router } from '@inertiajs/react';
+import { NombreDato } from '@/components/nombre-dato';
 import { cop, fecha } from '@/lib/formato';
 import { COLOR } from '@/lib/graficas';
 import type { GrupoOutliers } from '@/types/costeo';
@@ -42,7 +43,9 @@ export function BoxplotCostos({ grupos }: { grupos: GrupoOutliers[] }) {
                         <div key={grupo.procedimiento.id}>
                             <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                                 <span className="text-sm font-medium">
-                                    {grupo.procedimiento.nombre}
+                                    <NombreDato
+                                        texto={grupo.procedimiento.nombre}
+                                    />
                                     <span className="ml-2 font-mono text-xs font-normal text-muted-foreground">
                                         {grupo.procedimiento.codigo_cups}
                                     </span>

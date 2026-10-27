@@ -3,23 +3,21 @@ import type { ReactNode } from 'react';
 
 /**
  * Vistas del módulo de costeo, en el orden en que se recorren: del resumen
- * al detalle. Antes eran siete tarjetas en medio de `/costeo`, entre las
- * gráficas, y desde cualquier otra vista no había forma de saltar a la
- * siguiente sin volver al resumen.
+ * al detalle. Eran siete; «Composición del costo» pasó a ser una vista de la
+ * tabla de procedimientos y «Costos fuera de lo normal» se unió a
+ * «Variabilidad», porque las tres repetían la misma tabla por procedimiento.
  */
 const VISTAS = [
     { href: '/costeo', titulo: 'Resumen' },
     { href: '/costeo/procedimientos', titulo: 'Procedimientos' },
     { href: '/costeo/rentabilidad', titulo: 'Rentabilidad' },
-    { href: '/costeo/componentes', titulo: 'Composición del costo' },
+    { href: '/costeo/variabilidad', titulo: 'Variabilidad y atípicos' },
     { href: '/costeo/personal', titulo: 'Personal' },
-    { href: '/costeo/outliers', titulo: 'Costos fuera de lo normal' },
-    { href: '/costeo/variabilidad', titulo: 'Variabilidad' },
 ] as const;
 
 /**
- * Pestañas del módulo. Conservan el periodo elegido (`desde`/`hasta`): pasar
- * de Resumen a Rentabilidad no debe devolver a «toda la historia».
+ * Pestañas del módulo. Conservan el periodo elegido (`desde`/`hasta`/`todo`):
+ * pasar de Resumen a Rentabilidad no debe cambiar la ventana de fechas.
  */
 export function NavegacionCosteo() {
     const { url } = usePage();
@@ -27,7 +25,7 @@ export function NavegacionCosteo() {
     const periodo = new URLSearchParams(consulta);
     const conservar = new URLSearchParams();
 
-    for (const clave of ['desde', 'hasta']) {
+    for (const clave of ['desde', 'hasta', 'todo']) {
         const valor = periodo.get(clave);
 
         if (valor) {

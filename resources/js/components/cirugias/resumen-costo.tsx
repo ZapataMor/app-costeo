@@ -129,17 +129,10 @@ export function ResumenCosto({
                         {componentes.map((c) => (
                             <div
                                 key={c.clave}
-                                className={
-                                    c.clave === 'indirectos'
-                                        ? 'h-full bg-[#161B2F] dark:bg-[#D4CDCB]'
-                                        : 'h-full'
-                                }
+                                className="h-full"
                                 style={{
                                     width: `${total > 0 ? (c.valor / total) * 100 : 0}%`,
-                                    backgroundColor:
-                                        c.clave === 'indirectos'
-                                            ? undefined
-                                            : c.color,
+                                    backgroundColor: c.color,
                                 }}
                                 title={`${c.nombre}: ${cop(c.valor)}`}
                             />
@@ -152,12 +145,9 @@ export function ResumenCosto({
                                 className="flex items-center gap-2"
                             >
                                 <span
-                                    className={`size-2.5 shrink-0 rounded-sm ${c.clave === 'indirectos' ? 'bg-[#161B2F] dark:bg-[#D4CDCB]' : ''}`}
+                                    className="size-2.5 shrink-0 rounded-sm"
                                     style={{
-                                        backgroundColor:
-                                            c.clave === 'indirectos'
-                                                ? undefined
-                                                : c.color,
+                                        backgroundColor: c.color,
                                     }}
                                 />
                                 <span className="text-muted-foreground">

@@ -35,8 +35,18 @@ export function copCorto(valor: number | null | undefined): string {
     return valor == null ? '—' : `$ ${formatoCopCorto.format(valor)}`;
 }
 
+/**
+ * «12,6 %». Con coma decimal y signo menos tipográfico, igual que
+ * `pctVariacion()`: salía «12.6 %» al lado de «+23,5 %» en la misma tarjeta.
+ */
 export function pct(valor: number | null | undefined, decimales = 1): string {
-    return valor == null ? '—' : `${(valor * 100).toFixed(decimales)} %`;
+    if (valor == null) {
+        return '—';
+    }
+
+    const texto = (valor * 100).toFixed(decimales).replace('.', ',');
+
+    return `${texto.replace('-', '−')} %`;
 }
 
 /** Variación con signo explícito: «+8,4 %» / «−3,1 %». */

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Costeo;
 
 use App\Enums\FaseCiclo;
 use App\Enums\RolQuirurgico;
+use App\Http\Controllers\Concerns\ResuelvePeriodoCosteo;
 use App\Http\Controllers\Controller;
 use App\Models\RecursoHumano;
 use App\Services\Indicators\PersonalCosteoService;
@@ -22,9 +23,12 @@ use Inertia\Response;
  */
 class PersonalCosteoController extends Controller
 {
+    use ResuelvePeriodoCosteo;
+
     public function index(Request $request, PersonalCosteoService $personal): Response
     {
-        $personal->enPeriodo(Periodo::desdeRequest($request));
+        $periodo = $this->periodoCosteo($request);
+        $personal->enPeriodo($periodo);
 
         $filtros = [
             'q' => trim((string) $request->query('q', '')),
@@ -37,8 +41,7 @@ class PersonalCosteoController extends Controller
             'filtros' => $filtros,
             'roles' => RolQuirurgico::values(),
             'minimoParaComparar' => PersonalCosteoService::MINIMO_PARA_COMPARAR,
-            'periodo' => $personal->periodo()->aArray(),
-            'periodoEtiqueta' => $personal->periodo()->etiqueta(),
+            ...$this->propsPeriodo($periodo),
         ]);
     }
 

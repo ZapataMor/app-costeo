@@ -14,6 +14,7 @@ import {
     fecha as formatearFecha,
     fechaHora,
 } from '@/lib/formato';
+import { separarMarcaSemilla } from '@/lib/semilla';
 import type { CirugiaDetalle, CostoCirugia } from '@/types/cirugias';
 import type {
     ProcedimientoResumen,
@@ -50,12 +51,12 @@ export default function ProcedimientoCosteoCirugia({
     return (
         <>
             <Head
-                title={`${procedimiento.nombre} · ${formatearFecha(cirugia.fecha)}`}
+                title={`${separarMarcaSemilla(procedimiento.nombre).limpio} · ${formatearFecha(cirugia.fecha)}`}
             />
             <div className="flex flex-col gap-4 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                     <Heading
-                        title={`${procedimiento.nombre} · ${formatearFecha(cirugia.fecha)}`}
+                        title={`${separarMarcaSemilla(procedimiento.nombre).limpio} · ${formatearFecha(cirugia.fecha)}`}
                         description={
                             cirugia.paciente
                                 ? `Paciente: ${cirugia.paciente.nombres} ${cirugia.paciente.apellidos}`

@@ -4,20 +4,23 @@ namespace App\Http\Controllers\Costeo;
 
 use App\Enums\EstadoCirugia;
 use App\Enums\NivelComplejidad;
+use App\Http\Controllers\Concerns\ResuelvePeriodoCosteo;
 use App\Http\Controllers\Controller;
 use App\Models\Cirugia;
 use App\Models\CostoCirugia;
 use App\Models\ProcedimientoQuirurgico;
 use App\Services\Cirugias\PresentarCirugiaDetalle;
+use App\Services\Indicators\AnalisisProcedimientos;
+use App\Support\Periodo;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Explorador de procedimientos del módulo Costeo: catálogo filtrable de
- * procedimientos del hospital → cirugías realizadas de cada uno → detalle
- * completo de la cirugía con su costo TDABC ítem por ítem.
+ * Explorador de procedimientos del módulo Costeo: tabla maestra de
+ * procedimientos con sus indicadores del periodo → ficha de cada uno con sus
+ * cirugías → detalle completo de la cirugía con su costo TDABC ítem por ítem.
  *
  * Cada cirugía se agrupa bajo su procedimiento principal, el mismo
  * criterio de los KPIs (KpiService), para que los números coincidan
@@ -25,8 +28,20 @@ use Inertia\Response;
  */
 class ProcedimientoCosteoController extends Controller
 {
-    public function index(Request $request): Response
+    use ResuelvePeriodoCosteo;
+
+    /**
+     * Tabla maestra: una fila por procedimiento con costo, composición,
+     * desviación frente al estándar, margen, variabilidad y atípicos del
+     * periodo. Sin paginar: un hospital de mediana complejidad tiene decenas
+     * de procedimientos, y ordenar por cualquier columna es justo lo que se
+     * viene a hacer aquí.
+     */
+    public function index(Request $request, AnalisisProcedimientos $analisis): Response
     {
+        $periodo = $this->periodoCosteo($request);
+        $indicadores = $analisis->enPeriodo($periodo)->porProcedimiento();
+
         $filtros = [
             'q' => trim((string) $request->query('q', '')),
             'especialidad' => (string) $request->query('especialidad', ''),
@@ -49,39 +64,40 @@ class ProcedimientoCosteoController extends Controller
                     ->where('cirugia_procedimiento.es_principal', true),
             ])
             ->orderBy('nombre')
-            ->paginate(15)
-            ->withQueryString();
-
-        $stats = $this->estadisticasDeCostos(array_values(array_map(
-            fn (ProcedimientoQuirurgico $p): int => $p->id,
-            $procedimientos->items(),
-        )));
-
-        $procedimientos->through(fn (ProcedimientoQuirurgico $p): array => [
-            'id' => $p->id,
-            'codigo_cups' => $p->codigo_cups,
-            'nombre' => $p->nombre,
-            'especialidad' => $p->especialidad,
-            'complejidad' => $p->complejidad,
-            'duracion_estimada_minutos' => $p->duracion_estimada_minutos,
-            'n_realizadas' => (int) $p->getAttribute('n_realizadas'),
-            'n_costeadas' => (int) ($stats[$p->id]->n ?? 0),
-            'costo_promedio' => isset($stats[$p->id])
-                ? round((float) $stats[$p->id]->costo_promedio, 2)
-                : null,
-        ]);
+            ->get()
+            ->map(fn (ProcedimientoQuirurgico $p): array => [
+                'id' => $p->id,
+                'codigo_cups' => $p->codigo_cups,
+                'nombre' => $p->nombre,
+                'especialidad' => $p->especialidad,
+                'complejidad' => $p->complejidad,
+                'duracion_estimada_minutos' => $p->duracion_estimada_minutos,
+                'n_realizadas' => (int) $p->getAttribute('n_realizadas'),
+                // null: sin cirugías costeadas en el periodo.
+                'indicadores' => isset($indicadores[$p->id])
+                    ? collect($indicadores[$p->id])->except('procedimiento')->all()
+                    : null,
+            ])
+            ->values();
 
         return Inertia::render('costeo/procedimientos/index', [
             'procedimientos' => $procedimientos,
             'filtros' => $filtros,
+            'vista' => $request->query('vista') === 'composicion' ? 'composicion' : 'indicadores',
+            ...$this->propsPeriodo($periodo),
             'especialidades' => ProcedimientoQuirurgico::query()
                 ->distinct()->orderBy('especialidad')->pluck('especialidad'),
             'complejidades' => NivelComplejidad::values(),
         ]);
     }
 
-    public function show(Request $request, ProcedimientoQuirurgico $procedimiento): Response
+    public function show(Request $request, ProcedimientoQuirurgico $procedimiento, AnalisisProcedimientos $analisis): Response
     {
+        // La ficha usa las fechas que traiga la URL (la tabla maestra pasa
+        // las suyas); sin ellas, toda la historia del procedimiento.
+        $periodo = Periodo::desdeRequest($request);
+        $indicadores = $analisis->enPeriodo($periodo)->porProcedimiento()[$procedimiento->id] ?? null;
+
         $filtros = [
             'desde' => (string) $request->query('desde', ''),
             'hasta' => (string) $request->query('hasta', ''),
@@ -134,6 +150,7 @@ class ProcedimientoCosteoController extends Controller
                     ? null
                     : (int) round((float) $duraciones->avg()),
             ],
+            'indicadores' => $indicadores,
             'cirugias' => $cirugias,
             // Serie completa (sin paginar) para la gráfica: en la tabla solo
             // se ven 15 casos, y la dispersión de costos es justo lo que hay

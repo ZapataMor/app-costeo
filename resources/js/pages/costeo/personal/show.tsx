@@ -5,6 +5,7 @@ import { KpiCard } from '@/components/costeo/kpi-card';
 import type { Periodo } from '@/components/costeo/selector-periodo';
 import { SelectorPeriodo } from '@/components/costeo/selector-periodo';
 import Heading from '@/components/heading';
+import { NombreDato } from '@/components/nombre-dato';
 import { Paginacion } from '@/components/parametros/paginacion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -16,6 +17,7 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { cop, etiqueta } from '@/lib/formato';
+import { separarMarcaSemilla } from '@/lib/semilla';
 import type {
     DesglosePersonal,
     PaginadoHistorialPersona,
@@ -114,11 +116,13 @@ export default function PersonalCosteoShow({
 
     return (
         <>
-            <Head title={`${persona.nombre} · Costeo`} />
+            <Head
+                title={`${separarMarcaSemilla(persona.nombre).limpio} · Costeo`}
+            />
             <div className="flex flex-col gap-4 p-4">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                     <Heading
-                        title={persona.nombre}
+                        title={separarMarcaSemilla(persona.nombre).limpio}
                         description={[
                             persona.rol,
                             persona.especialidad,
@@ -255,7 +259,12 @@ export default function PersonalCosteoShow({
                                                     href={`/costeo/procedimientos/${fila.procedimiento.id}`}
                                                     className="hover:underline"
                                                 >
-                                                    {fila.procedimiento.nombre}
+                                                    <NombreDato
+                                                        texto={
+                                                            fila.procedimiento
+                                                                .nombre
+                                                        }
+                                                    />
                                                 </Link>
                                                 <span className="block font-mono text-xs text-muted-foreground">
                                                     {
@@ -345,7 +354,12 @@ export default function PersonalCosteoShow({
                                                     href={`/costeo/procedimientos/${fila.procedimiento.id}/cirugias/${fila.cirugia_id}`}
                                                     className="hover:underline"
                                                 >
-                                                    {fila.procedimiento.nombre}
+                                                    <NombreDato
+                                                        texto={
+                                                            fila.procedimiento
+                                                                .nombre
+                                                        }
+                                                    />
                                                 </Link>
                                             ) : (
                                                 <span className="text-muted-foreground">

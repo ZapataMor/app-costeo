@@ -23,5 +23,6 @@ Una nota por decisión: **contexto → decisión → por qué → consecuencias*
 | 2026-09-15 | [[2026-09-15-cerebro-en-el-repo]] |
 | 2026-10-21 | [[2026-10-21-capa-4-conocimiento]] |
 | 2026-10-27 | [[2026-10-27-portada-y-bandeja-unica]] |
+| 2026-10-27 | [[2026-10-27-costeo-periodo-y-mezcla]] |
 
 Cuando una decisión se revierta, no borres la nota: agrega una sección "Revertida el …" y enlaza la nueva.

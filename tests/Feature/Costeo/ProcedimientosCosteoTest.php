@@ -54,12 +54,12 @@ class ProcedimientosCosteoTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('costeo/procedimientos/index')
-                ->has('procedimientos.data', 1)
-                ->where('procedimientos.data.0.id', $procedimientoA->id)
-                ->where('procedimientos.data.0.n_realizadas', 2)
-                ->where('procedimientos.data.0.n_costeadas', 2)
+                ->has('procedimientos', 1)
+                ->where('procedimientos.0.id', $procedimientoA->id)
+                ->where('procedimientos.0.n_realizadas', 2)
+                ->where('procedimientos.0.indicadores.n', 2)
                 ->where(
-                    'procedimientos.data.0.costo_promedio',
+                    'procedimientos.0.indicadores.costo_promedio',
                     fn ($valor) => abs((float) $valor - 150_000.0) < 0.01,
                 ));
     }
@@ -81,15 +81,15 @@ class ProcedimientosCosteoTest extends TestCase
             ->get('/costeo/procedimientos?q=Apendi')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->has('procedimientos.data', 1)
-                ->where('procedimientos.data.0.nombre', 'Apendicectomía por laparotomía'));
+                ->has('procedimientos', 1)
+                ->where('procedimientos.0.nombre', 'Apendicectomía por laparotomía'));
 
         $this->actingAs($this->adminA)
             ->get('/costeo/procedimientos?especialidad='.urlencode('Cirugía hepatobiliar'))
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
-                ->has('procedimientos.data', 1)
-                ->where('procedimientos.data.0.nombre', 'Colecistectomía laparoscópica'));
+                ->has('procedimientos', 1)
+                ->where('procedimientos.0.nombre', 'Colecistectomía laparoscópica'));
     }
 
     public function test_el_detalle_del_procedimiento_lista_solo_sus_cirugias(): void

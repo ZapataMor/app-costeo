@@ -81,9 +81,13 @@ class DashboardPorRolTest extends TestCase
         $superAdmin = User::factory()->superAdmin()->create();
         $this->actingAs($superAdmin);
 
-        foreach (['/costeo', '/costeo/componentes', '/costeo/outliers', '/costeo/rentabilidad', '/costeo/variabilidad'] as $ruta) {
+        foreach (['/costeo', '/costeo/procedimientos', '/costeo/procedimientos?vista=composicion', '/costeo/rentabilidad', '/costeo/variabilidad', '/costeo/personal', '/costeo?todo=1'] as $ruta) {
             $this->get($ruta)->assertOk();
         }
+
+        // Las pestañas fusionadas redirigen conservando el periodo.
+        $this->get('/costeo/outliers?desde=2026-01-01')->assertRedirect('/costeo/variabilidad?desde=2026-01-01');
+        $this->get('/costeo/componentes')->assertRedirect('/costeo/procedimientos?vista=composicion');
     }
 
     protected function crearHospitalConCirugia(int $costoTotal): Hospital

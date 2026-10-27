@@ -2,8 +2,14 @@
 
 namespace App\Services\Indicators;
 
+use App\Enums\BaseAsignacionCif;
+use App\Enums\CategoriaCif;
+use App\Enums\ClasificacionDesviacion;
 use App\Enums\EstadoCirugia;
+use App\Enums\OrigenComponente;
 use App\Models\Cirugia;
+use App\Models\CirugiaConceptoIndirecto;
+use App\Models\ConceptoCostoIndirecto;
 use App\Models\CostoCirugia;
 use App\Models\Facturacion;
 use App\Models\Hospital;
@@ -210,6 +216,234 @@ class KpiService
             'margen' => round($facturado - $costo, 2),
             'margen_pct' => $facturado > 0 ? round(($facturado - $costo) / $facturado, 4) : null,
         ];
+    }
+
+    /**
+     * Costo real frente al costo estándar (lo que debió costar según el
+     * protocolo) de las cirugías del periodo que tienen estándar.
+     *
+     * La desviación es agregada —Σ real ÷ Σ estándar − 1—, no el promedio de
+     * los porcentajes: una cirugía barata desviada un 80 % no debe pesar lo
+     * mismo que una cara desviada un 80 %.
+     *
+     * @return array{n: int, n_costeadas: int, costo_real: float, costo_estandar: float, desviacion: float, desviacion_pct: float|null, por_clasificacion: array<string, int>}
+     */
+    public function desviacionEstandar(): array
+    {
+        $fila = $this->baseCostosContabilizables()
+            ->whereNotNull('costos_cirugia.costo_estandar')
+            ->selectRaw('count(*) as n')
+            ->selectRaw('coalesce(sum(costos_cirugia.costo_total), 0) as costo_real')
+            ->selectRaw('coalesce(sum(costos_cirugia.costo_estandar), 0) as costo_estandar')
+            ->toBase()
+            ->first();
+
+        $conteos = $this->baseCostosContabilizables()
+            ->whereNotNull('costos_cirugia.clasificacion_desviacion')
+            ->groupBy('costos_cirugia.clasificacion_desviacion')
+            ->selectRaw('costos_cirugia.clasificacion_desviacion as clasificacion, count(*) as n')
+            ->toBase()
+            ->pluck('n', 'clasificacion');
+
+        $real = (float) ($fila->costo_real ?? 0);
+        $estandar = (float) ($fila->costo_estandar ?? 0);
+
+        return [
+            'n' => (int) ($fila->n ?? 0),
+            'n_costeadas' => $this->baseCostosContabilizables()->count(),
+            'costo_real' => round($real, 2),
+            'costo_estandar' => round($estandar, 2),
+            'desviacion' => round($real - $estandar, 2),
+            'desviacion_pct' => $estandar > 0 ? round(($real - $estandar) / $estandar, 4) : null,
+            'por_clasificacion' => collect(ClasificacionDesviacion::values())
+                ->mapWithKeys(fn (string $clave): array => [$clave => (int) ($conteos[$clave] ?? 0)])
+                ->all(),
+        ];
+    }
+
+    /**
+     * Variación del costo **a igual mezcla de procedimientos** frente a otro
+     * periodo: Σ n·promedio_actual ÷ Σ n·promedio_anterior − 1, con las
+     * cantidades del periodo actual y solo los procedimientos presentes en
+     * ambos.
+     *
+     * El costo promedio por cirugía sube si un mes se operan más
+     * colecistectomías que cesáreas aunque ningún procedimiento haya
+     * encarecido; este índice aísla el cambio de costo del cambio de mezcla.
+     *
+     * @return array{variacion: float|null, cirugias_comparadas: int, cirugias_total: int}
+     */
+    public function variacionAMezclaConstante(Periodo $anterior): array
+    {
+        $actual = $this->costosPorProcedimiento()->keyBy(fn (array $g): int => (int) $g['procedimiento']['id']);
+        $previo = (clone $this)->enPeriodo($anterior)->costosPorProcedimiento()
+            ->keyBy(fn (array $g): int => (int) $g['procedimiento']['id']);
+
+        $ahora = 0.0;
+        $antes = 0.0;
+        $comparadas = 0;
+
+        foreach ($actual as $id => $grupo) {
+            $anteriorDelProcedimiento = $previo->get($id);
+
+            if ($anteriorDelProcedimiento === null) {
+                continue;
+            }
+
+            $n = count($grupo['costos']);
+            $comparadas += $n;
+            $ahora += $n * Estadistica::media($grupo['costos']);
+            $antes += $n * Estadistica::media($anteriorDelProcedimiento['costos']);
+        }
+
+        return [
+            'variacion' => $antes > 0 ? round($ahora / $antes - 1, 4) : null,
+            'cirugias_comparadas' => $comparadas,
+            'cirugias_total' => (int) $actual->sum(fn (array $g): int => count($g['costos'])),
+        ];
+    }
+
+    /**
+     * Desviación frente al estándar por procedimiento principal, con el mismo
+     * criterio agregado de `desviacionEstandar()`.
+     *
+     * @return array<int, array{n: int, desviacion: float, desviacion_pct: float|null}>
+     */
+    public function desviacionPorProcedimiento(): array
+    {
+        return $this->baseCostosPorProcedimiento()
+            ->whereNotNull('costos_cirugia.costo_estandar')
+            ->groupBy('procedimientos_quirurgicos.id')
+            ->selectRaw('procedimientos_quirurgicos.id as procedimiento_id')
+            ->selectRaw('count(*) as n')
+            ->selectRaw('sum(costos_cirugia.costo_total) as costo_real')
+            ->selectRaw('sum(costos_cirugia.costo_estandar) as costo_estandar')
+            ->toBase()
+            ->get()
+            ->mapWithKeys(function ($fila): array {
+                $real = (float) $fila->costo_real;
+                $estandar = (float) $fila->costo_estandar;
+
+                return [(int) $fila->procedimiento_id => [
+                    'n' => (int) $fila->n,
+                    'desviacion' => round($real - $estandar, 2),
+                    'desviacion_pct' => $estandar > 0 ? round(($real - $estandar) / $estandar, 4) : null,
+                ]];
+            })
+            ->all();
+    }
+
+    /**
+     * Capacidad no utilizada valorada en pesos (backlog #2): el indicador
+     * gerencial propio del TDABC. Dos fuentes que se reportan por separado:
+     *
+     *  - **Salas**: minutos disponibles sin cirugía × costo/hora de la sala.
+     *    Solo cuando el costo de sala es digitado; si sale de la bolsa de
+     *    infraestructura, esa ociosidad ya está en la segunda fuente.
+     *  - **Bolsas CIF**: lo que suman las bolsas mensuales (por minuto de
+     *    quirófano o de personal) en la ventana, menos lo que absorbieron las
+     *    cirugías. Las de porcentaje sobre el directo no tienen monto fijo y
+     *    quedan fuera.
+     *
+     * @return array<string, mixed>
+     */
+    public function capacidadNoUtilizada(): array
+    {
+        $utilizacion = $this->utilizacionSalas();
+        $inicio = Carbon::parse($utilizacion['ventana']['desde'])->startOfDay();
+        $fin = Carbon::parse($utilizacion['ventana']['hasta'])->endOfDay();
+
+        $salas = SalaOperatoria::query()->with('hospital')->get()->keyBy('id');
+
+        $porSala = array_values(array_map(function (array $fila) use ($salas): array {
+            /** @var SalaOperatoria|null $sala */
+            $sala = $salas->get($fila['sala']['id']);
+            $ociosos = max(0, $fila['minutos_disponibles'] - $fila['minutos_usados']);
+            $derivada = $sala?->hospital?->origenDe(CategoriaCif::Infraestructura) === OrigenComponente::DerivadoDeCif;
+
+            return [
+                'sala' => $fila['sala'],
+                'minutos_usados' => $fila['minutos_usados'],
+                'minutos_disponibles' => $fila['minutos_disponibles'],
+                'minutos_ociosos' => $ociosos,
+                'utilizacion_pct' => $fila['utilizacion_pct'],
+                'costo_derivado_de_cif' => $derivada,
+                'valor_ocioso' => $sala === null || $derivada
+                    ? null
+                    : round($ociosos * (float) $sala->costo_hora / 60, 2),
+            ];
+        }, $utilizacion['por_sala']));
+
+        $bolsas = $this->bolsasEnVentana($inicio, $fin);
+
+        $absorbido = (float) $this->acotarAlPeriodo(
+            CirugiaConceptoIndirecto::query()
+                ->join('cirugias', 'cirugias.id', '=', 'cirugia_concepto_indirecto.cirugia_id')
+                ->where('cirugias.estado', EstadoCirugia::Realizada->value)
+                ->whereNotNull('cirugias.hora_fin')
+                ->where('cirugia_concepto_indirecto.base_asignacion_registrada', '!=', BaseAsignacionCif::PorcentajeDirecto->value),
+        )->sum('cirugia_concepto_indirecto.monto_asignado');
+
+        $valorSalas = array_sum(array_map(fn (array $f): float => (float) ($f['valor_ocioso'] ?? 0), $porSala));
+        $noAbsorbido = max(0.0, $bolsas - $absorbido);
+
+        return [
+            'ventana' => $utilizacion['ventana'],
+            'salas' => [
+                'minutos_ociosos' => (int) array_sum(array_column($porSala, 'minutos_ociosos')),
+                'valor_ocioso' => round($valorSalas, 2),
+                'por_sala' => $porSala,
+            ],
+            'bolsas' => [
+                'monto' => round($bolsas, 2),
+                'absorbido' => round($absorbido, 2),
+                'no_absorbido' => round($noAbsorbido, 2),
+                'absorcion_pct' => $bolsas > 0 ? round($absorbido / $bolsas, 4) : null,
+            ],
+            'total' => round($valorSalas + $noAbsorbido, 2),
+        ];
+    }
+
+    /**
+     * Monto de las bolsas CIF de monto mensual en una ventana: cada mes pesa
+     * por los días de la ventana que caen en él, y cada bolsa solo cuenta en
+     * los días en que estuvo vigente.
+     */
+    protected function bolsasEnVentana(CarbonInterface $inicio, CarbonInterface $fin): float
+    {
+        $conceptos = ConceptoCostoIndirecto::query()
+            ->where('activo', true)
+            ->whereNotNull('monto_mensual')
+            ->where('base_asignacion', '!=', BaseAsignacionCif::PorcentajeDirecto->value)
+            ->whereDate('vigente_desde', '<=', $fin->toDateString())
+            ->where(fn ($q) => $q->whereNull('vigente_hasta')
+                ->orWhereDate('vigente_hasta', '>=', $inicio->toDateString()))
+            ->get();
+
+        $total = 0.0;
+
+        foreach ($conceptos as $concepto) {
+            $desde = Carbon::parse($concepto->vigente_desde)->startOfDay()->max(Carbon::parse($inicio)->startOfDay());
+            $hasta = $concepto->vigente_hasta !== null
+                ? Carbon::parse($concepto->vigente_hasta)->startOfDay()->min(Carbon::parse($fin)->startOfDay())
+                : Carbon::parse($fin)->startOfDay();
+
+            $mes = $desde->copy()->startOfMonth();
+
+            while ($mes->lessThanOrEqualTo($hasta)) {
+                $tramoDesde = $desde->max($mes);
+                $tramoHasta = $hasta->min($mes->copy()->endOfMonth()->startOfDay());
+                $dias = (int) $tramoDesde->diffInDays($tramoHasta) + 1;
+
+                if ($dias > 0) {
+                    $total += (float) $concepto->monto_mensual * $dias / $mes->daysInMonth;
+                }
+
+                $mes = $mes->copy()->addMonthNoOverflow()->startOfMonth();
+            }
+        }
+
+        return $total;
     }
 
     /**
@@ -481,7 +715,9 @@ class KpiService
     public function tendenciaMensual(): array
     {
         $filas = $this->baseCostosContabilizables()
+            ->leftJoin('facturaciones', 'facturaciones.cirugia_id', '=', 'cirugias.id')
             ->select([
+                'facturaciones.valor_facturado',
                 'costos_cirugia.costo_total',
                 'costos_cirugia.costo_recurso_humano',
                 'costos_cirugia.costo_sala',
@@ -500,6 +736,13 @@ class KpiService
                 $costos = $grupo->map(fn ($f): float => (float) $f->costo_total)->all();
                 $n = count($costos);
 
+                // Resultado del mes solo sobre las cirugías ya facturadas:
+                // restar el costo de las que aún no tienen factura inventaría
+                // una pérdida que todavía no existe.
+                $facturadas = $grupo->filter(fn ($f): bool => $f->valor_facturado !== null);
+                $facturado = (float) $facturadas->sum(fn ($f): float => (float) $f->valor_facturado);
+                $costoFacturadas = (float) $facturadas->sum(fn ($f): float => (float) $f->costo_total);
+
                 return [
                     'mes' => $mes,
                     'etiqueta' => Carbon::createFromFormat('Y-m', $mes)
@@ -507,6 +750,11 @@ class KpiService
                     'n' => $n,
                     'costo_promedio' => round(Estadistica::media($costos), 2),
                     'costo_total' => round(array_sum($costos), 2),
+                    'n_facturadas' => $facturadas->count(),
+                    'facturado' => round($facturado, 2),
+                    'costo_facturadas' => round($costoFacturadas, 2),
+                    'margen' => round($facturado - $costoFacturadas, 2),
+                    'margen_pct' => $facturado > 0 ? round(($facturado - $costoFacturadas) / $facturado, 4) : null,
                     'recurso_humano' => $this->promedioDe($grupo, 'costo_recurso_humano'),
                     'sala' => $this->promedioDe($grupo, 'costo_sala'),
                     'equipos' => $this->promedioDe($grupo, 'costo_equipos'),
@@ -551,7 +799,7 @@ class KpiService
         );
     }
 
-    protected function nivelVariabilidad(?float $cv): ?string
+    public function nivelVariabilidad(?float $cv): ?string
     {
         if ($cv === null) {
             return null;

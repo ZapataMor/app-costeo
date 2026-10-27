@@ -22,6 +22,9 @@ readonly class Periodo
     public function __construct(
         public ?CarbonInterface $desde = null,
         public ?CarbonInterface $hasta = null,
+        // Nombre legible cuando el periodo no lo eligió el usuario
+        // («Últimos 3 meses con cirugías»); manda sobre las fechas.
+        public ?string $nombre = null,
     ) {}
 
     /** Lee `?desde=` y `?hasta=` (Y-m-d) de la petición. */
@@ -37,6 +40,35 @@ readonly class Periodo
     public static function ultimosMeses(int $meses): self
     {
         return new self(now()->subMonths($meses)->startOfDay(), now()->endOfDay());
+    }
+
+    /**
+     * Ventana de la misma duración inmediatamente anterior: contra qué se
+     * compara cada indicador. «Toda la historia» o un periodo abierto no
+     * tienen anterior.
+     *
+     * Si el periodo son meses naturales completos, el anterior también lo es
+     * (ago–oct → may–jul); si no, se corre el mismo número de días.
+     */
+    public function anterior(): ?self
+    {
+        if ($this->desde === null || $this->hasta === null) {
+            return null;
+        }
+
+        $desde = $this->desde->copy()->startOfDay();
+        $hasta = $this->hasta->copy()->endOfDay();
+
+        if ($desde->isSameDay($desde->copy()->startOfMonth()) && $hasta->isSameDay($hasta->copy()->endOfMonth())) {
+            $meses = (int) floor($desde->diffInMonths($hasta)) + 1;
+            $inicio = $desde->copy()->subMonthsNoOverflow($meses)->startOfMonth();
+
+            return new self($inicio, $desde->copy()->subDay()->endOfDay());
+        }
+
+        $dias = (int) $desde->diffInDays($hasta) + 1;
+
+        return new self($desde->copy()->subDays($dias), $desde->copy()->subDay()->endOfDay());
     }
 
     public function vacio(): bool
@@ -57,6 +89,7 @@ readonly class Periodo
     public function etiqueta(): string
     {
         return match (true) {
+            $this->nombre !== null => $this->nombre,
             $this->vacio() => 'Toda la historia',
             $this->desde !== null && $this->hasta !== null => sprintf(
                 '%s a %s',

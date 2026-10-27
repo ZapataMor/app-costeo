@@ -21,6 +21,11 @@ export const UMBRALES = {
     // Variación del costo promedio frente al mes anterior: subir más de 5 %
     // es alerta. La meta de la tesis es bajarlo entre 15 y 30 %.
     variacionCosto: { bien: 0, atencion: 0.05 },
+    // Desviación del costo real sobre el estándar del protocolo: los mismos
+    // cortes de la clasificación por defecto (en rango ≤ 5 %, leve ≤ 20 %,
+    // alto > 20 %; backlog #1). Cada hospital puede moverlos en su
+    // configuración; aquí se usan los del pipeline doctoral.
+    desviacionEstandar: { bien: 0.05, atencion: 0.2 },
 } as const;
 
 /** Tono de un valor donde más es mejor (completitud, margen). */

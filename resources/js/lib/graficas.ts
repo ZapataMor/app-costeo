@@ -14,7 +14,7 @@ export const COMPONENTES = [
     { clave: 'sala', nombre: 'Sala operatoria', color: '#4C837C' },
     { clave: 'equipos', nombre: 'Equipos médicos', color: '#A47E53' },
     { clave: 'insumos', nombre: 'Insumos', color: '#A99C98' },
-    { clave: 'indirectos', nombre: 'Indirectos', color: '#161B2F' },
+    { clave: 'indirectos', nombre: 'Indirectos', color: '#7B6A9B' },
 ] as const;
 
 export type ClaveComponente = (typeof COMPONENTES)[number]['clave'];
