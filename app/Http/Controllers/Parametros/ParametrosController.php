@@ -15,14 +15,13 @@ use App\Models\ProcedimientoQuirurgico;
 use App\Models\RecursoHumano;
 use App\Models\SalaOperatoria;
 use App\Support\HospitalContext;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Model;
 use Inertia\Inertia;
 use Inertia\Response;
 
 /**
  * Hub del módulo Parámetros (Capa 1): una card por cada catálogo del
- * hospital activo, con conteo y vista previa de los últimos registros.
+ * hospital activo con su conteo de registros (ya filtrado al hospital
+ * activo por el HospitalScope global).
  */
 class ParametrosController extends Controller
 {
@@ -32,52 +31,12 @@ class ParametrosController extends Controller
 
         return Inertia::render('parametros/index', [
             'modulos' => [
-                'recursosHumanos' => $this->resumen(RecursoHumano::query()->orderBy('nombre'), fn (RecursoHumano $r): array => [
-                    'id' => $r->id,
-                    'nombre' => $r->nombre,
-                    'detalle' => ucfirst($r->especialidad !== null ? "{$r->rol} · {$r->especialidad}" : $r->rol),
-                    'valor' => (float) $r->salario_mensual,
-                    'unidad' => 'salario/mes',
-                ]),
-                'insumos' => $this->resumen(Insumo::query()->orderBy('nombre'), fn (Insumo $i): array => [
-                    'id' => $i->id,
-                    'nombre' => $i->nombre,
-                    'detalle' => ucfirst($i->categoria),
-                    'valor' => (float) $i->costo_unitario,
-                    'unidad' => 'unidad',
-                ]),
-                'equiposMedicos' => $this->resumen(EquipoMedico::query()->orderBy('nombre'), fn (EquipoMedico $e): array => [
-                    'id' => $e->id,
-                    'nombre' => $e->nombre,
-                    'detalle' => $e->vida_util_anios !== null ? "vida útil {$e->vida_util_anios} años" : null,
-                    'valor' => (float) $e->costo_hora,
-                    'unidad' => 'hora',
-                ]),
-                'salasOperatorias' => $this->resumen(SalaOperatoria::query()->orderBy('nombre'), fn (SalaOperatoria $s): array => [
-                    'id' => $s->id,
-                    'nombre' => $s->nombre,
-                    'detalle' => $s->ubicacion,
-                    'valor' => (float) $s->costo_hora,
-                    'unidad' => 'hora',
-                ]),
-                'procedimientos' => $this->resumen(ProcedimientoQuirurgico::query()->orderBy('nombre'), fn (ProcedimientoQuirurgico $p): array => [
-                    'id' => $p->id,
-                    'nombre' => $p->nombre,
-                    'detalle' => "CUPS {$p->codigo_cups} · {$p->duracion_estimada_minutos} min",
-                    'valor' => $p->tarifa_soat !== null ? (float) $p->tarifa_soat : null,
-                    'unidad' => 'SOAT',
-                ]),
-                'costosIndirectos' => $this->resumen(
-                    ConceptoCostoIndirecto::query()->orderBy('categoria')->orderBy('nombre'),
-                    fn (ConceptoCostoIndirecto $c): array => [
-                        'id' => $c->id,
-                        'nombre' => $c->nombre,
-                        'detalle' => $c->categoria->etiqueta()
-                            .' · '.($c->activo ? 'activo' : 'inactivo'),
-                        'valor' => $c->monto_mensual !== null ? (float) $c->monto_mensual : null,
-                        'unidad' => 'mes',
-                    ],
-                ),
+                'recursosHumanos' => RecursoHumano::query()->count(),
+                'insumos' => Insumo::query()->count(),
+                'equiposMedicos' => EquipoMedico::query()->count(),
+                'salasOperatorias' => SalaOperatoria::query()->count(),
+                'procedimientos' => ProcedimientoQuirurgico::query()->count(),
+                'costosIndirectos' => ConceptoCostoIndirecto::query()->count(),
             ],
             'catalogos' => [
                 'roles' => RolQuirurgico::values(),
@@ -85,35 +44,7 @@ class ParametrosController extends Controller
                 'complejidades' => NivelComplejidad::values(),
                 'nivelesConfiabilidad' => NivelConfiabilidad::values(),
             ],
-            'hospitalActivo' => $hospital?->only([
-                'id', 'nombre', 'horas_dia', 'dias_mes', 'minutos_efectivos_hora', 'factor_indirecto',
-            ]),
+            'hospitalActivo' => $hospital?->only(['id', 'nombre']),
         ]);
-    }
-
-    /**
-     * Conteo + primeros registros de un catálogo (ya filtrado al hospital
-     * activo por el HospitalScope global).
-     *
-     * `$fila` recibe el modelo concreto de cada catálogo; se declara como
-     * Closure sin firma porque un callable(Model) no admitiría los cierres
-     * tipados con la subclase.
-     *
-     * @param  Builder<covariant Model>  $query
-     * @return array{total: int, items: list<array{id: int, nombre: string, detalle: string|null, valor: float|null, unidad: string|null}>}
-     */
-    protected function resumen(Builder $query, \Closure $fila): array
-    {
-        $total = (clone $query)->count();
-        $items = [];
-
-        // El límite va sobre la consulta base para conservar el tipo del modelo.
-        $query->getQuery()->limit(5);
-
-        foreach ($query->get() as $modelo) {
-            $items[] = $fila($modelo);
-        }
-
-        return ['total' => $total, 'items' => $items];
     }
 }

@@ -27,7 +27,7 @@ Es la materialización tecnológica de la tesis doctoral del profesor **Orlando 
 | Frontend | **React 19** + **Inertia.js 3** · TypeScript · Tailwind 4 · Radix UI · Recharts 3 · lucide · sonner |
 | Build | Vite 8 |
 | BD | **MySQL 8** (desarrollo local vía `.env` y producción) · SQLite en memoria solo para tests (`phpunit.xml`) |
-| Calidad | PHPUnit (**368 tests**, 2026-10-27) · PHPStan/Larastan nivel 7 · Pint · ESLint · Prettier · GitHub Actions (lint + tests en PHP 8.3/8.4/8.5) |
+| Calidad | PHPUnit (**369 tests**, 2026-10-27) · PHPStan/Larastan nivel 7 · Pint · ESLint · Prettier · GitHub Actions (lint + tests en PHP 8.3/8.4/8.5) |
 | Repo | `github.com/ZapataMor/app-costeo` — **PÚBLICO** ⚠️ (ver [[cliente-y-negocio#Confidencialidad]]) |
 
 Servidores locales definidos en `.claude/launch.json`: `app-costeo` (`php artisan serve --port=8801`) y `vite` (`npm run dev`, puerto 5173). Sembrado de datos: `php artisan migrate:fresh --seed` (dos hospitales ficticios marcados `[SEMILLA]`; la cesárea de referencia da exactamente **$520.000 COP**). Carga de volumen opcional de la Capa 1 para San Rafael: `php artisan db:seed --class=SanRafaelCargaSeeder` y luego `--class=SanRafaelMovimientoSeeder` (2.169 cirugías abr–oct 2026 costeadas, bolsas CIF desde el 1 de julio; [[2026-10-19]]).

@@ -6,6 +6,8 @@ import {
     ListChecks,
     MonitorSpeaker,
     Package,
+    Plus,
+    Settings2,
     Users,
 } from 'lucide-react';
 import type { ComponentType, ReactNode } from 'react';
@@ -20,49 +22,20 @@ import { ProcedimientoForm } from '@/components/parametros/forms/procedimiento-f
 import { RecursoHumanoForm } from '@/components/parametros/forms/recurso-humano-form';
 import { SalaOperatoriaForm } from '@/components/parametros/forms/sala-operatoria-form';
 import { ModalFormulario } from '@/components/parametros/modal-formulario';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardFooter,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card';
-import { cop } from '@/lib/formato';
-
-interface ItemResumen {
-    id: number;
-    nombre: string;
-    detalle: string | null;
-    valor: number | null;
-    unidad: string | null;
-}
-
-interface ModuloResumen {
-    total: number;
-    items: ItemResumen[];
-}
 
 interface ParametrosIndexProps {
+    // Conteo de registros de cada catálogo del hospital activo.
     modulos: {
-        recursosHumanos: ModuloResumen;
-        insumos: ModuloResumen;
-        equiposMedicos: ModuloResumen;
-        salasOperatorias: ModuloResumen;
-        procedimientos: ModuloResumen;
-        costosIndirectos: ModuloResumen;
+        recursosHumanos: number;
+        insumos: number;
+        equiposMedicos: number;
+        salasOperatorias: number;
+        procedimientos: number;
+        costosIndirectos: number;
     };
     catalogos: Catalogos;
-    hospitalActivo: {
-        id: number;
-        nombre: string;
-        horas_dia: number;
-        dias_mes: number;
-        minutos_efectivos_hora: number;
-        factor_indirecto: number;
-    } | null;
+    hospitalActivo: { id: number; nombre: string } | null;
 }
 
 interface Catalogos {
@@ -80,15 +53,17 @@ const definiciones: {
     href: string;
     icono: ComponentType<{ className?: string }>;
     // Opcional: un catálogo con formulario propio (campos condicionados,
-    // vigencias) no cabe en el modal del hub y solo enlaza a su listado.
+    // vigencias) no cabe en el modal del hub: su "Añadir" abre la página
+    // de creación.
     formulario?: (cerrar: () => void, catalogos: Catalogos) => ReactNode;
 }[] = [
     {
         clave: 'recursosHumanos',
         titulo: 'Recursos humanos',
         tituloNuevo: 'Nuevo recurso humano',
-        descripcion: 'Personal quirúrgico y su estructura salarial.',
         href: '/parametros/recursos-humanos',
+        descripcion:
+            'Personal quirúrgico y su salario, del que sale el costo de cada minuto de trabajo.',
         icono: Users,
         formulario: (cerrar, c) => (
             <RecursoHumanoForm
@@ -103,8 +78,9 @@ const definiciones: {
         clave: 'insumos',
         titulo: 'Insumos',
         tituloNuevo: 'Nuevo insumo',
-        descripcion: 'Insumos y dispositivos con su costo unitario.',
         href: '/parametros/insumos',
+        descripcion:
+            'Medicamentos, materiales y dispositivos que se consumen en cirugía, con su costo unitario.',
         icono: Package,
         formulario: (cerrar, c) => (
             <InsumoForm
@@ -119,8 +95,9 @@ const definiciones: {
         clave: 'equiposMedicos',
         titulo: 'Equipos médicos',
         tituloNuevo: 'Nuevo equipo médico',
-        descripcion: 'Equipos con depreciación y costo por minuto.',
         href: '/parametros/equipos-medicos',
+        descripcion:
+            'Equipos del quirófano con su depreciación y su costo por hora de uso.',
         icono: MonitorSpeaker,
         formulario: (cerrar, c) => (
             <EquipoMedicoForm
@@ -134,8 +111,8 @@ const definiciones: {
         clave: 'salasOperatorias',
         titulo: 'Salas operatorias',
         tituloNuevo: 'Nueva sala operatoria',
-        descripcion: 'Salas con sus costos fijos de operación.',
         href: '/parametros/salas-operatorias',
+        descripcion: 'Quirófanos con sus costos fijos de operación por hora.',
         icono: BedDouble,
         formulario: (cerrar, c) => (
             <SalaOperatoriaForm
@@ -147,10 +124,11 @@ const definiciones: {
     },
     {
         clave: 'procedimientos',
-        titulo: 'Catálogo de procedimientos',
+        titulo: 'Procedimientos',
         tituloNuevo: 'Nuevo procedimiento quirúrgico',
-        descripcion: 'Catálogo CUPS de procedimientos quirúrgicos.',
         href: '/parametros/procedimientos',
+        descripcion:
+            'Cirugías del catálogo CUPS con su duración estimada y tarifa SOAT.',
         icono: ListChecks,
         formulario: (cerrar, c) => (
             <ProcedimientoForm
@@ -165,9 +143,9 @@ const definiciones: {
         clave: 'costosIndirectos',
         titulo: 'Costos indirectos',
         tituloNuevo: 'Nuevo concepto de costo indirecto',
-        descripcion:
-            'Bolsas de costo indirecto con su inductor y vigencia (CIF).',
         href: '/parametros/costos-indirectos',
+        descripcion:
+            'Gastos generales del hospital que se reparten entre las cirugías (CIF).',
         icono: Coins,
     },
 ];
@@ -186,8 +164,8 @@ export default function ParametrosIndex({
                         Parámetros
                     </h1>
                     <p className="mt-1.5 mb-1 max-w-[620px] text-[13.5px] text-[#737778] dark:text-[#9EA0A5]">
-                        Catálogos base del costeo. Entre a cada uno para ver,
-                        agregar o corregir sus registros.
+                        Catálogos base del costeo. Entre a cada uno para ver o
+                        corregir sus registros.
                     </p>
                 </div>
 
@@ -199,222 +177,124 @@ export default function ParametrosIndex({
                             tituloNuevo,
                             descripcion,
                             href,
-                            icono: Icono,
+                            icono,
                             formulario,
-                        }) => {
-                            const modulo = modulos[clave];
-
-                            return (
-                                <Card key={clave} className="flex flex-col">
-                                    <CardHeader>
-                                        <CardTitle className="flex items-center gap-2">
-                                            <Icono className="size-5 shrink-0 text-muted-foreground" />
-                                            <span className="flex-1 truncate">
-                                                {titulo}
-                                            </span>
-                                            <Badge
-                                                variant="secondary"
-                                                className="min-w-10 justify-center px-2.5 py-1 font-sans text-[20px]! leading-none! tracking-[0]! tabular-nums"
-                                            >
-                                                {modulo.total}
-                                            </Badge>
-                                        </CardTitle>
-                                        <CardDescription>
-                                            {descripcion}
-                                        </CardDescription>
-                                    </CardHeader>
-                                    <CardContent className="flex-1">
-                                        {modulo.items.length === 0 ? (
-                                            <p className="py-4 text-center text-sm text-muted-foreground">
-                                                Sin registros todavía.
-                                            </p>
-                                        ) : (
-                                            <ul className="text-sm">
-                                                {modulo.items.map((item) => (
-                                                    <li
-                                                        key={item.id}
-                                                        className="flex items-center justify-between gap-3 border-b py-2 last:border-0"
-                                                    >
-                                                        <div className="min-w-0">
-                                                            <p
-                                                                className="truncate"
-                                                                title={
-                                                                    item.nombre
-                                                                }
-                                                            >
-                                                                {item.nombre}
-                                                            </p>
-                                                            {item.detalle && (
-                                                                <p
-                                                                    className="truncate text-xs text-muted-foreground"
-                                                                    title={
-                                                                        item.detalle
-                                                                    }
-                                                                >
-                                                                    {
-                                                                        item.detalle
-                                                                    }
-                                                                </p>
-                                                            )}
-                                                        </div>
-                                                        {item.valor !==
-                                                            null && (
-                                                            <div className="shrink-0 text-right">
-                                                                <p className="font-medium tabular-nums">
-                                                                    {cop(
-                                                                        item.valor,
-                                                                    )}
-                                                                </p>
-                                                                {item.unidad && (
-                                                                    <p className="text-xs text-muted-foreground">
-                                                                        {
-                                                                            item.unidad
-                                                                        }
-                                                                    </p>
-                                                                )}
-                                                            </div>
-                                                        )}
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        )}
-                                        {modulo.total > modulo.items.length && (
-                                            <p className="pt-2 text-xs text-muted-foreground">
-                                                y{' '}
-                                                {modulo.total -
-                                                    modulo.items.length}{' '}
-                                                más…
-                                            </p>
-                                        )}
-                                    </CardContent>
-                                    <CardFooter className="gap-2">
+                        }) => (
+                            <CardCatalogo
+                                key={clave}
+                                titulo={titulo}
+                                descripcion={descripcion}
+                                href={href}
+                                icono={icono}
+                                total={modulos[clave]}
+                                accion={
+                                    formulario ? (
+                                        <ModalFormulario
+                                            titulo={tituloNuevo}
+                                            textoBoton="Añadir"
+                                            variante="outline"
+                                            tamanoBoton="sm"
+                                        >
+                                            {(cerrar) =>
+                                                formulario(cerrar, catalogos)
+                                            }
+                                        </ModalFormulario>
+                                    ) : (
                                         <Button
                                             asChild
                                             variant="outline"
                                             size="sm"
-                                            className="flex-1"
                                         >
-                                            <Link href={href} prefetch>
-                                                Ver todos
+                                            <Link
+                                                href={`${href}/create`}
+                                                prefetch
+                                            >
+                                                <Plus className="size-4" />
+                                                Añadir
                                             </Link>
                                         </Button>
-                                        {formulario && (
-                                            <ModalFormulario
-                                                titulo={tituloNuevo}
-                                                textoBoton="Nuevo"
-                                                tamanoBoton="sm"
-                                            >
-                                                {(cerrar) =>
-                                                    formulario(
-                                                        cerrar,
-                                                        catalogos,
-                                                    )
-                                                }
-                                            </ModalFormulario>
-                                        )}
-                                    </CardFooter>
-                                </Card>
-                            );
-                        },
+                                    )
+                                }
+                            />
+                        ),
                     )}
 
-                    <Card className="flex flex-col">
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2">
-                                <Building2 className="size-5 shrink-0 text-muted-foreground" />
-                                <span className="flex-1 truncate">
-                                    Hospital
-                                </span>
-                            </CardTitle>
-                            <CardDescription>
-                                Capacidad TDABC del hospital activo: horas por
-                                día, días por mes y factor de costos indirectos.
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="flex-1 text-sm">
-                            {hospital ? (
-                                <dl className="space-y-2">
-                                    <div className="flex justify-between border-b pb-2">
-                                        <dt className="text-muted-foreground">
-                                            Hospital
-                                        </dt>
-                                        <dd className="max-w-48 truncate font-medium">
-                                            {hospital.nombre}
-                                        </dd>
-                                    </div>
-                                    <div className="flex justify-between border-b pb-2">
-                                        <dt className="text-muted-foreground">
-                                            Horas por día
-                                        </dt>
-                                        <dd className="font-medium tabular-nums">
-                                            {hospital.horas_dia}
-                                        </dd>
-                                    </div>
-                                    <div className="flex justify-between border-b pb-2">
-                                        <dt className="text-muted-foreground">
-                                            Días por mes
-                                        </dt>
-                                        <dd className="font-medium tabular-nums">
-                                            {hospital.dias_mes}
-                                        </dd>
-                                    </div>
-                                    <div className="flex justify-between border-b pb-2">
-                                        <dt className="text-muted-foreground">
-                                            Minutos efectivos por hora
-                                        </dt>
-                                        <dd className="font-medium tabular-nums">
-                                            {hospital.minutos_efectivos_hora}
-                                        </dd>
-                                    </div>
-                                    <div className="flex justify-between border-b pb-2">
-                                        <dt className="text-muted-foreground">
-                                            Capacidad por recurso
-                                        </dt>
-                                        <dd className="font-medium tabular-nums">
-                                            {(
-                                                hospital.horas_dia *
-                                                hospital.dias_mes *
-                                                hospital.minutos_efectivos_hora
-                                            ).toLocaleString('es-CO')}{' '}
-                                            min/mes
-                                        </dd>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <dt className="text-muted-foreground">
-                                            Factor indirecto
-                                        </dt>
-                                        <dd className="font-medium tabular-nums">
-                                            {hospital.factor_indirecto}
-                                        </dd>
-                                    </div>
-                                </dl>
+                    <CardCatalogo
+                        titulo="Hospital"
+                        descripcion="Jornada, días por mes y minutos efectivos con los que se calcula la capacidad."
+                        href={hospital ? '/parametros/hospital' : null}
+                        icono={Building2}
+                        accion={
+                            hospital ? (
+                                <Button asChild variant="outline" size="sm">
+                                    <Link href="/parametros/hospital" prefetch>
+                                        <Settings2 className="size-4" />
+                                        Configurar
+                                    </Link>
+                                </Button>
                             ) : (
-                                <p className="py-4 text-center text-muted-foreground">
-                                    Está en la vista consolidada. Seleccione un
-                                    hospital en el dashboard o en el selector
-                                    para editar su configuración.
+                                <p className="text-sm text-muted-foreground">
+                                    Requiere un hospital activo.
                                 </p>
-                            )}
-                        </CardContent>
-                        <CardFooter>
-                            <Button
-                                asChild
-                                variant="outline"
-                                size="sm"
-                                className="flex-1"
-                                disabled={!hospital}
-                            >
-                                <Link href="/parametros/hospital" prefetch>
-                                    {hospital
-                                        ? 'Editar configuración'
-                                        : 'Requiere hospital activo'}
-                                </Link>
-                            </Button>
-                        </CardFooter>
-                    </Card>
+                            )
+                        }
+                    />
                 </div>
             </div>
         </>
+    );
+}
+
+/**
+ * Card minimalista del hub: toda la superficie enlaza al catálogo (enlace
+ * extendido sobre la card) y la acción queda por encima con `relative z-10`
+ * para no anidar un botón dentro de un enlace.
+ */
+function CardCatalogo({
+    titulo,
+    descripcion,
+    href,
+    icono: Icono,
+    total,
+    accion,
+}: {
+    titulo: string;
+    descripcion: string;
+    href: string | null;
+    icono: ComponentType<{ className?: string }>;
+    total?: number;
+    accion: ReactNode;
+}) {
+    return (
+        <div
+            className={`relative flex flex-col gap-5 rounded-xl bg-card p-5 text-card-foreground shadow-[0_1px_2px_rgba(23,24,31,.06),0_12px_28px_-14px_rgba(23,24,31,.32)] transition-[box-shadow,transform,background-color] duration-200 dark:shadow-[0_1px_2px_rgba(0,0,0,.45),0_16px_34px_-14px_rgba(0,0,0,.8)] ${href ? 'hover:-translate-y-0.5 hover:bg-[#5B687C]/[0.04] hover:shadow-[0_2px_4px_rgba(23,24,31,.08),0_20px_40px_-16px_rgba(23,24,31,.42)] dark:hover:bg-white/[0.03] dark:hover:shadow-[0_2px_4px_rgba(0,0,0,.5),0_24px_44px_-16px_rgba(0,0,0,.9)]' : 'opacity-70'}`}
+        >
+            {href && (
+                <Link
+                    href={href}
+                    prefetch
+                    aria-label={`Abrir ${titulo}`}
+                    className="absolute inset-0 rounded-xl focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                />
+            )}
+            <div className="flex flex-col gap-2">
+                <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-2.5">
+                        <Icono className="size-5 shrink-0 text-muted-foreground" />
+                        <h2 className="truncate font-semibold">{titulo}</h2>
+                    </div>
+                    {total !== undefined && (
+                        <span className="text-[28px] leading-none font-semibold text-[#161B2F] tabular-nums dark:text-[#EDE7E5]">
+                            {total}
+                        </span>
+                    )}
+                </div>
+                <p className="text-[13px] leading-snug text-muted-foreground">
+                    {descripcion}
+                </p>
+            </div>
+            <div className="relative z-10 mt-auto flex">{accion}</div>
+        </div>
     );
 }
 
