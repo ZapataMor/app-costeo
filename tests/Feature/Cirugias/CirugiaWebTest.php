@@ -157,7 +157,7 @@ class CirugiaWebTest extends TestCase
         ]);
 
         $cirugia = Cirugia::withoutGlobalScopes()->latest('id')->firstOrFail();
-        $respuesta->assertRedirect("/cirugias/{$cirugia->id}");
+        $respuesta->assertRedirect("/cirugias?ver={$cirugia->id}");
 
         $this->assertSame($this->hospitalA->id, $cirugia->hospital_id);
         $this->assertSame(1, $cirugia->procedimientos()->count());
@@ -241,6 +241,50 @@ class CirugiaWebTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('cirugias/index')
                 ->has('cirugias.data', 1));
+    }
+
+    /**
+     * El listado abre el detalle en un modal con `?ver=ID`: trae los mismos
+     * datos que la página de detalle, solo de cirugías del hospital propio.
+     */
+    public function test_el_listado_abre_el_detalle_en_modal_solo_del_hospital_propio(): void
+    {
+        HospitalContext::set($this->hospitalA->id);
+        $pacienteA = Paciente::factory()->create(['hospital_id' => $this->hospitalA->id]);
+        $cirugiaA = Cirugia::factory()->create([
+            'hospital_id' => $this->hospitalA->id,
+            'paciente_id' => $pacienteA->id,
+            'sala_operatoria_id' => null,
+        ]);
+        HospitalContext::set($this->hospitalB->id);
+        $pacienteB = Paciente::factory()->create(['hospital_id' => $this->hospitalB->id]);
+        $cirugiaB = Cirugia::factory()->create([
+            'hospital_id' => $this->hospitalB->id,
+            'paciente_id' => $pacienteB->id,
+            'sala_operatoria_id' => null,
+        ]);
+        HospitalContext::clear();
+
+        $this->actingAs($this->adminA)
+            ->get('/cirugias')
+            ->assertInertia(fn (Assert $page) => $page->where('detalle', null));
+
+        $this->actingAs($this->adminA)
+            ->get("/cirugias?ver={$cirugiaA->id}")
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('cirugias/index')
+                ->where('detalle.cirugia.id', $cirugiaA->id)
+                ->where('detalle.costo', null)
+                ->has('detalle.facturacion')
+                ->has('detalle.resultadoClinico')
+                // Paginar no reabre el detalle.
+                ->where('cirugias.first_page_url', fn ($url) => ! str_contains((string) $url, 'ver=')));
+
+        $this->actingAs($this->adminA)
+            ->get("/cirugias?ver={$cirugiaB->id}")
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('detalle', null));
     }
 
     public function test_alta_rapida_de_paciente_desde_el_formulario(): void

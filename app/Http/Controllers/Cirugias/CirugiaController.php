@@ -33,13 +33,14 @@ use App\Support\HospitalContext;
 use Illuminate\Contracts\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class CirugiaController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request, PresentarCirugiaDetalle $presentar): Response
     {
         $esDigitador = $request->user()->isDigitador();
 
@@ -92,7 +93,8 @@ class CirugiaController extends Controller
             ->orderByDesc('fecha')
             ->orderByDesc('id')
             ->paginate(15)
-            ->withQueryString()
+            // Sin `ver`: paginar no debe reabrir el detalle que se cerró.
+            ->appends(Arr::except($request->query(), ['ver', 'page']))
             ->through(fn (Cirugia $cirugia): array => [
                 'id' => $cirugia->id,
                 'fecha' => $cirugia->fecha->toDateString(),
@@ -141,7 +143,36 @@ class CirugiaController extends Controller
             'pacienteFiltrado' => $pacienteId !== null
                 ? Paciente::query()->find($pacienteId)?->only(['id', 'nombres', 'apellidos'])
                 : null,
+            // El detalle se abre en un modal sobre el listado (`?ver=ID`).
+            // Closure: en la recarga parcial del clic solo viaja esta prop.
+            'detalle' => fn () => $this->detalleModal($request->integer('ver') ?: null, $presentar),
         ]);
+    }
+
+    /**
+     * Mismos datos que la página de detalle. El HospitalScope deja fuera una
+     * cirugía de otro hospital: el modal simplemente no se abre.
+     *
+     * @return array<string, mixed>|null
+     */
+    protected function detalleModal(?int $cirugiaId, PresentarCirugiaDetalle $presentar): ?array
+    {
+        $cirugia = $cirugiaId !== null ? Cirugia::query()->find($cirugiaId) : null;
+
+        return $cirugia !== null ? $this->datosDetalle($cirugia, $presentar) : null;
+    }
+
+    /** @return array<string, mixed> */
+    protected function datosDetalle(Cirugia $cirugia, PresentarCirugiaDetalle $presentar): array
+    {
+        $cirugia->loadMissing(['facturacion', 'resultadoClinico']);
+
+        return [
+            'cirugia' => $presentar->ejecutar($cirugia),
+            'costo' => $cirugia->costo,
+            'facturacion' => $cirugia->facturacion,
+            'resultadoClinico' => $cirugia->resultadoClinico,
+        ];
     }
 
     /** Qué le falta a esta cirugía para entrar a los indicadores. */
@@ -231,7 +262,7 @@ class CirugiaController extends Controller
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Cirugía registrada. Ya puedes calcular su costo.']);
 
-        return redirect()->route('cirugias.show', $cirugia);
+        return redirect()->route('cirugias.index', ['ver' => $cirugia->id]);
     }
 
     /**
@@ -240,14 +271,7 @@ class CirugiaController extends Controller
      */
     public function show(Cirugia $cirugia, PresentarCirugiaDetalle $presentar): Response
     {
-        $cirugia->loadMissing(['facturacion', 'resultadoClinico']);
-
-        return Inertia::render('cirugias/show', [
-            'cirugia' => $presentar->ejecutar($cirugia),
-            'costo' => $cirugia->costo,
-            'facturacion' => $cirugia->facturacion,
-            'resultadoClinico' => $cirugia->resultadoClinico,
-        ]);
+        return Inertia::render('cirugias/show', $this->datosDetalle($cirugia, $presentar));
     }
 
     public function edit(Cirugia $cirugia): Response
@@ -321,7 +345,7 @@ class CirugiaController extends Controller
         // El digitador no tiene detalle costeado: vuelve a su pantalla.
         return $request->user()->isDigitador()
             ? redirect()->route('cirugias.index')
-            : redirect()->route('cirugias.show', $cirugia);
+            : redirect()->route('cirugias.index', ['ver' => $cirugia->id]);
     }
 
     /**

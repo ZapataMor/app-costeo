@@ -1,9 +1,12 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { ChevronRight, Plus, Search, X } from 'lucide-react';
-import { useState } from 'react';
+import type { MouseEvent } from 'react';
+import { useCallback, useState } from 'react';
 import CirugiaController from '@/actions/App/Http/Controllers/Cirugias/CirugiaController';
 import { BotonExportar } from '@/components/boton-exportar';
 import { CerrarCirugiaModal } from '@/components/cirugias/cerrar-cirugia-modal';
+import type { DatosDetalleCirugia } from '@/components/cirugias/detalle-cirugia';
+import { ModalDetalleCirugia } from '@/components/cirugias/modal-detalle-cirugia';
 import {
     NOMBRE_CLASIFICACION,
     TONO_CLASIFICACION,
@@ -256,6 +259,24 @@ function Situacion({ cirugia }: { cirugia: CirugiaFila }) {
     return null;
 }
 
+/**
+ * La URL actual con `ver` puesto o quitado: el detalle abierto queda en la
+ * dirección (se puede recargar o compartir) sin perder filtros ni página.
+ */
+const urlConDetalle = (id: number | null) => {
+    const params = new URLSearchParams(window.location.search);
+
+    if (id === null) {
+        params.delete('ver');
+    } else {
+        params.set('ver', String(id));
+    }
+
+    const query = params.toString();
+
+    return `/cirugias${query ? `?${query}` : ''}`;
+};
+
 /** Costo y, debajo, cuánto se salió de su protocolo. */
 function Costo({ cirugia }: { cirugia: CirugiaFila }) {
     if (cirugia.costo_total === null) {
@@ -284,6 +305,7 @@ export default function CirugiasIndex({
     filtros,
     conteos,
     pacienteFiltrado,
+    detalle,
 }: {
     cirugias: PaginadoCirugias;
     filtros: Filtros;
@@ -293,7 +315,39 @@ export default function CirugiasIndex({
         nombres: string;
         apellidos: string;
     } | null;
+    detalle: DatosDetalleCirugia | null;
 }) {
+    // Cirugía abierta en el modal. Se abre al instante con un indicador de
+    // carga; el detalle llega por recarga parcial (solo la prop `detalle`).
+    const [abierta, setAbierta] = useState<number | null>(
+        detalle?.cirugia.id ?? null,
+    );
+    const detalleAbierto =
+        detalle !== null && detalle.cirugia.id === abierta ? detalle : null;
+
+    const abrir = (id: number) => {
+        setAbierta(id);
+        router.get(
+            urlConDetalle(id),
+            {},
+            { only: ['detalle'], preserveState: true, preserveScroll: true },
+        );
+    };
+
+    const cerrar = useCallback(() => {
+        setAbierta(null);
+        router.get(
+            urlConDetalle(null),
+            {},
+            {
+                only: ['detalle'],
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+            },
+        );
+    }, []);
+
     // Fecha, paciente, procedimiento, duración, costo, situación, acción.
     const colSpanVacio = 7;
 
@@ -400,17 +454,35 @@ export default function CirugiasIndex({
                                 const nombrePaciente = cirugia.paciente
                                     ? `${cirugia.paciente.nombres} ${cirugia.paciente.apellidos}`
                                     : null;
-                                const detalle = CirugiaController.show.url(
+                                const urlDetalle = CirugiaController.show.url(
                                     cirugia.id,
                                 );
+                                const abrirDesdeEnlace = (e: MouseEvent) => {
+                                    e.stopPropagation();
+
+                                    // Ctrl/⌘/medio: la página en otra pestaña.
+                                    if (
+                                        e.ctrlKey ||
+                                        e.metaKey ||
+                                        e.shiftKey ||
+                                        e.button !== 0
+                                    ) {
+                                        return;
+                                    }
+
+                                    e.preventDefault();
+                                    abrir(cirugia.id);
+                                };
 
                                 return (
-                                    // Toda la fila abre el detalle; «Corregir»
-                                    // vive ahí. El enlace del procedimiento
-                                    // es el camino por teclado.
+                                    // Toda la fila abre el detalle en un
+                                    // modal; «Corregir» vive ahí. El enlace
+                                    // del procedimiento es el camino por
+                                    // teclado (y abre la página propia en
+                                    // otra pestaña).
                                     <tr
                                         key={cirugia.id}
-                                        onClick={() => router.visit(detalle)}
+                                        onClick={() => abrir(cirugia.id)}
                                         className="cursor-pointer border-b transition-colors last:border-0 hover:bg-muted/40"
                                     >
                                         <td className="p-3 whitespace-nowrap tabular-nums">
@@ -429,11 +501,10 @@ export default function CirugiasIndex({
                                         <td className="p-3">
                                             {procedimiento ? (
                                                 <>
-                                                    <Link
-                                                        href={detalle}
-                                                        prefetch
-                                                        onClick={(e) =>
-                                                            e.stopPropagation()
+                                                    <a
+                                                        href={urlDetalle}
+                                                        onClick={
+                                                            abrirDesdeEnlace
                                                         }
                                                         className="block max-w-[17rem] truncate hover:underline"
                                                         title={
@@ -447,7 +518,7 @@ export default function CirugiasIndex({
                                                                 procedimiento.nombre
                                                             }
                                                         />
-                                                    </Link>
+                                                    </a>
                                                     <span className="text-xs text-muted-foreground">
                                                         <span className="font-mono">
                                                             {
@@ -459,15 +530,13 @@ export default function CirugiasIndex({
                                                     </span>
                                                 </>
                                             ) : (
-                                                <Link
-                                                    href={detalle}
-                                                    onClick={(e) =>
-                                                        e.stopPropagation()
-                                                    }
+                                                <a
+                                                    href={urlDetalle}
+                                                    onClick={abrirDesdeEnlace}
                                                     className="text-muted-foreground hover:underline"
                                                 >
                                                     Sin procedimiento
-                                                </Link>
+                                                </a>
                                             )}
                                         </td>
                                         <td className="p-3 text-right whitespace-nowrap tabular-nums">
@@ -522,6 +591,12 @@ export default function CirugiasIndex({
                     to={cirugias.to}
                 />
             </div>
+
+            <ModalDetalleCirugia
+                abierto={abierta !== null}
+                detalle={detalleAbierto}
+                onCerrar={cerrar}
+            />
         </>
     );
 }
