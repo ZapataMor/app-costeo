@@ -382,7 +382,7 @@ export default function TableroConocimiento({
 
                     <div className="grid gap-3 sm:grid-cols-2">
                         <Acceso
-                            href="/conocimiento/alertas"
+                            href="/alertas"
                             icono={ShieldAlert}
                             titulo="Alertas"
                             detalle={`${alertas.pendientes} pendientes`}

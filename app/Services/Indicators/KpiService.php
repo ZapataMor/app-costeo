@@ -184,6 +184,35 @@ class KpiService
     }
 
     /**
+     * Resultado del periodo en pesos: lo facturado menos el costo real de
+     * las mismas cirugías. `margen()` promedia por procedimiento; la portada
+     * necesita el total, que es lo que se gana o se pierde en el mes.
+     *
+     * @return array{n: int, costo: float, facturado: float, margen: float, margen_pct: float|null}
+     */
+    public function resultado(): array
+    {
+        $fila = $this->baseCostosContabilizables()
+            ->join('facturaciones', 'facturaciones.cirugia_id', '=', 'cirugias.id')
+            ->selectRaw('count(*) as n')
+            ->selectRaw('coalesce(sum(costos_cirugia.costo_total), 0) as costo')
+            ->selectRaw('coalesce(sum(facturaciones.valor_facturado), 0) as facturado')
+            ->toBase()
+            ->first();
+
+        $costo = (float) ($fila->costo ?? 0);
+        $facturado = (float) ($fila->facturado ?? 0);
+
+        return [
+            'n' => (int) ($fila->n ?? 0),
+            'costo' => round($costo, 2),
+            'facturado' => round($facturado, 2),
+            'margen' => round($facturado - $costo, 2),
+            'margen_pct' => $facturado > 0 ? round(($facturado - $costo) / $facturado, 4) : null,
+        ];
+    }
+
+    /**
      * Utilización de salas (estructura): minutos operados ÷ minutos
      * disponibles en la ventana analizada.
      *

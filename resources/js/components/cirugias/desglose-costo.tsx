@@ -1,4 +1,6 @@
+import { ChevronDown } from 'lucide-react';
 import { ClasificacionBadge } from '@/components/conocimiento/clasificacion-badge';
+import { Button } from '@/components/ui/button';
 import {
     Card,
     CardContent,
@@ -6,6 +8,11 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { cop, etiqueta, fechaHora, numero, pctVariacion } from '@/lib/formato';
 import type { CostoCirugia, CostoEstandar } from '@/types/cirugias';
 
@@ -511,5 +518,31 @@ function ComparacionEstandar({
                 </p>
             </CardContent>
         </Card>
+    );
+}
+
+/**
+ * El cálculo completo (estándar por componente, costo por fase, bolsas CIF
+ * con su fórmula, línea a línea) es para auditar, no para la primera
+ * lectura: queda plegado debajo del resumen de la cirugía.
+ */
+export function CalculoDetallado({ costo }: { costo: CostoCirugia }) {
+    return (
+        <Collapsible className="group/calculo">
+            <CollapsibleTrigger asChild>
+                <Button variant="outline" className="w-full">
+                    <ChevronDown className="size-4 transition-transform group-data-[state=open]/calculo:rotate-180" />
+                    <span className="group-data-[state=open]/calculo:hidden">
+                        Ver el cálculo detallado
+                    </span>
+                    <span className="hidden group-data-[state=open]/calculo:inline">
+                        Ocultar el cálculo detallado
+                    </span>
+                </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-4">
+                <DesgloseCosto costo={costo} />
+            </CollapsibleContent>
+        </Collapsible>
     );
 }

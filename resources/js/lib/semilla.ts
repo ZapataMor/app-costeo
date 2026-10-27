@@ -9,7 +9,13 @@ export function separarMarcaSemilla(texto: string): {
     limpio: string;
     esSemilla: boolean;
 } {
-    const limpio = texto.replace(MARCA_SEMILLA, ' ').trim();
+    // «Cesárea [SEMILLA]: costo…» no debe quedar «Cesárea : costo…».
+    const limpio = texto
+        .replace(MARCA_SEMILLA, ' ')
+        .replace(/\s+([:;,.])/g, '$1')
+        .trim();
 
-    return { limpio, esSemilla: limpio !== texto.trim() };
+    // Se mira la marca y no la diferencia de textos: «Algo : x» cambia al
+    // limpiar la puntuación sin ser un dato de prueba.
+    return { limpio, esSemilla: /\[SEMILLA[^\]]*\]/.test(texto) };
 }

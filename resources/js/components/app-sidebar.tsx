@@ -1,12 +1,13 @@
 import { Link, usePage } from '@inertiajs/react';
 import {
+    BellRing,
     BookOpen,
     Brain,
     Building2,
     History,
+    House,
     Lightbulb,
     MessagesSquare,
-    ShieldAlert,
     Sparkles,
     UserRoundCheck,
     LayoutGrid,
@@ -31,6 +32,16 @@ import {
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
 import type { NavItem } from '@/types';
+
+// Portada del hospital: cómo va el mes y qué pide acción. Es a donde llega
+// el administrador al iniciar sesión.
+const inicioNavItems: NavItem[] = [
+    {
+        title: 'Inicio',
+        href: '/inicio',
+        icon: House,
+    },
+];
 
 const generalNavItems: NavItem[] = [
     {
@@ -69,15 +80,21 @@ const pacientesNavItems: NavItem[] = [
     },
 ];
 
-// El contador de sobrecostos sin revisar viaja en las props compartidas, así
-// que se ve desde cualquier pantalla: sin él, la alerta solo existiría para
-// quien ya hubiera decidido entrar a buscarla.
-const costeoNavItems = (pendientes: number): NavItem[] => [
+// Una sola bandeja de alertas. Antes había dos contadores (sobrecostos en
+// Costeo y reglas en Conocimiento) para dos pantallas casi iguales; ahora el
+// número cuenta casos —procedimientos con algo prioritario—, no alertas
+// sueltas. Viaja en las props compartidas para verse desde cualquier pantalla.
+const analisisNavItems = (casos: number): NavItem[] => [
     {
         title: 'Costeo quirúrgico',
         href: '/costeo',
         icon: Stethoscope,
-        badge: pendientes > 0 ? pendientes : undefined,
+    },
+    {
+        title: 'Alertas',
+        href: '/alertas',
+        icon: BellRing,
+        badge: casos > 0 ? casos : undefined,
     },
 ];
 
@@ -110,6 +127,7 @@ const digitadoresNavItems: NavItem[] = [
 // Capa 4 — Conocimiento. El profesional (personal quirúrgico) ve solo el
 // repositorio, las comunidades y las mejores prácticas; la gestión —tablero,
 // alertas de las reglas, recomendaciones— es del administrador.
+// Las alertas de las reglas se atienden en la bandeja única (/alertas).
 const conocimientoNavItems = (
     gestiona: boolean,
     pendientes: { alertas: number; revision: number; devueltas: number },
@@ -122,13 +140,6 @@ const conocimientoNavItems = (
                   title: 'Tablero',
                   href: '/conocimiento',
                   icon: Brain,
-              },
-              {
-                  title: 'Alertas y reglas',
-                  href: '/conocimiento/alertas',
-                  icon: ShieldAlert,
-                  badge:
-                      pendientes.alertas > 0 ? pendientes.alertas : undefined,
               },
           ]
         : []),
@@ -171,7 +182,7 @@ const profesionalesNavItems: NavItem[] = [
 ];
 
 export function AppSidebar() {
-    const { auth, alertasPendientes, conocimientoPendientes } = usePage().props;
+    const { auth, alertasPorRevisar, conocimientoPendientes } = usePage().props;
     const role = auth.user?.role;
     const esDigitador = role === 'digitador';
     const esProfesional = role === 'profesional';
@@ -207,7 +218,7 @@ export function AppSidebar() {
                                           ? '/conocimiento/lecciones'
                                           : esSuperAdmin
                                             ? dashboard()
-                                            : '/parametros'
+                                            : '/inicio'
                                 }
                                 prefetch
                             >
@@ -237,33 +248,24 @@ export function AppSidebar() {
                         label="Conocimiento"
                     />
                 ) : (
+                    // Del uso diario a lo ocasional: cómo vamos, qué
+                    // revisar, qué registrar y, al final, la configuración.
                     <>
-                        {esSuperAdmin && (
-                            <>
-                                <NavMain
-                                    items={generalNavItems}
-                                    label="General"
-                                />
-                                <NavMain
-                                    items={institucionesNavItems}
-                                    label="Administración"
-                                    className="mt-[14px]"
-                                />
-                            </>
-                        )}
                         <NavMain
-                            items={parametrosNavItems}
-                            label="Configuración"
-                            className={esSuperAdmin ? 'mt-[14px]' : undefined}
+                            items={[
+                                ...inicioNavItems,
+                                ...(esSuperAdmin ? generalNavItems : []),
+                            ]}
+                            label="General"
+                        />
+                        <NavMain
+                            items={analisisNavItems(alertasPorRevisar ?? 0)}
+                            label="Análisis"
+                            className="mt-[14px]"
                         />
                         <NavMain
                             items={[...pacientesNavItems, ...registroNavItems]}
                             label="Captura"
-                            className="mt-[14px]"
-                        />
-                        <NavMain
-                            items={costeoNavItems(alertasPendientes ?? 0)}
-                            label="Análisis"
                             className="mt-[14px]"
                         />
                         <NavMain
@@ -274,6 +276,18 @@ export function AppSidebar() {
                             label="Conocimiento"
                             className="mt-[14px]"
                         />
+                        <NavMain
+                            items={parametrosNavItems}
+                            label="Configuración"
+                            className="mt-[14px]"
+                        />
+                        {esSuperAdmin && (
+                            <NavMain
+                                items={institucionesNavItems}
+                                label="Administración"
+                                className="mt-[14px]"
+                            />
+                        )}
                         {esAdminHospital && (
                             <NavMain
                                 items={[

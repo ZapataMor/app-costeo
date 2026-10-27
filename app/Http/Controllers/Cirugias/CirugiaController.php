@@ -145,7 +145,7 @@ class CirugiaController extends Controller
      * era invisible: no aparecía en la bandeja, pero sí bajaba la completitud
      * del panel, y no había forma de encontrarla.
      */
-    private static function filtroPendientes(Builder $query): void
+    public static function filtroPendientes(Builder $query): void
     {
         $query
             ->whereNull('hora_fin')

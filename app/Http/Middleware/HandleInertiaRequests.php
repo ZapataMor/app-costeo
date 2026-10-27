@@ -11,6 +11,7 @@ use App\Models\Hospital;
 use App\Models\LeccionAprendida;
 use App\Models\Scopes\HospitalScope;
 use App\Models\User;
+use App\Services\Alertas\BandejaAlertas;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -60,6 +61,7 @@ class HandleInertiaRequests extends Middleware
             // propia página nadie la descubre.
             'alertasPendientes' => fn (): int => $this->alertasPendientes($request),
             'conocimientoPendientes' => fn (): array => $this->conocimientoPendientes($request),
+            'alertasPorRevisar' => fn (): int => $this->alertasPorRevisar($request),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }
@@ -104,6 +106,23 @@ class HandleInertiaRequests extends Middleware
             ->where('hospital_id', $hospitalId)
             ->pendientes()
             ->count();
+    }
+
+    /**
+     * Casos con algo prioritario en la bandeja única de alertas: el único
+     * contador de alertas del menú (antes había dos, uno por fuente).
+     */
+    protected function alertasPorRevisar(Request $request): int
+    {
+        /** @var User|null $user */
+        $user = $request->user();
+        $hospitalId = $this->hospitalActivoId($request);
+
+        if ($user === null || ! ($user->isSuperAdmin() || $user->isAdminHospital()) || $hospitalId === null) {
+            return 0;
+        }
+
+        return app(BandejaAlertas::class)->casosPrioritarios($hospitalId);
     }
 
     /**

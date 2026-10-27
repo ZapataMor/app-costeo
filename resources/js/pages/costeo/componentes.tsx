@@ -71,10 +71,10 @@ export default function Componentes({
 
     return (
         <>
-            <Head title="Costo por componente" />
+            <Head title="Composición del costo" />
             <div className="flex flex-col gap-4 p-4">
                 <EncabezadoCosteo
-                    titulo="Costo por componente"
+                    titulo="Composición del costo"
                     descripcion="De qué está hecho el costo de cada procedimiento: talento humano, sala, equipos, insumos e indirectos."
                 />
 
@@ -274,6 +274,6 @@ export default function Componentes({
 Componentes.layout = {
     breadcrumbs: [
         { title: 'Costeo quirúrgico', href: '/costeo' },
-        { title: 'Costo por componente', href: '/costeo/componentes' },
+        { title: 'Composición del costo', href: '/costeo/componentes' },
     ],
 };

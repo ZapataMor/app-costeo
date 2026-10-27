@@ -37,6 +37,6 @@ class LoginResponse implements LoginResponseContract
 
         return $user->isSuperAdmin()
             ? redirect()->intended(config('fortify.home'))
-            : redirect()->intended(route('parametros.index'));
+            : redirect()->intended(route('inicio'));
     }
 }

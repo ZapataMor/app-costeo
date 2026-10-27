@@ -1,5 +1,7 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import { AlertTriangle, Check, Search, X } from 'lucide-react';
+import type { CasoAlerta } from '@/components/alertas/filtro-caso';
+import { FiltroCaso } from '@/components/alertas/filtro-caso';
 import { KpiCard } from '@/components/costeo/kpi-card';
 import InputError from '@/components/input-error';
 import { NombreDato } from '@/components/nombre-dato';
@@ -38,17 +40,24 @@ export default function Alertas({
     estados,
     causas,
     resumen,
+    caso,
 }: {
     alertas: PaginadoAlertas;
-    filtros: { estado: string };
+    filtros: { estado: string; procedimiento: string; mes: string };
     estados: OpcionEstado[];
     causas: CausaCatalogo[];
     resumen: ResumenAlertas;
+    caso: CasoAlerta;
 }) {
+    // El estado cambia sin perder el caso que se abrió desde la bandeja.
     const filtrar = (estado: string) =>
         router.get(
             '/costeo/alertas',
-            { estado },
+            Object.fromEntries(
+                Object.entries({ ...filtros, estado }).filter(
+                    ([, v]) => v !== '',
+                ),
+            ),
             { preserveScroll: true, replace: true },
         );
 
@@ -56,6 +65,10 @@ export default function Alertas({
         <>
             <Head title="Alertas de sobrecosto" />
             <div className="flex flex-col gap-4 p-4">
+                <FiltroCaso
+                    caso={caso}
+                    hrefSinFiltro={`/costeo/alertas?estado=${filtros.estado}`}
+                />
                 <div className="grid gap-3 md:grid-cols-4">
                     <KpiCard
                         titulo="Sin revisar"
@@ -480,7 +493,7 @@ function FormularioRevision({
 
 Alertas.layout = {
     breadcrumbs: [
-        { title: 'Costeo quirúrgico', href: '/costeo' },
-        { title: 'Alertas de sobrecosto', href: '/costeo/alertas' },
+        { title: 'Alertas', href: '/alertas' },
+        { title: 'Sobrecostos por cirugía', href: '/costeo/alertas' },
     ],
 };

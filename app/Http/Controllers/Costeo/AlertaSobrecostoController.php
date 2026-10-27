@@ -7,9 +7,11 @@ use App\Enums\EstadoAlerta;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\RevisarAlertaSobrecostoRequest;
 use App\Models\AlertaSobrecosto;
+use App\Models\ProcedimientoQuirurgico;
 use App\Models\RegistroActividad;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -37,9 +39,18 @@ class AlertaSobrecostoController extends Controller
             $estado = EstadoAlerta::Pendiente->value;
         }
 
+        // Filtro de caso: la bandeja única (/alertas) abre aquí un
+        // procedimiento y, si se eligió, un mes.
+        $procedimientoId = $request->integer('procedimiento') ?: null;
+        $mes = self::mes($request->query('mes'));
+
         $alertas = AlertaSobrecosto::query()
             ->with(['procedimiento:id,codigo_cups,nombre', 'cirugia:id,fecha', 'revisor:id,name'])
             ->when($estado !== 'todas', fn ($query) => $query->where('estado', $estado))
+            ->when($procedimientoId !== null, fn ($query) => $query->where('procedimiento_quirurgico_id', $procedimientoId))
+            ->when($mes !== null, fn ($query) => $query->whereHas('cirugia', fn ($c) => $c
+                ->whereDate('fecha', '>=', $mes->toDateString())
+                ->whereDate('fecha', '<=', $mes->copy()->endOfMonth()->toDateString())))
             // Lo más caro primero: con la bandeja llena, el orden por exceso
             // es lo que hace que el tiempo de revisión se gaste donde hay
             // plata, y no en el caso que llegó de último.
@@ -51,7 +62,17 @@ class AlertaSobrecostoController extends Controller
 
         return Inertia::render('costeo/alertas', [
             'alertas' => $alertas,
-            'filtros' => ['estado' => $estado],
+            'filtros' => [
+                'estado' => $estado,
+                'procedimiento' => $procedimientoId !== null ? (string) $procedimientoId : '',
+                'mes' => $mes?->format('Y-m') ?? '',
+            ],
+            'caso' => [
+                'procedimiento' => $procedimientoId !== null
+                    ? ProcedimientoQuirurgico::query()->find($procedimientoId)?->only(['id', 'codigo_cups', 'nombre'])
+                    : null,
+                'mes' => $mes?->format('Y-m'),
+            ],
             'estados' => array_map(fn (EstadoAlerta $e): array => [
                 'valor' => $e->value,
                 'etiqueta' => $e->etiqueta(),
@@ -139,6 +160,14 @@ class AlertaSobrecostoController extends Controller
                 ->values()
                 ->all(),
         ];
+    }
+
+    /** «2026-05» → primer día del mes; cualquier otra cosa, sin filtro. */
+    protected static function mes(mixed $valor): ?Carbon
+    {
+        return is_string($valor) && preg_match('/^\d{4}-\d{2}$/', $valor) === 1
+            ? Carbon::createFromFormat('!Y-m', $valor)
+            : null;
     }
 
     /** @return array<string, mixed> */

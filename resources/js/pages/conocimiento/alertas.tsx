@@ -1,5 +1,7 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import { BookPlus, Check, ExternalLink, X } from 'lucide-react';
+import type { CasoAlerta } from '@/components/alertas/filtro-caso';
+import { FiltroCaso } from '@/components/alertas/filtro-caso';
 import { AreaTexto } from '@/components/conocimiento/area-texto';
 import { SeveridadBadge } from '@/components/conocimiento/severidad-badge';
 import { KpiCard } from '@/components/costeo/kpi-card';
@@ -31,7 +33,13 @@ import type {
     Paginado,
 } from '@/types/conocimiento';
 
-type Filtros = { estado: string; tipo: string; severidad: string };
+type Filtros = {
+    estado: string;
+    tipo: string;
+    severidad: string;
+    procedimiento: string;
+    mes: string;
+};
 
 const SEVERIDADES: Opcion[] = [
     { valor: 'critica', etiqueta: 'Crítica' },
@@ -46,6 +54,7 @@ export default function AlertasConocimiento({
     estados,
     causas,
     resumen,
+    caso,
 }: {
     alertas: Paginado<AlertaConocimiento>;
     filtros: Filtros;
@@ -57,18 +66,27 @@ export default function AlertasConocimiento({
         impacto_pendiente: number;
         criticas: number;
     };
+    caso: CasoAlerta;
 }) {
     const filtrar = (cambios: Partial<Filtros>) =>
         router.get(
             '/conocimiento/alertas',
-            { ...filtros, ...cambios },
+            Object.fromEntries(
+                Object.entries({ ...filtros, ...cambios }).filter(
+                    ([, v]) => v !== '',
+                ),
+            ),
             { preserveScroll: true, replace: true },
         );
 
     return (
         <>
-            <Head title="Alertas de conocimiento" />
+            <Head title="Alertas de las reglas" />
             <div className="flex flex-col gap-4 p-4">
+                <FiltroCaso
+                    caso={caso}
+                    hrefSinFiltro={`/conocimiento/alertas?estado=${filtros.estado}`}
+                />
                 <div className="grid gap-3 md:grid-cols-3">
                     <KpiCard
                         titulo="Pendientes"
@@ -442,7 +460,7 @@ function FormularioRevision({
 
 AlertasConocimiento.layout = {
     breadcrumbs: [
-        { title: 'Conocimiento', href: '/conocimiento' },
-        { title: 'Alertas', href: '/conocimiento/alertas' },
+        { title: 'Alertas', href: '/alertas' },
+        { title: 'Alertas de las reglas', href: '/conocimiento/alertas' },
     ],
 };

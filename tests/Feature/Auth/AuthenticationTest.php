@@ -32,7 +32,7 @@ class AuthenticationTest extends TestCase
         $response->assertRedirect(route('dashboard', absolute: false));
     }
 
-    public function test_el_admin_de_hospital_aterriza_en_parametros_tras_el_login()
+    public function test_el_admin_de_hospital_aterriza_en_su_portada_tras_el_login()
     {
         $user = User::factory()->create();
 
@@ -42,7 +42,7 @@ class AuthenticationTest extends TestCase
         ]);
 
         $this->assertAuthenticated();
-        $response->assertRedirect(route('parametros.index', absolute: false));
+        $response->assertRedirect(route('inicio', absolute: false));
     }
 
     public function test_users_with_two_factor_enabled_are_redirected_to_two_factor_challenge()

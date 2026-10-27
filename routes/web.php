@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AlertasController;
 use App\Http\Controllers\Api\V1\CirugiaController;
 use App\Http\Controllers\Api\V1\InsumoController;
 use App\Http\Controllers\Api\V1\KpiController;
@@ -15,6 +16,7 @@ use App\Http\Controllers\DigitadorController;
 use App\Http\Controllers\ExportacionController;
 use App\Http\Controllers\HistorialController;
 use App\Http\Controllers\HospitalActivoController;
+use App\Http\Controllers\InicioController;
 use App\Http\Controllers\Instituciones;
 use App\Http\Controllers\Pacientes;
 use App\Http\Controllers\Parametros;
@@ -25,8 +27,8 @@ Route::get('/', function () {
         return redirect()->route('login');
     }
 
-    // El digitador entra directo a su único módulo (registro de procedimientos)
-    // y el admin_hospital a Parámetros; el dashboard es solo del super_admin.
+    // El digitador entra directo a su único módulo (registro de cirugías) y
+    // el admin_hospital a su portada; el dashboard es solo del super_admin.
     $user = auth()->user();
 
     if ($user->isDigitador()) {
@@ -40,7 +42,7 @@ Route::get('/', function () {
 
     return $user->isSuperAdmin()
         ? redirect()->route('dashboard')
-        : redirect()->route('parametros.index');
+        : redirect()->route('inicio');
 })->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -185,6 +187,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
         });
 
     // ── Dashboards de costeo (Capa 3c) ──────────────────────────────────
+    // Portada del administrador y bandeja única de alertas: siempre de un
+    // hospital, así que el super_admin necesita uno elegido en el selector.
+    Route::middleware(['rol:super_admin,admin_hospital', 'hospital.contexto', 'hospital.requerido'])
+        ->group(function () {
+            Route::get('inicio', [InicioController::class, 'index'])->name('inicio');
+            Route::get('alertas', [AlertasController::class, 'index'])->name('alertas.index');
+        });
+
     Route::prefix('costeo')->name('costeo.')
         ->middleware(['rol:super_admin,admin_hospital', 'hospital.contexto'])->group(function () {
             Route::get('/', [DashboardCosteoController::class, 'index'])->name('index');

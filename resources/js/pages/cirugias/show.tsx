@@ -2,9 +2,10 @@ import { Head, Link, router } from '@inertiajs/react';
 import { ArrowLeft, Calculator, Pencil, TriangleAlert } from 'lucide-react';
 import { useState } from 'react';
 import CirugiaController from '@/actions/App/Http/Controllers/Cirugias/CirugiaController';
-import { DesgloseCosto } from '@/components/cirugias/desglose-costo';
+import { CalculoDetallado } from '@/components/cirugias/desglose-costo';
 import { FacturacionCard } from '@/components/cirugias/facturacion-card';
 import { ResultadoClinicoCard } from '@/components/cirugias/resultado-clinico-card';
+import { ResumenCosto } from '@/components/cirugias/resumen-costo';
 import Heading from '@/components/heading';
 import { NombreDato } from '@/components/nombre-dato';
 import { ConfirmarEliminacion } from '@/components/parametros/confirmar-eliminacion';
@@ -122,6 +123,25 @@ export default function CirugiasShow({
                             )}
                         </AlertDescription>
                     </Alert>
+                )}
+
+                {/* El veredicto va primero; los datos de captura y el
+                    cálculo línea a línea, después. */}
+                {costo ? (
+                    <ResumenCosto
+                        costo={costo}
+                        facturacion={facturacion}
+                        estado={cirugia.estado}
+                        contabilizada={!noContabilizada}
+                        duracionMinutos={cirugia.duracion_minutos}
+                    />
+                ) : (
+                    <Card>
+                        <CardContent className="py-8 text-center text-muted-foreground">
+                            Esta cirugía aún no tiene costo calculado. Usa
+                            «Calcular costo TDABC» para generar el desglose.
+                        </CardContent>
+                    </Card>
                 )}
 
                 <div className="grid gap-4 lg:grid-cols-2">
@@ -259,17 +279,6 @@ export default function CirugiasShow({
                     </Card>
                 </div>
 
-                {costo ? (
-                    <DesgloseCosto costo={costo} />
-                ) : (
-                    <Card>
-                        <CardContent className="py-8 text-center text-muted-foreground">
-                            Esta cirugía aún no tiene costo calculado. Usa
-                            «Calcular costo TDABC» para generar el desglose.
-                        </CardContent>
-                    </Card>
-                )}
-
                 <div className="grid gap-4 lg:grid-cols-2">
                     <FacturacionCard
                         cirugiaId={cirugia.id}
@@ -283,6 +292,11 @@ export default function CirugiasShow({
                         resultado={resultadoClinico}
                     />
                 </div>
+
+                {/* El cálculo completo (estándar por componente, costo por
+                    fase, bolsas CIF con su fórmula, línea a línea) es para
+                    auditar, no para la primera lectura: queda plegado. */}
+                {costo && <CalculoDetallado costo={costo} />}
             </div>
         </>
     );

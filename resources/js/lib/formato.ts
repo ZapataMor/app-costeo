@@ -132,6 +132,18 @@ export function mesCorto(valor: string): string {
     return `${mes} ${String(parsed.getFullYear()).slice(-2)}`;
 }
 
+const formatoMesLargo = new Intl.DateTimeFormat('es-CO', {
+    month: 'long',
+    year: 'numeric',
+});
+
+/** «2026-10» → «octubre de 2026», para encabezados y no para ejes. */
+export function mesLargo(valor: string): string {
+    const parsed = aFecha(`${valor}-01`);
+
+    return parsed === null ? valor : formatoMesLargo.format(parsed);
+}
+
 /** Enums que llegan como `en_recuperacion`: «En recuperación». */
 const ETIQUETAS: Record<string, string> = {
     en_proceso: 'En proceso',

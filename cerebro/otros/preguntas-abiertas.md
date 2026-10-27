@@ -19,6 +19,8 @@ Dudas para resolver con el profesor [[cliente-y-negocio|Orlando Ruiz]] o con los
 - [ ] ¿Qué pasó en la reunión de Maicao (~2026-07-08) y en la visita del 2026-07-22? ¿Cuáles son los 10 procedimientos principales? ¿Qué HIS usan?
 - [ ] ¿La cotización de julio 2026 fue aceptada? ¿Se recibió el anticipo? ([[cliente-y-negocio#10. Acuerdo comercial]])
 - [ ] ¿Se hace privado el repositorio de GitHub? ([[cliente-y-negocio#11. Confidencialidad ⚠️]])
+- [ ] **Semáforo de la portada** (2026-10-27): ¿qué pérdida sobre lo facturado es tolerable antes de marcar alerta (hoy ámbar hasta −10 %)? ¿Qué alza del costo promedio mes a mes es alerta (hoy +5 %)? ¿Hay meta de glosas y de recaudo? ([[2026-10-27-portada-y-bandeja-unica]])
+- [ ] ¿El cliente prefiere el tema claro como predeterminado para gerencia? ([[backlog-mejoras]] #39)
 
 ## Pendientes desde 2026-07-06
 

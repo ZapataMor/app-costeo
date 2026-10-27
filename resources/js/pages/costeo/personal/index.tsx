@@ -1,11 +1,11 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { ArrowDown, ArrowUp, Eye, Search, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { EncabezadoCosteo } from '@/components/costeo/encabezado-costeo';
 import { IndiceBadge } from '@/components/costeo/indice-badge';
 import { KpiCard } from '@/components/costeo/kpi-card';
 import type { Periodo } from '@/components/costeo/selector-periodo';
 import { SelectorPeriodo } from '@/components/costeo/selector-periodo';
-import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -146,9 +146,9 @@ export default function PersonalCosteoIndex({
         <>
             <Head title="Personal · Costeo" />
             <div className="flex flex-col gap-4 p-4">
-                <Heading
-                    title="Costo por persona"
-                    description="Cuánto le cuesta al hospital cada miembro del equipo quirúrgico y cuánto gasto moviliza. Entra a una persona para ver el histórico de tiempos de sus operaciones."
+                <EncabezadoCosteo
+                    titulo="Costo por persona"
+                    descripcion="Cuánto le cuesta al hospital cada miembro del equipo quirúrgico y cuánto gasto moviliza. Entra a una persona para ver el histórico de tiempos de sus operaciones."
                 />
 
                 <SelectorPeriodo

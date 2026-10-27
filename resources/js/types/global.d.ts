@@ -15,6 +15,7 @@ declare module '@inertiajs/core' {
             hospital: HospitalCompartido;
             /** Sobrecostos detectados y todavía sin causa en el hospital activo. */
             alertasPendientes: number;
+            alertasPorRevisar: number;
             /** Pendientes de la Capa 4 para los contadores del menú. */
             conocimientoPendientes: {
                 alertas: number;

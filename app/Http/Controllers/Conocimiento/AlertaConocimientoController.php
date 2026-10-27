@@ -9,9 +9,12 @@ use App\Enums\TipoReglaConocimiento;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Conocimiento\RevisarAlertaConocimientoRequest;
 use App\Models\AlertaConocimiento;
+use App\Models\ProcedimientoQuirurgico;
 use App\Models\RegistroActividad;
+use App\Services\Alertas\BandejaAlertas;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -32,12 +35,30 @@ class AlertaConocimientoController extends Controller
 
         $estado = in_array($estado, [...EstadoAlerta::values(), 'todas'], true) ? $estado : EstadoAlerta::Pendiente->value;
 
+        // Filtro de caso desde la bandeja única: un procedimiento (o «sin»,
+        // las alertas de sala y del mes del hospital) y, si se eligió, un mes.
+        $procedimiento = (string) $request->query('procedimiento', '');
+        $procedimientoId = ctype_digit($procedimiento) ? (int) $procedimiento : null;
+        $sinProcedimiento = $procedimiento === BandejaAlertas::SIN_PROCEDIMIENTO;
+        $mes = self::mes($request->query('mes'));
+
         $alertas = AlertaConocimiento::query()
             ->with(['procedimiento:id,codigo_cups,nombre', 'sala:id,nombre', 'revisor:id,name'])
             ->withCount('lecciones')
             ->when($estado !== 'todas', fn ($q) => $q->where('estado', $estado))
             ->when(in_array($tipo, TipoReglaConocimiento::values(), true), fn ($q) => $q->where('tipo', $tipo))
             ->when(in_array($severidad, SeveridadAlerta::values(), true), fn ($q) => $q->where('severidad', $severidad))
+            ->when($procedimientoId !== null, fn ($q) => $q->where('procedimiento_quirurgico_id', $procedimientoId))
+            ->when($sinProcedimiento, fn ($q) => $q->whereNull('procedimiento_quirurgico_id'))
+            // Mismo criterio de mes que la bandeja: el periodo evaluado, si
+            // no el de la cirugía, si no el de la detección.
+            ->when($mes !== null, fn ($q) => $q->where(fn ($w) => $w
+                ->where('periodo', $mes->format('Y-m'))
+                ->orWhere(fn ($x) => $x->whereNull('periodo')->whereHas('cirugia', fn ($c) => $c
+                    ->whereDate('fecha', '>=', $mes->toDateString())
+                    ->whereDate('fecha', '<=', $mes->copy()->endOfMonth()->toDateString())))
+                ->orWhere(fn ($x) => $x->whereNull('periodo')->whereNull('cirugia_id')
+                    ->whereBetween('created_at', [$mes->copy()->startOfMonth(), $mes->copy()->endOfMonth()]))))
             ->orderByRaw("case severidad when 'critica' then 3 when 'advertencia' then 2 else 1 end desc")
             ->orderByDesc('impacto_cop')
             ->orderByDesc('id')
@@ -47,7 +68,20 @@ class AlertaConocimientoController extends Controller
 
         return Inertia::render('conocimiento/alertas', [
             'alertas' => $alertas,
-            'filtros' => ['estado' => $estado, 'tipo' => $tipo, 'severidad' => $severidad],
+            'filtros' => [
+                'estado' => $estado,
+                'tipo' => $tipo,
+                'severidad' => $severidad,
+                'procedimiento' => $procedimientoId !== null ? (string) $procedimientoId : ($sinProcedimiento ? BandejaAlertas::SIN_PROCEDIMIENTO : ''),
+                'mes' => $mes?->format('Y-m') ?? '',
+            ],
+            'caso' => [
+                'procedimiento' => $procedimientoId !== null
+                    ? ProcedimientoQuirurgico::query()->find($procedimientoId)?->only(['id', 'codigo_cups', 'nombre'])
+                    : null,
+                'sin_procedimiento' => $sinProcedimiento,
+                'mes' => $mes?->format('Y-m'),
+            ],
             'tipos' => array_map(fn (TipoReglaConocimiento $t): array => ['valor' => $t->value, 'etiqueta' => $t->nombre()], TipoReglaConocimiento::cases()),
             'estados' => array_map(fn (EstadoAlerta $e): array => ['valor' => $e->value, 'etiqueta' => $e->etiqueta()], EstadoAlerta::cases()),
             'causas' => CausaSobrecosto::catalogo(),
@@ -80,6 +114,14 @@ class AlertaConocimientoController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Alerta cerrada.']);
 
         return back();
+    }
+
+    /** «2026-05» → primer día del mes; cualquier otra cosa, sin filtro. */
+    protected static function mes(mixed $valor): ?Carbon
+    {
+        return is_string($valor) && preg_match('/^\d{4}-\d{2}$/', $valor) === 1
+            ? Carbon::createFromFormat('!Y-m', $valor)
+            : null;
     }
 
     /** @return array<string, mixed> */

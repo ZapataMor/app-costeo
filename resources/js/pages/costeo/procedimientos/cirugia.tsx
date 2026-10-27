@@ -1,7 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import { ArrowLeft, Calculator, TriangleAlert } from 'lucide-react';
 import { useState } from 'react';
-import { DesgloseCosto } from '@/components/cirugias/desglose-costo';
+import { CalculoDetallado } from '@/components/cirugias/desglose-costo';
 import { ComposicionCirugia } from '@/components/costeo/composicion-cirugia';
 import Heading from '@/components/heading';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -190,7 +190,7 @@ export default function ProcedimientoCosteoCirugia({
                             costo={costo}
                             referencia={referencia}
                         />
-                        <DesgloseCosto costo={costo} />
+                        <CalculoDetallado costo={costo} />
                     </>
                 ) : (
                     <>
