@@ -1,6 +1,6 @@
 ---
 tags: [moc, resumen]
-actualizado: 2026-10-21
+actualizado: 2026-10-27
 ---
 
 # 🧠 app-costeo (SICOPH) — Resumen
@@ -85,7 +85,7 @@ app/
 
 - Último cambio de código: **2026-10-21** — Capa 4 completa ([[2026-10-21]], [[2026-10-21-capa-4-conocimiento]]); antes, PHPStan en verde y costo estándar vs. real (#1, #3). Carga de volumen de San Rafael en [[2026-10-19]].
 - Tests: **357 pasando, 2.240 aserciones** — verificado el 2026-10-21 ejecutando `php artisan test`. PHPStan nivel 7, Pint, ESLint, Prettier y `tsc` en verde.
-- Datos de prueba de San Rafael: `SanRafaelCargaSeeder` → `SanRafaelMovimientoSeeder` → `SanRafaelConocimientoSeeder` (12 profesionales, 22 lecciones, 9 comunidades, 737 alertas de reglas, 41 recomendaciones).
+- Datos de prueba de San Rafael: `SanRafaelCargaSeeder` → `SanRafaelMovimientoSeeder` → `SanRafaelConocimientoSeeder` (12 profesionales, 22 lecciones, 9 comunidades, 737 alertas de reglas, 41 recomendaciones). Analizados el 2026-10-27 ([[2026-10-27]]): dan una lectura útil de márgenes por especialidad, pero el reparto de la depreciación por minuto de quirófano (#26), el ruido de alertas (#27) y el ahorro mezclado (#28) distorsionan los resultados.
 - Sin despliegue en producción [VERIFICAR]. Sin datos reales de hospitales aún [VERIFICAR]: los seeders son ficticios.
 - La cotización de julio 2026 al profesor cubre capas 1-5; capas 4 y 5 quedaron "por desarrollar" ([[cliente-y-negocio#Acuerdo comercial]]). [VERIFICAR] si fue aceptada y si se recibió el anticipo.
 - Visita institucional al hospital con cuestionario de 50 preguntas prevista para el **2026-07-22** ([[preguntas-levantamiento-hospital]]). [VERIFICAR] si ocurrió y qué se respondió — nada de eso está registrado en el cerebro.
@@ -95,7 +95,7 @@ app/
 
 1. Confirmar con el cliente el estado del contrato y del levantamiento en los hospitales (ver [VERIFICAR] arriba).
 2. Resolver las preguntas abiertas del CIF con el profesor ([[preguntas-abiertas]]): de dónde sale el monto mensual de cada bolsa, si el factor de ineficiencia institucional (1,15–1,28) entra al aplicativo.
-3. Atacar el [[backlog-mejoras]] priorizado: insumos facturables aparte (#22), horas extra, capacidad no utilizada como reporte, portal del cirujano.
+3. Atacar el [[backlog-mejoras]] priorizado: insumos facturables aparte (#22), depreciación de equipos por uso del equipo (#26), horas extra, capacidad no utilizada como reporte, portal del cirujano.
 4. Capa 5 de la tesis (portal del cirujano sobre el rol profesional, portal ejecutivo, portal público, producción) y separar los implantes facturables aparte (#22) antes de presentar márgenes de ortopedia.
 5. Correr `analiza con los agentes` (ver `CLAUDE.md`) para poblar el backlog con hallazgos de los siete roles en [[agentes/arquitecto|agentes/]].
 
