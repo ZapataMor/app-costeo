@@ -1,63 +1,199 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { Eye, Pencil, TriangleAlert } from 'lucide-react';
+import { ChevronRight, Plus, Search, X } from 'lucide-react';
 import { useState } from 'react';
 import CirugiaController from '@/actions/App/Http/Controllers/Cirugias/CirugiaController';
 import { BotonExportar } from '@/components/boton-exportar';
 import { CerrarCirugiaModal } from '@/components/cirugias/cerrar-cirugia-modal';
-import { FiltrosListado } from '@/components/filtros-listado';
+import {
+    NOMBRE_CLASIFICACION,
+    TONO_CLASIFICACION,
+} from '@/components/cirugias/resumen-costo';
 import { NombreDato } from '@/components/nombre-dato';
 import { EncabezadoListado } from '@/components/parametros/encabezado-listado';
 import { Paginacion } from '@/components/parametros/paginacion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { opcionesDesdeValores } from '@/lib/filtros';
-import { cop, etiqueta, fecha as formatearFecha } from '@/lib/formato';
+import {
+    cop,
+    etiqueta,
+    fecha as formatearFecha,
+    pctVariacion,
+} from '@/lib/formato';
+import { TEXTO_TONO } from '@/lib/semaforo';
 import { separarMarcaSemilla } from '@/lib/semilla';
-import type { PaginadoCirugias } from '@/types/cirugias';
+import type { CirugiaFila, PaginadoCirugias } from '@/types/cirugias';
+
+type Filtros = {
+    q: string;
+    desde: string;
+    hasta: string;
+    paciente: string;
+    vista: string;
+};
+
+type Conteos = { todas: number; pendientes: number; sin_facturar: number };
+
+/** Los vacíos no viajan: mantiene la URL legible. */
+const sinVacios = (valores: Record<string, string>) =>
+    Object.fromEntries(Object.entries(valores).filter(([, v]) => v !== ''));
 
 /**
- * Rango de fechas del listado. Se aplica al perder el foco para no lanzar
- * una petición por cada tecla mientras se escribe la fecha.
+ * Bandejas del listado. Reemplazan el filtro de estado, el aviso ámbar y el
+ * botón «Pendientes», que eran tres controles para la misma pregunta: qué
+ * le falta a cada cirugía para contar.
  */
-function RangoFechas({ filtros }: { filtros: Record<string, string> }) {
-    const [rango, setRango] = useState({
-        desde: filtros.desde ?? '',
-        hasta: filtros.hasta ?? '',
+const VISTAS: {
+    clave: keyof Conteos;
+    valor: string;
+    titulo: string;
+    ayuda: string;
+}[] = [
+    {
+        clave: 'todas',
+        valor: '',
+        titulo: 'Todas',
+        ayuda: 'Todas las cirugías del hospital.',
+    },
+    {
+        clave: 'pendientes',
+        valor: 'pendientes',
+        titulo: 'Pendientes',
+        ayuda: 'Abiertas o sin costear: no entran a los indicadores hasta completarse.',
+    },
+    {
+        clave: 'sin_facturar',
+        valor: 'sin_facturar',
+        titulo: 'Sin facturar',
+        ayuda: 'Completas pero sin facturación: no tienen margen, glosa ni recaudo.',
+    },
+];
+
+function Pestanas({
+    filtros,
+    conteos,
+}: {
+    filtros: Filtros;
+    conteos: Conteos;
+}) {
+    return (
+        <nav
+            aria-label="Bandejas de cirugías"
+            className="-mx-1 flex gap-1 overflow-x-auto overflow-y-hidden px-1 shadow-[inset_0_-1px_0_var(--border)]"
+        >
+            {VISTAS.map((vista) => {
+                const activa = filtros.vista === vista.valor;
+                const n = conteos[vista.clave];
+
+                return (
+                    <Link
+                        key={vista.clave}
+                        href="/cirugias"
+                        data={sinVacios({ ...filtros, vista: vista.valor })}
+                        preserveScroll
+                        aria-current={activa ? 'page' : undefined}
+                        title={vista.ayuda}
+                        className={`flex items-center gap-2 border-b-2 px-3 py-2 text-sm whitespace-nowrap transition-colors ${
+                            activa
+                                ? 'border-foreground font-semibold text-foreground'
+                                : 'border-transparent text-muted-foreground hover:border-border hover:text-foreground'
+                        }`}
+                    >
+                        {vista.titulo}
+                        <span
+                            className={`rounded-full px-1.5 py-0.5 text-[11px] leading-none font-medium tabular-nums ${
+                                vista.clave === 'pendientes' && n > 0
+                                    ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+                                    : 'bg-muted text-muted-foreground'
+                            }`}
+                        >
+                            {n.toLocaleString('es-CO')}
+                        </span>
+                    </Link>
+                );
+            })}
+        </nav>
+    );
+}
+
+/**
+ * Búsqueda y periodo en una sola línea. Conservan la bandeja y el paciente
+ * elegidos: buscar dentro de «Pendientes» no debe devolver a «Todas».
+ */
+function BarraFiltros({ filtros }: { filtros: Filtros }) {
+    const [valores, setValores] = useState({
+        q: filtros.q,
+        desde: filtros.desde,
+        hasta: filtros.hasta,
     });
 
-    const aplicar = (siguiente: { desde: string; hasta: string }) => {
-        setRango(siguiente);
-        router.get(
-            '/cirugias',
-            Object.fromEntries(
-                Object.entries({ ...filtros, ...siguiente }).filter(
-                    ([, v]) => v !== '',
-                ),
-            ),
-            { preserveState: true, preserveScroll: true, replace: true },
-        );
+    const aplicar = (siguiente: typeof valores) => {
+        setValores(siguiente);
+        router.get('/cirugias', sinVacios({ ...filtros, ...siguiente }), {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
     };
 
+    const hayFiltros =
+        filtros.q !== '' || filtros.desde !== '' || filtros.hasta !== '';
+
     return (
-        <div className="flex items-center gap-1.5">
-            <Input
-                type="date"
-                aria-label="Desde"
-                className="w-40"
-                value={rango.desde}
-                onChange={(e) => setRango({ ...rango, desde: e.target.value })}
-                onBlur={() => aplicar(rango)}
-            />
-            <span className="text-sm text-muted-foreground">a</span>
-            <Input
-                type="date"
-                aria-label="Hasta"
-                className="w-40"
-                value={rango.hasta}
-                onChange={(e) => setRango({ ...rango, hasta: e.target.value })}
-                onBlur={() => aplicar(rango)}
-            />
+        <div className="flex flex-wrap items-center gap-2">
+            <form
+                onSubmit={(e) => {
+                    e.preventDefault();
+                    aplicar(valores);
+                }}
+                className="relative"
+            >
+                <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                    value={valores.q}
+                    onChange={(e) =>
+                        setValores({ ...valores, q: e.target.value })
+                    }
+                    placeholder="Paciente, procedimiento o CUPS…"
+                    aria-label="Buscar"
+                    className="w-72 pl-8"
+                />
+            </form>
+            {/* Las fechas se aplican al perder el foco para no lanzar una
+                petición por cada tecla mientras se escriben. */}
+            <div className="flex items-center gap-1.5">
+                <Input
+                    type="date"
+                    aria-label="Desde"
+                    className="w-40"
+                    value={valores.desde}
+                    onChange={(e) =>
+                        setValores({ ...valores, desde: e.target.value })
+                    }
+                    onBlur={() => aplicar(valores)}
+                />
+                <span className="text-sm text-muted-foreground">a</span>
+                <Input
+                    type="date"
+                    aria-label="Hasta"
+                    className="w-40"
+                    value={valores.hasta}
+                    onChange={(e) =>
+                        setValores({ ...valores, hasta: e.target.value })
+                    }
+                    onBlur={() => aplicar(valores)}
+                />
+            </div>
+            {hayFiltros && (
+                <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => aplicar({ q: '', desde: '', hasta: '' })}
+                >
+                    <X className="size-4" />
+                    Limpiar
+                </Button>
+            )}
         </div>
     );
 }
@@ -65,21 +201,110 @@ function RangoFechas({ filtros }: { filtros: Record<string, string> }) {
 const claseInsigniaPendiente =
     'border-amber-300/70 bg-amber-50 font-normal text-amber-700 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-400';
 
+/**
+ * Qué le falta a la cirugía, en una sola señal. Una realizada, costeada y
+ * facturada no muestra nada: «Realizada» en casi todas las filas era ruido.
+ */
+function Situacion({ cirugia }: { cirugia: CirugiaFila }) {
+    if (cirugia.estado === 'cancelada') {
+        return <span className="text-muted-foreground">Cancelada</span>;
+    }
+
+    // Cerrada y realizada: lo único que le falta es el costo (ver
+    // motivoPendiente en CirugiaController).
+    const faltaSoloCosto =
+        cirugia.motivo_pendiente != null &&
+        cirugia.hora_fin !== null &&
+        cirugia.estado === 'realizada';
+
+    if (faltaSoloCosto) {
+        return (
+            <Badge
+                variant="outline"
+                className={claseInsigniaPendiente}
+                title="Cerrada pero sin costo: no entra a los indicadores hasta costearse"
+            >
+                Sin costear
+            </Badge>
+        );
+    }
+
+    if (cirugia.motivo_pendiente != null) {
+        return (
+            <Badge
+                variant="outline"
+                className={claseInsigniaPendiente}
+                title={`${cirugia.motivo_pendiente}: no entra a los indicadores hasta cerrarse`}
+            >
+                {etiqueta(cirugia.estado)}
+                {cirugia.hora_fin === null && ' · falta salida'}
+            </Badge>
+        );
+    }
+
+    if (!cirugia.facturada) {
+        return (
+            <span
+                className="text-muted-foreground"
+                title="Sin facturación registrada: no tiene margen"
+            >
+                Sin facturar
+            </span>
+        );
+    }
+
+    return null;
+}
+
+/** Costo y, debajo, cuánto se salió de su protocolo. */
+function Costo({ cirugia }: { cirugia: CirugiaFila }) {
+    if (cirugia.costo_total === null) {
+        return <span className="text-muted-foreground">—</span>;
+    }
+
+    const clasificacion = cirugia.clasificacion_desviacion;
+
+    return (
+        <>
+            {cop(Number(cirugia.costo_total))}
+            {cirugia.desviacion_pct !== null && clasificacion !== null && (
+                <span
+                    className={`block text-xs ${TEXTO_TONO[TONO_CLASIFICACION[clasificacion]]}`}
+                    title={`Frente al estándar del protocolo: ${NOMBRE_CLASIFICACION[clasificacion]}`}
+                >
+                    {pctVariacion(Number(cirugia.desviacion_pct))} vs. protocolo
+                </span>
+            )}
+        </>
+    );
+}
+
 export default function CirugiasIndex({
     cirugias,
-    estados,
     filtros,
-    totalPendientes,
+    conteos,
+    pacienteFiltrado,
 }: {
     cirugias: PaginadoCirugias;
-    estados: string[];
-    filtros: Record<string, string>;
-    totalPendientes: number;
+    filtros: Filtros;
+    conteos: Conteos;
+    pacienteFiltrado: {
+        id: number;
+        nombres: string;
+        apellidos: string;
+    } | null;
 }) {
-    // Fecha, paciente, procedimiento, tipo, estado, duración, costo, acciones.
-    const colSpanVacio = 8;
+    // Fecha, paciente, procedimiento, duración, costo, situación, acción.
+    const colSpanVacio = 7;
 
-    const viendoPendientes = filtros.pendientes === '1';
+    const vacio =
+        filtros.vista === 'pendientes'
+            ? 'No hay cirugías pendientes: todo lo registrado ya cuenta en los indicadores.'
+            : filtros.vista === 'sin_facturar'
+              ? 'Todas las cirugías completas tienen su facturación.'
+              : filtros.q !== '' || filtros.desde !== '' || filtros.hasta !== ''
+                ? 'Ninguna cirugía coincide con la búsqueda.'
+                : 'No hay cirugías registradas. Usa «Registrar cirugía» para capturar la primera.';
 
     return (
         <>
@@ -91,68 +316,51 @@ export default function CirugiasIndex({
                 <EncabezadoListado
                     titulo="Cirugías realizadas"
                     descripcion="Cada cirugía registrada, con su equipo, insumos y tiempos. Es lo que alimenta el costeo."
-                    hrefNuevo={CirugiaController.create.url()}
-                    textoNuevo="Registrar cirugía"
-                />
-
-                {totalPendientes > 0 && !viendoPendientes && (
-                    <div className="flex flex-wrap items-center gap-3 rounded-lg border border-amber-300/70 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
-                        <span>
-                            {totalPendientes === 1
-                                ? 'Hay 1 cirugía sin completar: no entra a los indicadores hasta que se cierre o se costee.'
-                                : `Hay ${totalPendientes} cirugías sin completar: no entran a los indicadores hasta que se cierren o se costeen.`}
-                        </span>
-                        <Button asChild variant="outline" size="sm">
-                            <Link href="/cirugias?pendientes=1">
-                                Ver pendientes
-                            </Link>
-                        </Button>
-                    </div>
-                )}
-
-                <FiltrosListado
-                    url="/cirugias"
-                    valores={filtros}
-                    placeholderBusqueda="Paciente, procedimiento o CUPS…"
-                    filtros={[
-                        {
-                            clave: 'estado',
-                            etiqueta: 'Estado',
-                            opciones: opcionesDesdeValores(estados),
-                        },
-                    ]}
-                    extra={
-                        <>
-                            <RangoFechas filtros={filtros} />
+                    accion={
+                        <div className="flex flex-wrap items-center gap-2">
+                            {/* Exporta el periodo y la búsqueda en pantalla. */}
                             <BotonExportar
                                 url="/exportar/cirugias"
                                 filtros={{
-                                    estado: filtros.estado ?? '',
-                                    desde: filtros.desde ?? '',
-                                    hasta: filtros.hasta ?? '',
+                                    desde: filtros.desde,
+                                    hasta: filtros.hasta,
                                 }}
                             />
-                            <Button
-                                type="button"
-                                variant={
-                                    viendoPendientes ? 'default' : 'outline'
-                                }
-                                onClick={() =>
-                                    router.get(
-                                        '/cirugias',
-                                        viendoPendientes
-                                            ? {}
-                                            : { pendientes: '1' },
-                                        { preserveState: true, replace: true },
-                                    )
-                                }
-                            >
-                                <TriangleAlert className="size-4" />
-                                Pendientes ({totalPendientes})
+                            <Button asChild>
+                                <Link
+                                    href={CirugiaController.create.url()}
+                                    prefetch
+                                >
+                                    <Plus className="size-4" />
+                                    Registrar cirugía
+                                </Link>
                             </Button>
-                        </>
+                        </div>
                     }
                 />
+
+                <Pestanas filtros={filtros} conteos={conteos} />
+
+                <div className="flex flex-wrap items-center gap-2">
+                    <BarraFiltros filtros={filtros} />
+                    {pacienteFiltrado && (
+                        <Badge
+                            variant="secondary"
+                            className="h-9 gap-1.5 rounded-md px-3 text-sm font-normal"
+                        >
+                            Cirugías de {pacienteFiltrado.nombres}{' '}
+                            {pacienteFiltrado.apellidos}
+                            <Link
+                                href="/cirugias"
+                                data={sinVacios({ ...filtros, paciente: '' })}
+                                aria-label="Quitar el filtro de paciente"
+                                className="rounded-sm text-muted-foreground hover:text-foreground"
+                            >
+                                <X className="size-3.5" />
+                            </Link>
+                        </Badge>
+                    )}
+                </div>
 
                 <div className="overflow-x-auto rounded-lg border">
                     <table className="w-full text-sm">
@@ -163,16 +371,15 @@ export default function CirugiasIndex({
                                 <th className="p-3 font-medium">
                                     Procedimiento principal
                                 </th>
-                                <th className="p-3 font-medium">Tipo</th>
-                                <th className="p-3 font-medium">Estado</th>
                                 <th className="p-3 text-right font-medium">
                                     Duración
                                 </th>
                                 <th className="p-3 text-right font-medium">
                                     Costo
                                 </th>
-                                <th className="p-3 text-right font-medium">
-                                    Acciones
+                                <th className="p-3 font-medium">Pendiente</th>
+                                <th className="p-3">
+                                    <span className="sr-only">Acciones</span>
                                 </th>
                             </tr>
                         </thead>
@@ -183,9 +390,7 @@ export default function CirugiasIndex({
                                         colSpan={colSpanVacio}
                                         className="p-6 text-center text-muted-foreground"
                                     >
-                                        No hay cirugías registradas. Usa
-                                        «Registrar cirugía» para capturar la
-                                        primera.
+                                        {vacio}
                                     </td>
                                 </tr>
                             )}
@@ -195,28 +400,25 @@ export default function CirugiasIndex({
                                 const nombrePaciente = cirugia.paciente
                                     ? `${cirugia.paciente.nombres} ${cirugia.paciente.apellidos}`
                                     : null;
-                                // Cerrada y realizada: lo único que le falta
-                                // es el costo (ver motivoPendiente en
-                                // CirugiaController).
-                                const faltaSoloCosto =
-                                    cirugia.motivo_pendiente != null &&
-                                    cirugia.hora_fin !== null &&
-                                    cirugia.estado === 'realizada';
-                                const pendienteDeCierre =
-                                    cirugia.motivo_pendiente != null &&
-                                    !faltaSoloCosto;
+                                const detalle = CirugiaController.show.url(
+                                    cirugia.id,
+                                );
 
                                 return (
+                                    // Toda la fila abre el detalle; «Corregir»
+                                    // vive ahí. El enlace del procedimiento
+                                    // es el camino por teclado.
                                     <tr
                                         key={cirugia.id}
-                                        className="border-b last:border-0"
+                                        onClick={() => router.visit(detalle)}
+                                        className="cursor-pointer border-b transition-colors last:border-0 hover:bg-muted/40"
                                     >
                                         <td className="p-3 whitespace-nowrap tabular-nums">
                                             {formatearFecha(cirugia.fecha)}
                                         </td>
                                         <td className="p-3">
                                             <div
-                                                className="max-w-[10rem] truncate"
+                                                className="max-w-[11rem] truncate"
                                                 title={
                                                     nombrePaciente ?? undefined
                                                 }
@@ -226,53 +428,46 @@ export default function CirugiasIndex({
                                         </td>
                                         <td className="p-3">
                                             {procedimiento ? (
-                                                <div
-                                                    className="max-w-[14rem] truncate"
-                                                    title={`${procedimiento.codigo_cups} · ${separarMarcaSemilla(procedimiento.nombre).limpio}`}
-                                                >
-                                                    <span className="font-mono text-xs text-muted-foreground">
-                                                        {
-                                                            procedimiento.codigo_cups
+                                                <>
+                                                    <Link
+                                                        href={detalle}
+                                                        prefetch
+                                                        onClick={(e) =>
+                                                            e.stopPropagation()
                                                         }
-                                                    </span>{' '}
-                                                    <NombreDato
-                                                        texto={
-                                                            procedimiento.nombre
+                                                        className="block max-w-[17rem] truncate hover:underline"
+                                                        title={
+                                                            separarMarcaSemilla(
+                                                                procedimiento.nombre,
+                                                            ).limpio
                                                         }
-                                                    />
-                                                </div>
+                                                    >
+                                                        <NombreDato
+                                                            texto={
+                                                                procedimiento.nombre
+                                                            }
+                                                        />
+                                                    </Link>
+                                                    <span className="text-xs text-muted-foreground">
+                                                        <span className="font-mono">
+                                                            {
+                                                                procedimiento.codigo_cups
+                                                            }
+                                                        </span>{' '}
+                                                        ·{' '}
+                                                        {etiqueta(cirugia.tipo)}
+                                                    </span>
+                                                </>
                                             ) : (
-                                                '—'
-                                            )}
-                                        </td>
-                                        <td className="p-3">
-                                            {etiqueta(cirugia.tipo)}
-                                        </td>
-                                        <td className="p-3 whitespace-nowrap">
-                                            {/* Una sola señal por fila. Antes salía
-                                            «En recuperación» + «Está en «en
-                                            recuperación»» + «Sin costear»: el
-                                            estado tres veces. Si falta cerrarla,
-                                            el estado va en ámbar con el motivo
-                                            al pasar el cursor; si solo falta el
-                                            costo, la señal está en su columna. */}
-                                            {pendienteDeCierre ? (
-                                                <Badge
-                                                    variant="outline"
-                                                    className={
-                                                        claseInsigniaPendiente
+                                                <Link
+                                                    href={detalle}
+                                                    onClick={(e) =>
+                                                        e.stopPropagation()
                                                     }
-                                                    title={`${cirugia.motivo_pendiente}: no entra a los indicadores hasta cerrarse`}
+                                                    className="text-muted-foreground hover:underline"
                                                 >
-                                                    {etiqueta(cirugia.estado)}
-                                                </Badge>
-                                            ) : (
-                                                etiqueta(cirugia.estado)
-                                            )}
-                                            {cirugia.hora_fin === null && (
-                                                <span className="block text-xs text-muted-foreground">
-                                                    Falta la salida de sala
-                                                </span>
+                                                    Sin procedimiento
+                                                </Link>
                                             )}
                                         </td>
                                         <td className="p-3 text-right whitespace-nowrap tabular-nums">
@@ -281,29 +476,19 @@ export default function CirugiasIndex({
                                                 : '—'}
                                         </td>
                                         <td className="p-3 text-right whitespace-nowrap tabular-nums">
-                                            {cirugia.costo_total !== null ? (
-                                                cop(Number(cirugia.costo_total))
-                                            ) : faltaSoloCosto ? (
-                                                <Badge
-                                                    variant="outline"
-                                                    className={
-                                                        claseInsigniaPendiente
-                                                    }
-                                                    title="Cerrada pero sin costo: no entra a los indicadores hasta costearse"
-                                                >
-                                                    Sin costear
-                                                </Badge>
-                                            ) : (
-                                                <span
-                                                    className="text-muted-foreground"
-                                                    title="Se costea al cerrarse"
-                                                >
-                                                    —
-                                                </span>
-                                            )}
+                                            <Costo cirugia={cirugia} />
                                         </td>
-                                        <td className="p-3 text-right whitespace-nowrap">
-                                            {cirugia.puede_cerrarse && (
+                                        <td className="p-3 whitespace-nowrap">
+                                            <Situacion cirugia={cirugia} />
+                                        </td>
+                                        {/* El modal vive dentro de la fila:
+                                            sus clics no deben abrir el
+                                            detalle. */}
+                                        <td
+                                            className="p-3 text-right whitespace-nowrap"
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
+                                            {cirugia.puede_cerrarse ? (
                                                 <CerrarCirugiaModal
                                                     cirugiaId={cirugia.id}
                                                     paso={
@@ -314,40 +499,14 @@ export default function CirugiasIndex({
                                                         cirugia.hora_inicio
                                                     }
                                                     horaFin={cirugia.hora_fin}
+                                                    conTexto
+                                                />
+                                            ) : (
+                                                <ChevronRight
+                                                    aria-hidden
+                                                    className="ml-auto size-4 text-muted-foreground/60"
                                                 />
                                             )}
-                                            <Button
-                                                asChild
-                                                variant="ghost"
-                                                size="icon"
-                                                aria-label="Corregir"
-                                                title="Corregir"
-                                            >
-                                                <Link
-                                                    href={CirugiaController.edit.url(
-                                                        cirugia.id,
-                                                    )}
-                                                    prefetch
-                                                >
-                                                    <Pencil className="size-4" />
-                                                </Link>
-                                            </Button>
-                                            <Button
-                                                asChild
-                                                variant="ghost"
-                                                size="icon"
-                                                aria-label="Ver detalle"
-                                                title="Ver detalle"
-                                            >
-                                                <Link
-                                                    href={CirugiaController.show.url(
-                                                        cirugia.id,
-                                                    )}
-                                                    prefetch
-                                                >
-                                                    <Eye className="size-4" />
-                                                </Link>
-                                            </Button>
                                         </td>
                                     </tr>
                                 );

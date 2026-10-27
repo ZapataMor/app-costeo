@@ -10,6 +10,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { etiqueta, fecha as formatearFecha } from '@/lib/formato';
 
 type RegistroPropio = {
     id: number;
@@ -112,8 +113,10 @@ export default function CirugiasInicio({ mios }: { mios: RegistroPropio[] }) {
                                                 key={registro.id}
                                                 className="border-b last:border-0"
                                             >
-                                                <td className="py-2 tabular-nums">
-                                                    {registro.fecha}
+                                                <td className="py-2 whitespace-nowrap tabular-nums">
+                                                    {formatearFecha(
+                                                        registro.fecha,
+                                                    )}
                                                 </td>
                                                 <td className="py-2">
                                                     {registro.paciente
@@ -126,12 +129,7 @@ export default function CirugiasInicio({ mios }: { mios: RegistroPropio[] }) {
                                                         ?.nombre ?? '—'}
                                                 </td>
                                                 <td className="py-2">
-                                                    <span className="capitalize">
-                                                        {registro.estado.replace(
-                                                            '_',
-                                                            ' ',
-                                                        )}
-                                                    </span>
+                                                    {etiqueta(registro.estado)}
                                                     {registro.puede_cerrarse && (
                                                         <Badge
                                                             variant="outline"

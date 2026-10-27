@@ -186,7 +186,85 @@ class PeriodoYFiltrosTest extends TestCase
             ->get('/cirugias?pendientes=1')
             ->assertOk()
             ->assertInertia(fn ($page) => $page->has('cirugias.data', 1)
-                ->where('totalPendientes', 1));
+                ->where('filtros.vista', 'pendientes')
+                ->where('conteos.pendientes', 1));
+    }
+
+    public function test_una_cancelada_no_es_pendiente(): void
+    {
+        Cirugia::factory()->create([
+            'hospital_id' => $this->hospital->id,
+            'estado' => EstadoCirugia::Cancelada->value,
+            'hora_fin' => null,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->get('/cirugias?vista=pendientes')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->has('cirugias.data', 0)
+                ->where('conteos.todas', 1)
+                ->where('conteos.pendientes', 0));
+    }
+
+    public function test_la_bandeja_sin_facturar_trae_las_completas_sin_facturacion(): void
+    {
+        $facturada = $this->cirugiaCosteada('2026-06-15', 100000);
+        $this->cirugiaCosteada('2026-06-16', 200000);
+
+        Facturacion::factory()->create([
+            'cirugia_id' => $facturada->id,
+            'hospital_id' => $this->hospital->id,
+        ]);
+
+        // Abierta: todavía no se puede facturar, va en pendientes.
+        Cirugia::factory()->create([
+            'hospital_id' => $this->hospital->id,
+            'estado' => EstadoCirugia::EnProceso->value,
+            'hora_fin' => null,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->get('/cirugias?vista=sin_facturar')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->has('cirugias.data', 1)
+                ->where('cirugias.data.0.facturada', false)
+                ->where('conteos.todas', 3)
+                ->where('conteos.pendientes', 1)
+                ->where('conteos.sin_facturar', 1));
+    }
+
+    public function test_el_listado_filtra_por_paciente_y_lo_nombra(): void
+    {
+        $paciente = Paciente::factory()->create([
+            'hospital_id' => $this->hospital->id,
+            'nombres' => 'Ana María',
+            'apellidos' => 'Epieyú',
+        ]);
+
+        Cirugia::factory()->count(2)->create([
+            'hospital_id' => $this->hospital->id,
+            'paciente_id' => $paciente->id,
+        ]);
+        Cirugia::factory()->create(['hospital_id' => $this->hospital->id]);
+
+        $this->actingAs($this->admin)
+            ->get("/cirugias?paciente={$paciente->id}")
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->has('cirugias.data', 2)
+                ->where('conteos.todas', 2)
+                ->where('pacienteFiltrado.apellidos', 'Epieyú'));
+    }
+
+    public function test_el_filtro_por_paciente_no_revela_pacientes_de_otro_hospital(): void
+    {
+        $otro = Hospital::factory()->create();
+        $ajeno = Paciente::factory()->create(['hospital_id' => $otro->id]);
+
+        $this->actingAs($this->admin)
+            ->get("/cirugias?paciente={$ajeno->id}")
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->has('cirugias.data', 0)
+                ->where('pacienteFiltrado', null));
     }
 
     public function test_el_listado_de_cirugias_busca_por_paciente(): void

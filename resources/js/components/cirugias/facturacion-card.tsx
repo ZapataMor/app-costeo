@@ -30,7 +30,9 @@ export function FacturacionCard({
     facturacion: Facturacion | null;
     costoTotal: number | null;
 }) {
-    const [editando, setEditando] = useState(facturacion === null);
+    // Arranca cerrada aunque no haya facturación: cinco campos vacíos
+    // ocupaban media pantalla del detalle antes de que alguien los pidiera.
+    const [editando, setEditando] = useState(false);
 
     const { data, setData, post, processing, errors } = useForm({
         valor_facturado: facturacion?.valor_facturado ?? '',
@@ -187,18 +189,26 @@ export function FacturacionCard({
                             >
                                 Guardar facturación
                             </Button>
-                            {facturacion !== null && (
-                                <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => setEditando(false)}
-                                >
-                                    Cancelar
-                                </Button>
-                            )}
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setEditando(false)}
+                            >
+                                Cancelar
+                            </Button>
                         </div>
                     </form>
+                ) : facturacion === null ? (
+                    <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+                        <p className="text-muted-foreground">
+                            Sin facturación registrada: esta cirugía no tiene
+                            margen, glosa ni recaudo.
+                        </p>
+                        <Button size="sm" onClick={() => setEditando(true)}>
+                            Registrar facturación
+                        </Button>
+                    </div>
                 ) : (
                     <dl className="space-y-2 text-sm">
                         <Fila termino="Facturado" valor={cop(facturado)} />

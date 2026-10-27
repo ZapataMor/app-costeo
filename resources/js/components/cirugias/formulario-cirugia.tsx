@@ -158,7 +158,7 @@ const CAMPOS_POR_PASO: Record<ClavePaso, string[]> = {
 };
 
 const PASOS: { clave: ClavePaso; titulo: string; fase: FaseCiclo | null }[] = [
-    { clave: 'paciente', titulo: 'Paciente', fase: null },
+    { clave: 'paciente', titulo: 'Paciente y procedimiento', fase: null },
     { clave: 'pre', titulo: 'Pre-quirúrgico', fase: 'pre' },
     { clave: 'quirurgica', titulo: 'Quirúrgico', fase: 'quirurgica' },
     { clave: 'post', titulo: 'Post-quirúrgico', fase: 'post' },

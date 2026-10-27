@@ -28,7 +28,8 @@ export function ResultadoClinicoCard({
     cirugiaId: number;
     resultado: ResultadoClinico | null;
 }) {
-    const [editando, setEditando] = useState(resultado === null);
+    // Cerrada hasta que se pida, igual que la facturación.
+    const [editando, setEditando] = useState(false);
 
     const { data, setData, post, processing, errors } = useForm({
         complicacion_intraoperatoria:
@@ -195,18 +196,26 @@ export function ResultadoClinicoCard({
                             >
                                 Guardar resultado
                             </Button>
-                            {resultado !== null && (
-                                <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => setEditando(false)}
-                                >
-                                    Cancelar
-                                </Button>
-                            )}
+                            <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setEditando(false)}
+                            >
+                                Cancelar
+                            </Button>
                         </div>
                     </form>
+                ) : resultado === null ? (
+                    <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+                        <p className="text-muted-foreground">
+                            Sin resultado clínico: no entra a complicaciones,
+                            estancia ni reingresos.
+                        </p>
+                        <Button size="sm" onClick={() => setEditando(true)}>
+                            Registrar resultado
+                        </Button>
+                    </div>
                 ) : (
                     <dl className="space-y-2 text-sm">
                         <Fila

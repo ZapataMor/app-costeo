@@ -10,14 +10,14 @@ import type {
     Facturacion,
 } from '@/types/cirugias';
 
-const TONO_CLASIFICACION: Record<ClasificacionDesviacion, Tono> = {
+export const TONO_CLASIFICACION: Record<ClasificacionDesviacion, Tono> = {
     subejecucion: 'bien',
     en_rango: 'bien',
     sobrecosto_leve: 'atencion',
     sobrecosto_alto: 'alerta',
 };
 
-const NOMBRE_CLASIFICACION: Record<ClasificacionDesviacion, string> = {
+export const NOMBRE_CLASIFICACION: Record<ClasificacionDesviacion, string> = {
     subejecucion: 'subejecución',
     en_rango: 'en rango',
     sobrecosto_leve: 'sobrecosto leve',

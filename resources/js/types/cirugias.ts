@@ -11,6 +11,10 @@ export type CirugiaFila = {
     estado: string;
     duracion_minutos: number | null;
     costo_total: string | null;
+    /** Frente al costo estándar del protocolo; null sin costo o sin plantilla. */
+    desviacion_pct: string | null;
+    clasificacion_desviacion: ClasificacionDesviacion | null;
+    facturada: boolean;
     puede_cerrarse: boolean;
     /** Marca que falta para avanzar el cierre; null si el ciclo ya cerró. */
     paso_cierre: 'sala' | 'ciclo' | null;

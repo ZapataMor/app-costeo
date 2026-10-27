@@ -124,7 +124,7 @@ class ResumenHospital
             $items[] = [
                 'clave' => 'pendientes',
                 'tono' => 'atencion',
-                'href' => '/cirugias?pendientes=1',
+                'href' => '/cirugias?vista=pendientes',
                 'n' => $pendientes,
             ];
         }

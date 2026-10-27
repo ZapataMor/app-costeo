@@ -1,12 +1,11 @@
-import { Head, router } from '@inertiajs/react';
-import { Search, UserPlus } from 'lucide-react';
+import { Head, Link, router } from '@inertiajs/react';
+import { Search, Trash2, UserPlus } from 'lucide-react';
 import { useState } from 'react';
 import { etiquetasRegimen } from '@/components/pacientes/campos-paciente';
 import { EditarPacienteModal } from '@/components/pacientes/editar-paciente-modal';
 import { ConfirmarEliminacion } from '@/components/parametros/confirmar-eliminacion';
 import { EncabezadoListado } from '@/components/parametros/encabezado-listado';
 import { Paginacion } from '@/components/parametros/paginacion';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { PacienteFila, PaginadoPacientes } from '@/types/pacientes';
@@ -69,8 +68,10 @@ export default function PacientesIndex({
                                 <th className="p-3 font-medium">Régimen</th>
                                 <th className="p-3 font-medium">Asegurador</th>
                                 <th className="p-3 font-medium">Procedencia</th>
+                                {/* Igual que el módulo: «Cirugías», no
+                                    «Procedimientos» (ese es el catálogo). */}
                                 <th className="p-3 text-right font-medium">
-                                    Procedimientos
+                                    Cirugías
                                 </th>
                                 <th className="p-3 text-right font-medium">
                                     Acciones
@@ -115,7 +116,19 @@ export default function PacientesIndex({
                                             .join(' · ')}
                                     </td>
                                     <td className="p-3 text-right tabular-nums">
-                                        {paciente.cirugias_count}
+                                        {paciente.cirugias_count > 0 ? (
+                                            <Link
+                                                href={`/cirugias?paciente=${paciente.id}`}
+                                                className="underline-offset-4 hover:underline"
+                                                title="Ver sus cirugías"
+                                            >
+                                                {paciente.cirugias_count}
+                                            </Link>
+                                        ) : (
+                                            <span className="text-muted-foreground">
+                                                0
+                                            </span>
+                                        )}
                                     </td>
                                     <td className="p-3 text-right whitespace-nowrap">
                                         <EditarPacienteModal
@@ -128,13 +141,23 @@ export default function PacientesIndex({
                                                 descripcion={`Se eliminará a ${paciente.nombres} ${paciente.apellidos} del padrón. Esta acción no se puede deshacer.`}
                                             />
                                         ) : (
-                                            <Badge
-                                                variant="outline"
-                                                className="ml-2"
-                                                title="Tiene procedimientos registrados"
+                                            // La insignia «Con historial» en
+                                            // cada fila parecía una acción: el
+                                            // botón queda, inactivo, con el
+                                            // porqué al pasar el cursor.
+                                            <span
+                                                className="inline-block"
+                                                title="No se puede eliminar: tiene cirugías registradas"
                                             >
-                                                Con historial
-                                            </Badge>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    disabled
+                                                    aria-label="Eliminar (no disponible: tiene cirugías registradas)"
+                                                >
+                                                    <Trash2 className="size-4" />
+                                                </Button>
+                                            </span>
                                         )}
                                     </td>
                                 </tr>

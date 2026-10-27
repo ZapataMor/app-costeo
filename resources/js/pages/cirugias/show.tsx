@@ -13,7 +13,13 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { etiqueta, fecha as formatearFecha } from '@/lib/formato';
+import {
+    cop,
+    etiqueta,
+    fechaHora,
+    fecha as formatearFecha,
+} from '@/lib/formato';
+import { separarMarcaSemilla } from '@/lib/semilla';
 import type {
     CirugiaDetalle,
     CostoCirugia,
@@ -28,6 +34,16 @@ const ETIQUETA_FASE: Record<FaseCiclo, string> = {
     quirurgica: 'quirúrgica',
     post: 'post-quirúrgica',
 };
+
+/** Una cesárea registra más de cuarenta insumos: arriba, los que pesan. */
+const INSUMOS_VISIBLES = 8;
+
+/**
+ * «17 oct 2026, 09:44 p. m.». El servidor manda «2026-10-17 21:44»: el
+ * espacio se cambia por la «T» para que todos los navegadores lo lean.
+ */
+const momento = (valor: string | null) =>
+    valor ? fechaHora(valor.replace(' ', 'T')) : '—';
 
 export default function CirugiasShow({
     cirugia,
@@ -45,6 +61,20 @@ export default function CirugiasShow({
     const sinTerminar = cirugia.hora_fin === null;
     const sinEstadoRealizada = cirugia.estado !== 'realizada';
     const noContabilizada = sinTerminar || sinEstadoRealizada;
+    // «quirúrgica» al lado de cada persona era ruido cuando todo el equipo
+    // estuvo en la misma fase: la fase solo se nombra si hay más de una.
+    const variasFases = new Set(cirugia.equipo.map((m) => m.fase)).size > 1;
+    const totalInsumos = cirugia.consumos.reduce(
+        (suma, consumo) => suma + Number(consumo.costo_total),
+        0,
+    );
+    const [todosLosInsumos, setTodosLosInsumos] = useState(false);
+    const consumosOrdenados = [...cirugia.consumos].sort(
+        (a, b) => Number(b.costo_total) - Number(a.costo_total),
+    );
+    const consumosVisibles = todosLosInsumos
+        ? consumosOrdenados
+        : consumosOrdenados.slice(0, INSUMOS_VISIBLES);
 
     const calcular = () => {
         router.post(
@@ -154,18 +184,18 @@ export default function CirugiasShow({
                         <CardContent className="space-y-2 text-sm">
                             <div className="flex justify-between">
                                 <span className="text-muted-foreground">
-                                    Inicio
+                                    Entrada a sala
                                 </span>
                                 <span className="tabular-nums">
-                                    {cirugia.hora_inicio ?? '—'}
+                                    {momento(cirugia.hora_inicio)}
                                 </span>
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-muted-foreground">
-                                    Fin
+                                    Salida de sala
                                 </span>
                                 <span className="tabular-nums">
-                                    {cirugia.hora_fin ?? '—'}
+                                    {momento(cirugia.hora_fin)}
                                 </span>
                             </div>
                             <div className="flex justify-between">
@@ -179,13 +209,11 @@ export default function CirugiasShow({
                                 </span>
                             </div>
                             <div className="flex justify-between">
+                                {/* El estado ya está en el resumen de arriba. */}
                                 <span className="text-muted-foreground">
-                                    Tipo / Estado
+                                    Tipo
                                 </span>
-                                <span>
-                                    {etiqueta(cirugia.tipo)} /{' '}
-                                    {etiqueta(cirugia.estado)}
-                                </span>
+                                <span>{etiqueta(cirugia.tipo)}</span>
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-muted-foreground">
@@ -220,7 +248,7 @@ export default function CirugiasShow({
                     <Card>
                         <CardHeader>
                             <CardTitle className="text-base">
-                                Procedimientos y equipo
+                                Procedimientos y equipo quirúrgico
                             </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-3 text-sm">
@@ -257,14 +285,20 @@ export default function CirugiasShow({
                                             <span className="text-muted-foreground">
                                                 ({etiqueta(miembro.rol)})
                                             </span>{' '}
-                                            <Badge
-                                                variant="outline"
-                                                className="align-middle text-xs font-normal"
-                                            >
-                                                {ETIQUETA_FASE[miembro.fase]}
-                                            </Badge>
+                                            {variasFases && (
+                                                <Badge
+                                                    variant="outline"
+                                                    className="align-middle text-xs font-normal"
+                                                >
+                                                    {
+                                                        ETIQUETA_FASE[
+                                                            miembro.fase
+                                                        ]
+                                                    }
+                                                </Badge>
+                                            )}
                                         </span>
-                                        <span className="tabular-nums">
+                                        <span className="shrink-0 whitespace-nowrap tabular-nums">
                                             {miembro.minutos_participacion} min
                                         </span>
                                     </div>
@@ -278,6 +312,85 @@ export default function CirugiasShow({
                         </CardContent>
                     </Card>
                 </div>
+
+                {/* Lo consumido estaba solo dentro del cálculo plegado, y los
+                    insumos suelen ser la tajada más grande del costo: se ven
+                    sin abrir nada, de mayor a menor y los primeros ocho. */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-baseline justify-between gap-2 text-base">
+                            Insumos y equipos usados
+                            {cirugia.consumos.length > 0 && (
+                                <span className="text-sm font-normal text-muted-foreground tabular-nums">
+                                    {cirugia.consumos.length} insumos ·{' '}
+                                    {cop(totalInsumos)}
+                                </span>
+                            )}
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3 text-sm">
+                        {consumosVisibles.length > 0 ? (
+                            <div className="grid gap-x-10 sm:grid-cols-2">
+                                {consumosVisibles.map((consumo, i) => (
+                                    <div
+                                        key={i}
+                                        className="flex items-baseline justify-between gap-3 border-b py-1.5"
+                                    >
+                                        <span className="min-w-0 truncate">
+                                            <NombreDato
+                                                texto={consumo.insumo ?? '—'}
+                                            />{' '}
+                                            <span className="text-muted-foreground tabular-nums">
+                                                ×{' '}
+                                                {Number(
+                                                    consumo.cantidad,
+                                                ).toLocaleString('es-CO')}
+                                                {consumo.unidad
+                                                    ? ` ${consumo.unidad}`
+                                                    : ''}
+                                            </span>
+                                        </span>
+                                        <span className="shrink-0 tabular-nums">
+                                            {cop(Number(consumo.costo_total))}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-muted-foreground">
+                                Sin insumos registrados.
+                            </p>
+                        )}
+                        {consumosOrdenados.length > INSUMOS_VISIBLES && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setTodosLosInsumos((v) => !v)}
+                            >
+                                {todosLosInsumos
+                                    ? 'Ver solo los de mayor costo'
+                                    : `Ver los ${consumosOrdenados.length} insumos`}
+                            </Button>
+                        )}
+                        {cirugia.equipos_medicos.length > 0 && (
+                            <p className="border-t pt-3 text-muted-foreground">
+                                <span className="font-medium text-foreground">
+                                    Equipos:
+                                </span>{' '}
+                                {cirugia.equipos_medicos
+                                    .map(
+                                        (equipo) =>
+                                            `${separarMarcaSemilla(equipo.nombre).limpio} (${
+                                                equipo.minutos_uso !== null
+                                                    ? `${equipo.minutos_uso} min`
+                                                    : 'todo el tiempo'
+                                            })`,
+                                    )
+                                    .join(' · ')}
+                            </p>
+                        )}
+                    </CardContent>
+                </Card>
 
                 <div className="grid gap-4 lg:grid-cols-2">
                     <FacturacionCard

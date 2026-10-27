@@ -26,6 +26,7 @@ import { Label } from '@/components/ui/label';
 const PASOS = {
     sala: {
         titulo: 'Registrar salida de sala',
+        corto: 'Registrar salida',
         etiqueta: 'Hora de salida de sala',
         campo: 'hora_fin',
         boton: 'Registrar salida',
@@ -33,6 +34,7 @@ const PASOS = {
     },
     ciclo: {
         titulo: 'Cerrar el ciclo',
+        corto: 'Cerrar ciclo',
         etiqueta: 'Hora de egreso de recuperación',
         campo: 'hora_salida_recuperacion',
         boton: 'Cerrar y costear',
@@ -45,11 +47,14 @@ export function CerrarCirugiaModal({
     paso,
     horaInicio,
     horaFin,
+    conTexto = false,
 }: {
     cirugiaId: number;
     paso: 'sala' | 'ciclo';
     horaInicio: string;
     horaFin: string | null;
+    /** En el listado es la única acción de la fila: va con su nombre. */
+    conTexto?: boolean;
 }) {
     const [abierto, setAbierto] = useState(false);
     const [valor, setValor] = useState('');
@@ -81,8 +86,8 @@ export function CerrarCirugiaModal({
         <>
             <Button
                 type="button"
-                variant="ghost"
-                size="icon"
+                variant={conTexto ? 'outline' : 'ghost'}
+                size={conTexto ? 'sm' : 'icon'}
                 aria-label={config.titulo}
                 title={config.titulo}
                 onClick={() => {
@@ -92,6 +97,7 @@ export function CerrarCirugiaModal({
                 }}
             >
                 <CircleCheckBig className="size-4" />
+                {conTexto && config.corto}
             </Button>
 
             <Dialog open={abierto} onOpenChange={setAbierto}>

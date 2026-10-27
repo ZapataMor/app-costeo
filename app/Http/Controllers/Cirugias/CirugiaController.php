@@ -53,11 +53,16 @@ class CirugiaController extends Controller
         }
 
         $busqueda = trim((string) $request->string('q'));
-        $estado = trim((string) $request->string('estado'));
-        $pendientes = $request->boolean('pendientes');
+        $pacienteId = $request->integer('paciente') ?: null;
+        // Dos bandejas en vez de un filtro de estado más un aviso y un botón
+        // de pendientes que hacían lo mismo. `pendientes=1` sigue funcionando:
+        // es el enlace que usan la portada y los marcadores viejos.
+        $vista = $request->boolean('pendientes') ? 'pendientes' : (string) $request->string('vista');
+        $vista = in_array($vista, ['pendientes', 'sin_facturar'], true) ? $vista : '';
 
-        $cirugias = Cirugia::query()
-            ->with(['paciente', 'procedimientos', 'costo'])
+        // Búsqueda, periodo y paciente: comunes al listado y a los conteos de
+        // las pestañas, para que el número de cada una diga lo que va a traer.
+        $base = Cirugia::query()
             // Búsqueda por paciente o por procedimiento (nombre o CUPS): son
             // las dos formas en que alguien recuerda una cirugía.
             ->when($busqueda !== '', fn (Builder $q) => $q->where(
@@ -69,13 +74,20 @@ class CirugiaController extends Controller
                         ->where('nombre', 'like', "%{$busqueda}%")
                         ->orWhere('codigo_cups', 'like', "%{$busqueda}%")),
             ))
-            ->when($estado !== '', fn (Builder $q) => $q->where('estado', $estado))
             ->when($request->filled('desde'), fn (Builder $q) => $q->whereDate('fecha', '>=', $request->date('desde')))
             ->when($request->filled('hasta'), fn (Builder $q) => $q->whereDate('fecha', '<=', $request->date('hasta')))
-            // Bandeja de pendientes: lo que no entrará a los indicadores
-            // mientras no se complete.
-            ->when($pendientes, fn (Builder $q) => $q->where(
+            // Desde Pacientes: las cirugías de una persona.
+            ->when($pacienteId !== null, fn (Builder $q) => $q->where('paciente_id', $pacienteId));
+
+        $cirugias = (clone $base)
+            ->with(['paciente', 'procedimientos', 'costo', 'facturacion'])
+            // Pendientes: lo que no entrará a los indicadores mientras no se
+            // complete. Sin facturar: completas, pero sin margen que mostrar.
+            ->when($vista === 'pendientes', fn (Builder $q) => $q->where(
                 fn (Builder $q) => self::filtroPendientes($q)
+            ))
+            ->when($vista === 'sin_facturar', fn (Builder $q) => $q->where(
+                fn (Builder $q) => self::filtroSinFacturar($q)
             ))
             ->orderByDesc('fecha')
             ->orderByDesc('id')
@@ -90,6 +102,10 @@ class CirugiaController extends Controller
                 'estado' => $cirugia->estado,
                 'duracion_minutos' => $cirugia->duracionMinutos(),
                 'costo_total' => $cirugia->costo?->costo_total,
+                // Lo que más dice de una fila: si se salió de su protocolo.
+                'desviacion_pct' => $cirugia->costo?->desviacion_pct,
+                'clasificacion_desviacion' => $cirugia->costo?->clasificacion_desviacion?->value,
+                'facturada' => $cirugia->facturacion !== null,
                 // Un procedimiento abierto se cierra desde el listado sin
                 // volver a pasar por el formulario completo.
                 'puede_cerrarse' => $cirugia->pasoDeCierre() !== null,
@@ -104,24 +120,38 @@ class CirugiaController extends Controller
 
         return Inertia::render('cirugias/index', [
             'cirugias' => $cirugias,
-            'estados' => EstadoCirugia::values(),
             'filtros' => [
                 'q' => $busqueda,
-                'estado' => $estado,
                 'desde' => (string) $request->string('desde'),
                 'hasta' => (string) $request->string('hasta'),
-                'pendientes' => $pendientes ? '1' : '',
+                'paciente' => $pacienteId !== null ? (string) $pacienteId : '',
+                'vista' => $vista,
             ],
-            // Total real de pendientes en el hospital, no solo en esta página.
-            'totalPendientes' => Cirugia::query()
-                ->where(fn (Builder $q) => self::filtroPendientes($q))
-                ->count(),
+            // Totales reales con los mismos filtros, no solo de esta página.
+            'conteos' => [
+                'todas' => (clone $base)->count(),
+                'pendientes' => (clone $base)
+                    ->where(fn (Builder $q) => self::filtroPendientes($q))
+                    ->count(),
+                'sin_facturar' => (clone $base)
+                    ->where(fn (Builder $q) => self::filtroSinFacturar($q))
+                    ->count(),
+            ],
+            // El HospitalScope deja fuera un paciente de otro hospital.
+            'pacienteFiltrado' => $pacienteId !== null
+                ? Paciente::query()->find($pacienteId)?->only(['id', 'nombres', 'apellidos'])
+                : null,
         ]);
     }
 
     /** Qué le falta a esta cirugía para entrar a los indicadores. */
     private function motivoPendiente(Cirugia $cirugia): ?string
     {
+        // Cancelada no es pendiente: no hay nada que completar.
+        if ($cirugia->estado === EstadoCirugia::Cancelada->value) {
+            return null;
+        }
+
         if ($cirugia->hora_fin === null) {
             return 'Falta la salida de sala';
         }
@@ -138,22 +168,37 @@ class CirugiaController extends Controller
     }
 
     /**
-     * Qué cuenta como pendiente: todo lo que hoy no llega a los indicadores.
+     * Qué cuenta como pendiente: todo lo que hoy no llega a los indicadores
+     * y todavía puede llegar.
      *
      * Incluye las cirugías ya cerradas que se quedaron sin costo calculado.
      * Antes solo miraba el cierre, así que una cirugía terminada y sin costear
      * era invisible: no aparecía en la bandeja, pero sí bajaba la completitud
-     * del panel, y no había forma de encontrarla.
+     * del panel, y no había forma de encontrarla. Las canceladas no cuentan:
+     * no hay nada que completarles, y antes inflaban la bandeja para siempre.
      */
     public static function filtroPendientes(Builder $query): void
     {
         $query
-            ->whereNull('hora_fin')
-            ->orWhere('estado', '!=', EstadoCirugia::Realizada->value)
-            ->orWhere(fn (Builder $q) => $q
-                ->where('estado', EstadoCirugia::Realizada->value)
-                ->whereNotNull('hora_fin')
-                ->whereDoesntHave('costo'));
+            ->where('estado', '!=', EstadoCirugia::Cancelada->value)
+            ->where(fn (Builder $q) => $q
+                ->whereNull('hora_fin')
+                ->orWhere('estado', '!=', EstadoCirugia::Realizada->value)
+                // Cerrada y realizada (las dos ramas anteriores no aplican):
+                // solo le falta el costo.
+                ->orWhereDoesntHave('costo'));
+    }
+
+    /**
+     * Realizadas y cerradas sin facturación registrada: cuentan en el costo,
+     * pero no tienen margen, glosa ni recaudo con qué compararlo.
+     */
+    public static function filtroSinFacturar(Builder $query): void
+    {
+        $query
+            ->where('estado', EstadoCirugia::Realizada->value)
+            ->whereNotNull('hora_fin')
+            ->whereDoesntHave('facturacion');
     }
 
     public function create(): Response
