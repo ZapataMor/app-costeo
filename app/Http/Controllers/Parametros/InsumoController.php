@@ -25,12 +25,12 @@ class InsumoController extends Controller
             Insumo::query(),
             $request,
             ['nombre', 'codigo', 'codigo_atc'],
-            ['categoria' => 'categoria', 'activo' => 'activo', 'confiabilidad' => 'nivel_confiabilidad'],
+            ['categoria' => 'categoria', 'activo' => 'activo'],
         );
 
         return Inertia::render('parametros/insumos/index', [
             'insumos' => $insumos->orderBy('nombre')->paginate(15)->withQueryString(),
-            'filtros' => $this->filtrosActivos($request, ['categoria', 'activo', 'confiabilidad']),
+            'filtros' => $this->filtrosActivos($request, ['categoria', 'activo']),
             ...$this->catalogos(),
         ]);
     }

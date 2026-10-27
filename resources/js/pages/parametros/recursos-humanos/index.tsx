@@ -61,12 +61,6 @@ export default function RecursosHumanosIndex({
                             opciones: opcionesDesdeValores(roles),
                         },
                         {
-                            clave: 'confiabilidad',
-                            etiqueta: 'Confiabilidad',
-                            opciones:
-                                opcionesDesdeValores(nivelesConfiabilidad),
-                        },
-                        {
                             clave: 'activo',
                             etiqueta: 'Estado',
                             opciones: opcionesActivo,

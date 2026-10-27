@@ -24,12 +24,12 @@ class SalaOperatoriaController extends Controller
             SalaOperatoria::query(),
             $request,
             ['nombre'],
-            ['activa' => 'activa', 'confiabilidad' => 'nivel_confiabilidad'],
+            ['activa' => 'activa'],
         );
 
         return Inertia::render('parametros/salas-operatorias/index', [
             'salas' => $salas->orderBy('nombre')->paginate(15)->withQueryString(),
-            'filtros' => $this->filtrosActivos($request, ['activa', 'confiabilidad']),
+            'filtros' => $this->filtrosActivos($request, ['activa']),
             ...$this->catalogos(),
         ]);
     }

@@ -10,7 +10,7 @@ import { NivelConfiabilidadBadge } from '@/components/parametros/nivel-confiabil
 import { Paginacion } from '@/components/parametros/paginacion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { opcionesActivo, opcionesDesdeValores } from '@/lib/filtros';
+import { opcionesActivo } from '@/lib/filtros';
 import { cop } from '@/lib/formato';
 import type { EquipoMedicoParam, Paginado } from '@/types/parametros';
 
@@ -52,12 +52,6 @@ export default function EquiposMedicosIndex({
                     valores={filtros}
                     placeholderBusqueda="Nombre del equipo…"
                     filtros={[
-                        {
-                            clave: 'confiabilidad',
-                            etiqueta: 'Confiabilidad',
-                            opciones:
-                                opcionesDesdeValores(nivelesConfiabilidad),
-                        },
                         {
                             clave: 'activo',
                             etiqueta: 'Estado',

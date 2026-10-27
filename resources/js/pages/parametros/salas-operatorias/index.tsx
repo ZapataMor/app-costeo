@@ -10,7 +10,6 @@ import { NivelConfiabilidadBadge } from '@/components/parametros/nivel-confiabil
 import { Paginacion } from '@/components/parametros/paginacion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { opcionesDesdeValores } from '@/lib/filtros';
 import { cop } from '@/lib/formato';
 import type { Paginado, SalaOperatoriaParam } from '@/types/parametros';
 
@@ -52,12 +51,6 @@ export default function SalasOperatoriasIndex({
                     valores={filtros}
                     placeholderBusqueda="Nombre de la sala…"
                     filtros={[
-                        {
-                            clave: 'confiabilidad',
-                            etiqueta: 'Confiabilidad',
-                            opciones:
-                                opcionesDesdeValores(nivelesConfiabilidad),
-                        },
                         {
                             clave: 'activa',
                             etiqueta: 'Estado',

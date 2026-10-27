@@ -24,12 +24,12 @@ class EquipoMedicoController extends Controller
             EquipoMedico::query(),
             $request,
             ['nombre'],
-            ['activo' => 'activo', 'confiabilidad' => 'nivel_confiabilidad'],
+            ['activo' => 'activo'],
         );
 
         return Inertia::render('parametros/equipos-medicos/index', [
             'equipos' => $equipos->orderBy('nombre')->paginate(15)->withQueryString(),
-            'filtros' => $this->filtrosActivos($request, ['activo', 'confiabilidad']),
+            'filtros' => $this->filtrosActivos($request, ['activo']),
             ...$this->catalogos(),
         ]);
     }

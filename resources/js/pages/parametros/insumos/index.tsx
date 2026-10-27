@@ -62,12 +62,6 @@ export default function InsumosIndex({
                             opciones: opcionesDesdeValores(categorias),
                         },
                         {
-                            clave: 'confiabilidad',
-                            etiqueta: 'Confiabilidad',
-                            opciones:
-                                opcionesDesdeValores(nivelesConfiabilidad),
-                        },
-                        {
                             clave: 'activo',
                             etiqueta: 'Estado',
                             opciones: opcionesActivo,

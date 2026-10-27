@@ -25,12 +25,12 @@ class RecursoHumanoController extends Controller
             RecursoHumano::query(),
             $request,
             ['nombre', 'especialidad'],
-            ['rol' => 'rol', 'activo' => 'activo', 'confiabilidad' => 'nivel_confiabilidad'],
+            ['rol' => 'rol', 'activo' => 'activo'],
         );
 
         return Inertia::render('parametros/recursos-humanos/index', [
             'recursos' => $recursos->orderBy('nombre')->paginate(15)->withQueryString(),
-            'filtros' => $this->filtrosActivos($request, ['rol', 'activo', 'confiabilidad']),
+            'filtros' => $this->filtrosActivos($request, ['rol', 'activo']),
             ...$this->catalogos(),
         ]);
     }
