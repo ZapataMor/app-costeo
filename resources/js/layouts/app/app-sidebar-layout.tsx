@@ -4,10 +4,7 @@ import { AppSidebar } from '@/components/app-sidebar';
 import { AppSidebarHeader } from '@/components/app-sidebar-header';
 import type { AppLayoutProps } from '@/types';
 
-export default function AppSidebarLayout({
-    children,
-    breadcrumbs = [],
-}: AppLayoutProps) {
+export default function AppSidebarLayout({ children }: AppLayoutProps) {
     return (
         <AppShell variant="sidebar">
             <AppSidebar />
@@ -15,7 +12,7 @@ export default function AppSidebarLayout({
                 variant="sidebar"
                 className="sicoq-panel overflow-hidden"
             >
-                <AppSidebarHeader breadcrumbs={breadcrumbs} />
+                <AppSidebarHeader />
                 <div className="sicoq-page-scroll min-h-0 flex-1 overflow-y-auto">
                     {children}
                 </div>

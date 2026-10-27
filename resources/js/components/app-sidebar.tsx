@@ -17,7 +17,7 @@ import {
     Users,
     UsersRound,
 } from 'lucide-react';
-import AppLogo from '@/components/app-logo';
+import { AppLogoMarca, AppLogoTexto } from '@/components/app-logo';
 import { HospitalSwitcher } from '@/components/hospital-switcher';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -26,9 +26,7 @@ import {
     SidebarContent,
     SidebarFooter,
     SidebarHeader,
-    SidebarMenu,
-    SidebarMenuButton,
-    SidebarMenuItem,
+    useSidebar,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
 import type { NavItem } from '@/types';
@@ -195,6 +193,7 @@ export function AppSidebar() {
     // El dashboard es consolidado multi-hospital: solo tiene sentido para el
     // super_admin, así que el resto de roles ni siquiera lo ven en el menú.
     const esSuperAdmin = role === 'super_admin';
+    const { state, toggleSidebar } = useSidebar();
 
     return (
         <Sidebar
@@ -203,30 +202,42 @@ export function AppSidebar() {
             className="border-0 bg-[#17181F] p-0"
         >
             <SidebarHeader className="gap-4 px-4 pt-5 pb-3">
-                <SidebarMenu>
-                    <SidebarMenuItem>
-                        <SidebarMenuButton
-                            size="lg"
-                            asChild
-                            className="h-auto p-1 hover:bg-transparent data-[active=true]:bg-transparent"
-                        >
-                            <Link
-                                href={
-                                    esDigitador
-                                        ? '/cirugias'
-                                        : esProfesional
-                                          ? '/conocimiento/lecciones'
-                                          : esSuperAdmin
-                                            ? dashboard()
-                                            : '/inicio'
-                                }
-                                prefetch
-                            >
-                                <AppLogo />
-                            </Link>
-                        </SidebarMenuButton>
-                    </SidebarMenuItem>
-                </SidebarMenu>
+                {/* El ícono de la app recoge y expande la sidebar (reemplaza el
+                    botón de la barra superior); el nombre lleva a la portada. */}
+                <div className="flex items-center gap-2 p-1">
+                    <button
+                        type="button"
+                        onClick={toggleSidebar}
+                        aria-label={
+                            state === 'expanded'
+                                ? 'Recoger menú'
+                                : 'Expandir menú'
+                        }
+                        title={
+                            state === 'expanded'
+                                ? 'Recoger menú'
+                                : 'Expandir menú'
+                        }
+                        className="shrink-0 cursor-pointer rounded-[9px] transition-opacity hover:opacity-85 focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:outline-none"
+                    >
+                        <AppLogoMarca />
+                    </button>
+                    <Link
+                        href={
+                            esDigitador
+                                ? '/cirugias'
+                                : esProfesional
+                                  ? '/conocimiento/lecciones'
+                                  : esSuperAdmin
+                                    ? dashboard()
+                                    : '/inicio'
+                        }
+                        prefetch
+                        className="min-w-0 flex-1 group-data-[collapsible=icon]:hidden"
+                    >
+                        <AppLogoTexto />
+                    </Link>
+                </div>
                 <HospitalSwitcher />
             </SidebarHeader>
 
