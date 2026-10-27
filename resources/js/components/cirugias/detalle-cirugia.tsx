@@ -64,11 +64,17 @@ const INSUMOS_VISIBLES = 8;
 const momento = (valor: string | null) =>
     valor ? fechaHora(valor.replace(' ', 'T')) : '—';
 
-/** Corregir, (re)calcular el costo y eliminar. */
+/**
+ * Corregir, (re)calcular el costo y eliminar. Con `onCorregir` (modal del
+ * listado) Corregir abre el modal de corrección en vez de navegar.
+ */
 export function AccionesCirugia({
     cirugia,
     costo,
-}: Pick<DatosDetalleCirugia, 'cirugia' | 'costo'>) {
+    onCorregir,
+}: Pick<DatosDetalleCirugia, 'cirugia' | 'costo'> & {
+    onCorregir?: () => void;
+}) {
     const [calculando, setCalculando] = useState(false);
 
     const calcular = () => {
@@ -85,12 +91,19 @@ export function AccionesCirugia({
 
     return (
         <>
-            <Button asChild variant="outline">
-                <Link href={CirugiaController.edit.url(cirugia.id)}>
+            {onCorregir ? (
+                <Button variant="outline" onClick={onCorregir}>
                     <Pencil className="size-4" />
                     Corregir
-                </Link>
-            </Button>
+                </Button>
+            ) : (
+                <Button asChild variant="outline">
+                    <Link href={CirugiaController.edit.url(cirugia.id)}>
+                        <Pencil className="size-4" />
+                        Corregir
+                    </Link>
+                </Button>
+            )}
             <Button
                 onClick={calcular}
                 disabled={calculando || cirugia.estado !== 'realizada'}

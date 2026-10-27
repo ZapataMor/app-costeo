@@ -285,6 +285,24 @@ class CirugiaWebTest extends TestCase
             ->get("/cirugias?ver={$cirugiaB->id}")
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page->where('detalle', null));
+
+        // «Corregir» apila el formulario: catálogos y valores actuales.
+        $this->actingAs($this->adminA)
+            ->get("/cirugias?ver={$cirugiaA->id}")
+            ->assertInertia(fn (Assert $page) => $page->where('edicion', null));
+
+        $this->actingAs($this->adminA)
+            ->get("/cirugias?ver={$cirugiaA->id}&corregir=1")
+            ->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('edicion.cirugia.id', $cirugiaA->id)
+                ->where('edicion.cirugia.paciente_id', (string) $pacienteA->id)
+                ->has('edicion.pacientes', 1)
+                ->has('edicion.parametrosTdabc'));
+
+        $this->actingAs($this->adminA)
+            ->get("/cirugias?ver={$cirugiaB->id}&corregir=1")
+            ->assertInertia(fn (Assert $page) => $page->where('edicion', null));
     }
 
     public function test_alta_rapida_de_paciente_desde_el_formulario(): void

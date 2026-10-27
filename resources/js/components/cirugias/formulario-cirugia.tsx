@@ -184,13 +184,17 @@ export function FormularioCirugia({
     metodo,
     textoEnviar,
     hrefCancelar,
+    onCancelar,
 }: {
     catalogos: CatalogosCirugia;
     valoresIniciales?: DatosCirugia;
     urlEnvio: string;
     metodo: 'post' | 'put';
     textoEnviar: string;
-    hrefCancelar: string;
+    /** Página propia: Cancelar navega aquí. */
+    hrefCancelar?: string;
+    /** Dentro de un modal: Cancelar lo cierra. */
+    onCancelar?: () => void;
 }) {
     const {
         pacientes,
@@ -1903,9 +1907,21 @@ export function FormularioCirugia({
                             Siguiente
                         </Button>
                     )}
-                    <Button asChild variant="outline">
-                        <Link href={hrefCancelar}>Cancelar</Link>
-                    </Button>
+                    {onCancelar ? (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={onCancelar}
+                        >
+                            Cancelar
+                        </Button>
+                    ) : (
+                        <Button asChild variant="outline">
+                            <Link href={hrefCancelar ?? '/cirugias'}>
+                                Cancelar
+                            </Link>
+                        </Button>
+                    )}
                 </div>
             </div>
 

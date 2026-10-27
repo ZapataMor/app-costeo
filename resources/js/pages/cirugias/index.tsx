@@ -6,6 +6,8 @@ import CirugiaController from '@/actions/App/Http/Controllers/Cirugias/CirugiaCo
 import { BotonExportar } from '@/components/boton-exportar';
 import { CerrarCirugiaModal } from '@/components/cirugias/cerrar-cirugia-modal';
 import type { DatosDetalleCirugia } from '@/components/cirugias/detalle-cirugia';
+import type { DatosEdicionCirugia } from '@/components/cirugias/modal-corregir-cirugia';
+import { ModalCorregirCirugia } from '@/components/cirugias/modal-corregir-cirugia';
 import { ModalDetalleCirugia } from '@/components/cirugias/modal-detalle-cirugia';
 import {
     NOMBRE_CLASIFICACION,
@@ -260,22 +262,38 @@ function Situacion({ cirugia }: { cirugia: CirugiaFila }) {
 }
 
 /**
- * La URL actual con `ver` puesto o quitado: el detalle abierto queda en la
- * dirección (se puede recargar o compartir) sin perder filtros ni página.
+ * La URL actual con `ver` (detalle abierto) y `corregir` (corrección
+ * abierta) puestos o quitados: los modales quedan en la dirección (se puede
+ * recargar o compartir) sin perder filtros ni página.
  */
-const urlConDetalle = (id: number | null) => {
+const urlCon = (cambios: Record<string, string | null>) => {
     const params = new URLSearchParams(window.location.search);
 
-    if (id === null) {
-        params.delete('ver');
-    } else {
-        params.set('ver', String(id));
-    }
+    Object.entries(cambios).forEach(([clave, valor]) => {
+        if (valor === null) {
+            params.delete(clave);
+        } else {
+            params.set(clave, valor);
+        }
+    });
 
     const query = params.toString();
 
     return `/cirugias${query ? `?${query}` : ''}`;
 };
+
+/** Recarga parcial: solo los modales, nunca el listado. */
+const recargarModales = (url: string, reemplazar = false) =>
+    router.get(
+        url,
+        {},
+        {
+            only: ['detalle', 'edicion'],
+            preserveState: true,
+            preserveScroll: true,
+            replace: reemplazar,
+        },
+    );
 
 /** Costo y, debajo, cuánto se salió de su protocolo. */
 function Costo({ cirugia }: { cirugia: CirugiaFila }) {
@@ -306,6 +324,7 @@ export default function CirugiasIndex({
     conteos,
     pacienteFiltrado,
     detalle,
+    edicion,
 }: {
     cirugias: PaginadoCirugias;
     filtros: Filtros;
@@ -316,36 +335,39 @@ export default function CirugiasIndex({
         apellidos: string;
     } | null;
     detalle: DatosDetalleCirugia | null;
+    edicion: DatosEdicionCirugia | null;
 }) {
     // Cirugía abierta en el modal. Se abre al instante con un indicador de
-    // carga; el detalle llega por recarga parcial (solo la prop `detalle`).
+    // carga; el detalle llega por recarga parcial (solo las props de los
+    // modales). «Corregir» apila encima el modal de corrección.
     const [abierta, setAbierta] = useState<number | null>(
         detalle?.cirugia.id ?? null,
     );
+    const [corrigiendo, setCorrigiendo] = useState(edicion !== null);
     const detalleAbierto =
         detalle !== null && detalle.cirugia.id === abierta ? detalle : null;
+    const edicionAbierta =
+        edicion !== null && edicion.cirugia.id === abierta ? edicion : null;
 
     const abrir = (id: number) => {
         setAbierta(id);
-        router.get(
-            urlConDetalle(id),
-            {},
-            { only: ['detalle'], preserveState: true, preserveScroll: true },
-        );
+        recargarModales(urlCon({ ver: String(id), corregir: null }));
     };
 
     const cerrar = useCallback(() => {
         setAbierta(null);
-        router.get(
-            urlConDetalle(null),
-            {},
-            {
-                only: ['detalle'],
-                preserveState: true,
-                preserveScroll: true,
-                replace: true,
-            },
-        );
+        setCorrigiendo(false);
+        recargarModales(urlCon({ ver: null, corregir: null }), true);
+    }, []);
+
+    const abrirCorreccion = useCallback(() => {
+        setCorrigiendo(true);
+        recargarModales(urlCon({ corregir: '1' }));
+    }, []);
+
+    const cerrarCorreccion = useCallback(() => {
+        setCorrigiendo(false);
+        recargarModales(urlCon({ corregir: null }), true);
     }, []);
 
     // Fecha, paciente, procedimiento, duración, costo, situación, acción.
@@ -596,6 +618,13 @@ export default function CirugiasIndex({
                 abierto={abierta !== null}
                 detalle={detalleAbierto}
                 onCerrar={cerrar}
+                onCorregir={abrirCorreccion}
+            />
+            {/* Después del detalle: queda encima y Escape lo cierra primero. */}
+            <ModalCorregirCirugia
+                abierto={abierta !== null && corrigiendo}
+                edicion={edicionAbierta}
+                onCerrar={cerrarCorreccion}
             />
         </>
     );

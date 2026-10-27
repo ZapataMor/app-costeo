@@ -146,6 +146,9 @@ class CirugiaController extends Controller
             // El detalle se abre en un modal sobre el listado (`?ver=ID`).
             // Closure: en la recarga parcial del clic solo viaja esta prop.
             'detalle' => fn () => $this->detalleModal($request->integer('ver') ?: null, $presentar),
+            // «Corregir» desde el detalle abre un segundo modal con el
+            // formulario (`?ver=ID&corregir=1`): catálogos + valores actuales.
+            'edicion' => fn () => $this->edicionModal($request),
         ]);
     }
 
@@ -160,6 +163,29 @@ class CirugiaController extends Controller
         $cirugia = $cirugiaId !== null ? Cirugia::query()->find($cirugiaId) : null;
 
         return $cirugia !== null ? $this->datosDetalle($cirugia, $presentar) : null;
+    }
+
+    /**
+     * Lo mismo que la página de corrección, para el modal. Mismas reglas:
+     * HospitalScope y el gate `corregir-cirugia`.
+     *
+     * @return array<string, mixed>|null
+     */
+    protected function edicionModal(Request $request): ?array
+    {
+        $cirugiaId = $request->integer('ver') ?: null;
+
+        if ($cirugiaId === null || ! $request->boolean('corregir')) {
+            return null;
+        }
+
+        $cirugia = Cirugia::query()->find($cirugiaId);
+
+        if ($cirugia === null || Gate::denies('corregir-cirugia', $cirugia)) {
+            return null;
+        }
+
+        return $this->datosEdicion($cirugia);
     }
 
     /** @return array<string, mixed> */
@@ -279,9 +305,19 @@ class CirugiaController extends Controller
         // El digitador solo corrige lo que él mismo capturó.
         Gate::authorize('corregir-cirugia', $cirugia);
 
+        return Inertia::render('cirugias/edit', $this->datosEdicion($cirugia));
+    }
+
+    /**
+     * Catálogos del formulario y los valores actuales de la cirugía.
+     *
+     * @return array<string, mixed>
+     */
+    protected function datosEdicion(Cirugia $cirugia): array
+    {
         $cirugia->load(['procedimientos', 'equipoQuirurgico', 'consumos', 'equiposMedicos']);
 
-        return Inertia::render('cirugias/edit', [
+        return [
             ...$this->catalogos(),
             'cirugia' => [
                 'id' => $cirugia->id,
@@ -325,7 +361,7 @@ class CirugiaController extends Controller
                         'minutos_uso' => (string) $equipo->pivot?->getAttribute('minutos_uso'),
                     ])->values(),
             ],
-        ]);
+        ];
     }
 
     public function update(
