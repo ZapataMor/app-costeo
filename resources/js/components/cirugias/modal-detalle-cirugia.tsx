@@ -44,7 +44,20 @@ export function ModalDetalleCirugia({
 
         document.addEventListener('keydown', cerrarConEscape);
 
-        return () => document.removeEventListener('keydown', cerrarConEscape);
+        // Con el modal abierto solo se desplaza el modal: ni la ventana ni el
+        // contenedor de la página (`.sicoq-page-scroll`) muestran su barra.
+        const bloqueados = [
+            document.documentElement,
+            document.body,
+            ...document.querySelectorAll<HTMLElement>('.sicoq-page-scroll'),
+        ];
+        const anteriores = bloqueados.map((el) => el.style.overflow);
+        bloqueados.forEach((el) => (el.style.overflow = 'hidden'));
+
+        return () => {
+            document.removeEventListener('keydown', cerrarConEscape);
+            bloqueados.forEach((el, i) => (el.style.overflow = anteriores[i]));
+        };
     }, [abierto, onCerrar]);
 
     const destinoPortal =
@@ -62,11 +75,13 @@ export function ModalDetalleCirugia({
             aria-modal="true"
             aria-label={detalle ? tituloCirugia(detalle.cirugia) : 'Cirugía'}
             // z-40: los diálogos de Radix (z-50, en el body) quedan encima.
-            className="sicoq-modal fixed inset-0 z-40 flex items-center justify-center overflow-y-auto bg-transparent p-4 backdrop-blur-[12px] sm:p-8"
+            // Sin overflow propio: la tarjeta cabe siempre (max-h descuenta el
+            // padding) y la única barra es la de la tarjeta.
+            className="sicoq-modal fixed inset-0 z-40 flex items-center justify-center overflow-hidden bg-transparent p-4 backdrop-blur-[12px] sm:p-8"
             onClick={onCerrar}
         >
             <div
-                className="max-h-[calc(100svh-2rem)] w-full max-w-5xl overflow-y-auto rounded-2xl border border-[#5B687C]/20 bg-[#FBFAF9] shadow-[0_28px_70px_-24px_rgba(23,24,31,.52)] dark:bg-[#23242E]"
+                className="max-h-[calc(100svh-2rem)] w-full max-w-5xl overflow-y-auto rounded-2xl border border-[#5B687C]/20 bg-[#FBFAF9] shadow-[0_28px_70px_-24px_rgba(23,24,31,.52)] sm:max-h-[calc(100svh-4rem)] dark:bg-[#23242E]"
                 onClick={(e) => e.stopPropagation()}
             >
                 {detalle ? (
